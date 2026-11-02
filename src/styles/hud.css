@@ -1,0 +1,14 @@
+.hud{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:14px 32px;border-bottom:1px solid #161B27;background:rgba(7,9,15,.85);position:relative;z-index:2}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:.12em}
+.chip{padding:6px 12px;border-radius:8px;background:var(--s3);border:1px solid var(--ln);font-family:var(--mono);font-size:13px;color:var(--gold)}
+.hud-r{display:flex;align-items:center;gap:24px}
+.xpw{display:flex;align-items:center;gap:12px}
+.lvlb{font-family:var(--disp);font-weight:700;font-size:15px;color:var(--gold)}
+.bar{width:180px;height:8px;border-radius:99px;background:#1A2030;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--gold);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.xpt{font-family:var(--mono);font-size:13px;color:var(--mut)}
+.streak{display:flex;align-items:center;gap:6px;font-family:var(--disp);font-weight:600;color:var(--coral)}
+.avatar-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--s3);border:2px solid var(--gold);color:var(--gold);font-family:var(--disp);font-weight:700}
+.avatar-btn.is-pro{border-color:var(--violet);color:var(--violet)}
+.avatar-btn.is-pro::after{content:"PRO";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);padding:1px 5px;border-radius:4px;background:var(--violet);color:#07090F;font-size:9px;letter-spacing:.08em}
+.gopro{border:1px solid var(--violet);background:rgba(201,184,255,.1);color:var(--violet);font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.14em;padding:0 14px;min-height:36px;border-radius:9px}

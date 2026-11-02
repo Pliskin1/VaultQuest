@@ -1,0 +1,6 @@
+:root{
+  --bg:#07090F;--bg2:#0A0D14;--s1:#0E121B;--s2:#121826;--s3:#151A26;--ln:#232A3A;--ln2:#2A3245;
+  --tx:#EDEFF5;--tx2:#C9CEDB;--mut:#A3ABBE;--mut2:#8B93A7;
+  --gold:#F2B544;--gold2:#FFD27A;--cyan:#4FD8C4;--coral:#FF9B7A;--violet:#C9B8FF;
+  --disp:'Chakra Petch',system-ui,sans-serif;--body:Inter,system-ui,sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace;
+}
