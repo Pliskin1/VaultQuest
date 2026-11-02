@@ -50,3 +50,6 @@
 .pj-mentor .m-form{padding:8px 16px 12px}
 .pj-mentor .m-form input{min-height:40px;font-size:14px}
 .pj-mentor .send{width:40px;height:40px}
+.pv-app.term{background:#05070B;color:#C9CEDB;font:13px/1.65 var(--mono);white-space:pre-wrap;overflow:auto}
+.pv-app.term .dim{color:var(--mut2)}.pv-app.term .ok{color:var(--cyan)}.pv-app.term .err{color:var(--coral)}
+.pf-shot .pv-app.term{min-height:150px}

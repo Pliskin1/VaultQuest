@@ -15,4 +15,5 @@ Demo recordings: `http://localhost:5173/?demo=1` (free flow) and `?demo=pro` (Pr
 - Vite + vanilla JS, Web Animations API, one canvas FX layer.
 - AI: `server/` Express → Claude (`claude-haiku-5-5`), rate-limited, cached, always with a content fallback.
 - Code: JS runs in a sandboxed Worker; Python runs via Pyodide (loaded from CDN on first Python fix challenge).
-- Progress in localStorage; "Reset progress" on the profile screen.
+- Local profiles: pick a handle on the VAULT ACCESS screen; each handle keeps its own progress on this device (no passwords — no server accounts by design). Log out / Reset progress on the profile screen.
+- Content: Python & JavaScript, 4 free vaults each + Pro vault + Pro project (Guess the Number / To-Do App). Add more in `src/content/languages.js`.

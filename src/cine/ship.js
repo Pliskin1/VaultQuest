@@ -5,13 +5,13 @@ import { Clock, wait, nextFrame } from '../core/clock.js';
 import { FX } from '../core/fx.js';
 import { award } from '../ui/toast.js';
 
-export async function playShipCinematic({ score = 92, xp = 500 } = {}) {
+export async function playShipCinematic({ score = 92, xp = 500, title = 'To-Do App', lang = 'JavaScript' } = {}) {
   const sc = $('#shipcine'), src = $('.pv'), r = src.getBoundingClientRect(), h = $('#s-holder');
   cancelAnims(sc, h, $('#s-bg'), $('#s-rays'), $('#s-glow'), $('#s-kick'), $('#s-next'), $('#s-share'), ...$$('#s-stats .c-stat'));
   h.innerHTML = '';
   const cl = src.cloneNode(true); cl.style.margin = '0'; cl.style.width = r.width + 'px'; cl.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); h.appendChild(cl);
   h.style.cssText = `position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:2`;
-  $('#sh-title').innerHTML = ''; $('#s-score').textContent = `${score} / 100`; $('#s-xp').textContent = '+0';
+  $('#sh-title').innerHTML = ''; $('#s-kick').textContent = `PROJECT COMPLETE · ${title} · ${lang}`.toUpperCase(); $('#s-share').textContent = 'SHARE LIVE LINK'; $('#s-score').textContent = `${score} / 100`; $('#s-xp').textContent = '+0';
   sc.classList.add('on'); anim($('#s-bg'), [{ opacity: 0 }, { opacity: 1 }], { duration: 600 });
   const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * .47 - (r.top + r.height / 2);
   await anim(h, [{ transform: 'translate(0,0) scale(1) rotateY(0)' }, { transform: `translate(${dx * .6}px,${dy * .6 - 40}px) scale(1.06) perspective(800px) rotateY(-12deg)`, offset: .55 }, { transform: `translate(${dx}px,${dy}px) scale(1.12) perspective(800px) rotateY(0)` }], { duration: 1200, easing: 'cubic-bezier(.16,1,.3,1)' });

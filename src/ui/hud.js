@@ -1,5 +1,5 @@
 import { $$ } from '../core/dom.js';
-import { S, PER_LVL, lvlOf } from '../core/state.js';
+import { S, PER_LVL, lvlOf, initials } from '../core/state.js';
 
 const HUD = `<div style="display:flex;align-items:center;gap:20px"><div class="brand"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="15" stroke="#F2B544" stroke-width="2"/><circle cx="17" cy="17" r="6" stroke="#F2B544" stroke-width="2"/><path d="M17 2v6M17 26v6M2 17h6M26 17h6" stroke="#F2B544" stroke-width="2"/></svg>VAULTQUEST</div><span class="chip hud-lang"></span></div>
  <div class="hud-r"><div class="xpw"><span class="lvlb hud-lvl"></span><div class="bar"><i class="hud-bar"></i></div><span class="xpt hud-xp"></span></div>
@@ -24,5 +24,5 @@ export function updHud() {
   $$('.hud-streak').forEach(e => e.textContent = S.streak + ' day streak');
   $$('.hud-lang').forEach(e => e.textContent = (S.lang === 'py' ? 'py · Python' : 'js · JavaScript') + ' path');
   $$('.hud-gopro').forEach(b => b.style.display = S.pro ? 'none' : '');
-  $$('.hud-prof').forEach(b => b.classList.toggle('is-pro', !!S.pro));
+  $$('.hud-prof').forEach(b => { b.classList.toggle('is-pro', !!S.pro); b.textContent = initials(); b.setAttribute('aria-label', `Profile: ${S.name || 'you'}`); });
 }

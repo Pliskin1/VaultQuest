@@ -30,3 +30,10 @@
 - [x] Persist/restore state, "Reset progress" in profile
 - [x] `?demo=1` / `?demo=pro` directors
 - [x] README; single-service deploy (`npm start` serves `dist/` + `/api`)
+
+## Session 2
+- [x] Local profiles login + streak
+- [x] Python Pro project (Pyodide test harness, terminal preview)
+- [x] Mobile layout
+- [x] QA fixes + headless-browser end-to-end verification
+- [ ] Needs you: `ANTHROPIC_API_KEY` in `.env`, deploy account (Render/Railway)

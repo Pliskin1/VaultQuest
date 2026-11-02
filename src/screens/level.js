@@ -99,14 +99,14 @@ async function runFix() {
   let out, err;
   if (res) { out = res.stdout.trim(); err = res.stderr.trim(); }
   else { const f = regexFail(c, code); out = f ? '' : c.ok; err = f ? f.out : ''; }
-  if (!err && outputOk(out, c.ok)) {
+  const f = regexFail(c, code);
+  if (!err && outputOk(out, c.ok) && !f) {
     cons.innerHTML = `${head}\n${esc(out)}\n<span class="okl">✓ All checks passed</span>`;
     award('debug'); correct(cons); return;
   }
-  const msg = err || `✗ Expected output: ${c.ok}`;
+  const msg = err || (outputOk(out, c.ok) ? '✗ Right output, but the bug is still in the code' : `✗ Expected output: ${c.ok}`);
   cons.innerHTML = `${head}\n${out ? esc(out) + '\n' : ''}<span class="err">${esc(msg)}</span>`;
   btn.disabled = false; G.lock = false;
-  const f = regexFail(c, code);
   const fallback = f ? f.why : err ? 'Read the **last line** of the error — it names the problem. Which word or symbol on that line looks different from what Python/JS expects?' : `It runs, but prints \`${out.split('\n').pop() || 'nothing'}\` instead of \`${c.ok.split('\n').pop()}\`. Which line produces the output?`;
   await wrong(cons, Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: err || `wrong output: ${out}` }, fallback), true);
 }

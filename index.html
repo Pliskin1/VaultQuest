@@ -27,6 +27,20 @@
   <div class="t-foot">AI MENTOR · PYTHON &amp; JAVASCRIPT · HANDCRAFTED CHALLENGES</div>
 </section>
 
+<section id="s-login" class="screen">
+  <div class="floor"></div>
+  <div class="lg-wrap">
+    <div class="lg-dial" id="lg-dial" aria-hidden="true"></div>
+    <div class="kicker" style="color:var(--gold)">VAULT ACCESS · IDENTIFY YOURSELF</div>
+    <h2 class="lg-h">Who's cracking the vaults?</h2>
+    <form id="lg-form" class="lg-form" novalidate><label for="lg-in" class="sr">Your handle</label><span class="lg-pr" aria-hidden="true">&gt;_</span><input id="lg-in" maxlength="16" autocomplete="username" spellcheck="false" placeholder="your-handle" aria-describedby="lg-err lg-note"><button class="btn" id="lg-go">UNLOCK <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
+    <div class="lg-err" id="lg-err" role="alert"></div>
+    <div class="lg-prof" id="lg-prof"></div>
+    <div class="lg-note" id="lg-note">2–16 letters, numbers, - or _ · progress is saved on this device</div>
+  </div>
+  <div class="lg-granted" id="lg-granted" aria-hidden="true"></div>
+</section>
+
 <section id="s-lang" class="screen">
   <div class="l-head"><div class="kicker">Select your path</div><h2>Which language will you master?</h2></div>
   <div class="l-cards">
@@ -104,7 +118,7 @@
 <section id="s-project" class="screen">
   <header class="lhud">
     <button class="iconbtn" id="pj-back" aria-label="Back to map"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 9H4M8 5L4 9l4 4" stroke="#A3ABBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="ltitle"><b style="color:var(--violet)">PRO PROJECT · JAVASCRIPT</b><span id="pj-name">To-Do App</span></div>
+    <div class="ltitle"><b style="color:var(--violet)" id="pj-kick">PRO PROJECT · JAVASCRIPT</b><span id="pj-name">To-Do App</span></div>
     <div class="segs" id="pj-segs"></div>
     <div class="sp"></div>
     <span class="chip" style="color:var(--violet);border-color:#2E2650">PRO</span>
@@ -113,13 +127,13 @@
   <div class="pj-body">
     <aside class="pj-left"><div class="kicker">The brief</div><p id="pj-brief"></p><div class="kicker" style="margin-top:4px">Milestones</div><ol id="pj-ms"></ol></aside>
     <div class="pj-mid">
-      <div class="pj-tabs"><span class="on">app.js</span><span>index.html</span><span>style.css</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
+      <div class="pj-tabs"><span class="on" id="pj-file">app.js</span><span class="pj-xtab">index.html</span><span class="pj-xtab">style.css</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
       <div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
       <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--mut2)">4 automated checks</span></div>
       <div class="console pj-cons" id="pj-cons"></div>
     </div>
     <aside class="pj-right">
-      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div></div>
+      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url" id="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div></div>
       <div class="pj-mentor" id="pj-mentor">
         <div class="m-head"><div class="orb"></div><div><div class="m-name">VAULT AI · CODE REVIEW</div><div class="m-stat" id="pj-stat">Your mentor · online</div></div></div>
         <div class="msgs" id="pj-msgs" aria-live="polite"></div>

@@ -28,5 +28,8 @@ Target: desktop 1280×720+. Must not break on mobile, desktop is the priority.
 10. **Project mode** — milestones, `app.js` editor, RUN & TEST, SUBMIT when all pass, console ✓/✗, live preview, mentor CODE REVIEW (AI, fallback `review()`).
 11. **Ship cinematic** — SHIPPED!, stats (+500 XP, 4/4, AI score), `Pro Builder` toast, SHARE LIVE LINK + ADD TO PORTFOLIO → profile.
 
+## Profiles (added)
+Local profiles instead of accounts: title → VAULT ACCESS screen (handle 2–16 chars) → per-handle save `vaultquest:<handle>`, recent profiles as chips, Log out + Reset in profile. Daily streak.
+
 ## Out of scope
-Accounts, real payments, leaderboard, multiplayer, admin, i18n.
+Server accounts/passwords, real payments, leaderboard, multiplayer, admin, i18n.

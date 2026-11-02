@@ -1,0 +1,24 @@
+#s-login{align-items:center;justify-content:center;overflow:hidden;overflow:clip}
+.lg-wrap{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;width:min(620px,calc(100% - 40px));text-align:center}
+.lg-dial{width:120px;height:120px;position:relative;margin-bottom:4px}
+.lg-dial svg{position:absolute;inset:0;width:100%;height:100%}
+.lg-h{margin:0 0 10px;font-family:var(--disp);font-weight:700;font-size:52px;line-height:1.05;letter-spacing:.02em}
+.lg-form{display:flex;align-items:center;gap:12px;width:100%;padding:10px 10px 10px 20px;border-radius:16px;background:var(--s1);border:2px solid var(--ln2);transition:border-color .2s,box-shadow .2s}
+.lg-form:focus-within{border-color:var(--gold);box-shadow:0 0 0 6px rgba(242,181,68,.12),0 30px 60px -30px rgba(242,181,68,.5)}
+.lg-form.bad{border-color:var(--coral);box-shadow:0 0 0 6px rgba(255,155,122,.12)}
+.lg-pr{font-family:var(--mono);font-size:24px;color:var(--gold)}
+.lg-form input{flex:1;min-width:0;height:52px;border:0;background:transparent;outline:none;color:var(--tx);font:500 26px var(--mono);letter-spacing:.04em;caret-color:var(--gold)}
+.lg-form input::placeholder{color:#3E465A}
+.lg-err{min-height:20px;font-family:var(--mono);font-size:13px;color:var(--coral)}
+.lg-prof{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}
+.lg-chip{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 14px 6px 6px;border-radius:999px;background:var(--s1);border:1px solid var(--ln2);color:var(--tx);transition:border-color .2s,transform .2s}
+.lg-chip:hover{border-color:var(--gold);transform:translateY(-2px)}
+.lg-chip i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--s3);border:2px solid var(--gold);color:var(--gold);font:700 13px var(--disp);font-style:normal}
+.lg-chip.pro i{border-color:var(--violet);color:var(--violet)}
+.lg-chip b{font-family:var(--disp);font-size:16px}
+.lg-chip span{font-family:var(--mono);font-size:12px;color:var(--mut2)}
+.lg-note{margin-top:6px;font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--mut2)}
+.lg-granted{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-family:var(--disp);font-weight:700;font-size:84px;letter-spacing:.08em;color:var(--gold);text-shadow:0 0 50px rgba(242,181,68,.55);background:radial-gradient(circle,rgba(7,9,15,.6),rgba(7,9,15,.95) 70%);pointer-events:none}
+.lg-granted span{display:inline-block;white-space:pre}
+.p-acts{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.p-acts .reset{margin-top:0}

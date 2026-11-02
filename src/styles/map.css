@@ -3,7 +3,7 @@
 .m-count{font-family:var(--mono);font-size:14px;color:var(--mut)}
 .m-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:0 32px}
 .m-map{position:relative;height:min(430px,calc(100vh - 300px));aspect-ratio:1200/460;max-width:100%}
-.m-map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#m-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px}
 .nbtn{position:relative;width:78px;height:78px;border-radius:50%;display:grid;place-items:center;padding:0;background:var(--s1);border:3px solid var(--ln2);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
 .nbtn:hover{transform:scale(1.08)}

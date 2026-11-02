@@ -1,0 +1,49 @@
+/* Small screens: desktop (1280×720) is the priority; below 900px everything stacks and scrolls. */
+@media (max-width:900px){
+  .screen{overflow-y:auto;overflow-x:hidden}
+  .hud{padding:10px 16px;gap:10px}
+  .hud .chip,.hud .xpt,.hud .streak{display:none}
+  .hud-r{gap:10px}.hud .bar{display:none}.brand{font-size:15px}.lvlb,.gopro{white-space:nowrap}.gopro{padding:0 10px;font-size:11px}
+  .logo{font-size:56px}.tag{font-size:16px;margin:8px 0 24px}.emblem{width:140px;height:140px}
+  .t-foot{font-size:10px;letter-spacing:.1em;text-align:center;padding:0 16px}
+  .lg-h{font-size:36px}.lg-granted{font-size:44px}
+  #s-lang{justify-content:flex-start;padding:28px 16px}
+  .l-head h2{font-size:30px}
+  .l-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .lcard{min-height:0;padding:18px}
+  #s-map .m-title{padding:16px 16px 0}#s-map h2{font-size:28px}
+  .m-wrap{padding:60px 24px 20px;flex:none;overflow-x:auto;justify-content:flex-start}
+  .m-map{height:auto;width:780px;min-width:780px;max-width:none}
+  .nbtn{width:52px;height:52px}.node.cur .nbtn,.node.pro.cur .nbtn{width:62px;height:62px}
+  .nnum{font-size:20px}.nlab span{font-size:12px}.nlab b{font-size:9px}
+  #m-avatar{width:22px;height:22px}
+  .m-panel{flex-wrap:wrap;width:calc(100% - 24px);gap:12px;padding:18px}
+  .m-panel > div:first-child{flex-basis:100%}
+  .lhud{flex-wrap:wrap;gap:10px;padding:10px 12px}
+  .lhud .xpw{display:none}.segs{margin-left:0}
+  .l-body{flex-direction:column;flex:none}
+  .l-main{padding:14px;overflow:visible}
+  .card{padding:18px;gap:14px}.card h3{font-size:21px}
+  .codeblk,.ed pre,.ed textarea,.ed .gut,.opt{font-size:14px}
+  .mentor{width:100%;height:60vh;border-left:0;border-top:1px solid #161B27}
+  #s-profile .p-body{grid-template-columns:1fr;padding:16px}
+  .p-top,.pf{flex-wrap:wrap}.p-stats{margin-left:0;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .p-stat{min-width:0}.ach{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #s-pro .pro-body{grid-template-columns:1fr;gap:24px;padding:20px 16px}
+  .pro-left h2{font-size:32px}
+  .pj-body{flex-direction:column;flex:none}
+  .pj-left,.pj-right{width:100%;border:0}
+  .pj-ed{min-height:320px}
+  .pj-mentor{height:50vh}
+  .co{width:calc(100vw - 32px)}
+  #cine .c-stage{zoom:.55}
+  .c-title{font-size:52px}.c-stars svg{width:56px;height:56px}
+  .c-stats{flex-wrap:wrap;justify-content:center;padding:0 12px}.c-stat{min-width:140px!important}
+  .kh{zoom:.7}.perks{grid-template-columns:1fr}
+  .toasts{right:12px;left:12px;top:12px}.toast{width:auto}
+}
+@media (max-width:520px){
+  .opts{grid-template-columns:1fr}
+  .l-cards{grid-template-columns:1fr}
+  .logo{font-size:40px}
+}

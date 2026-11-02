@@ -20,7 +20,7 @@ button,input,textarea{font-variant-ligatures:none;font-feature-settings:"liga" 0
 .iconbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--ln);background:transparent;display:grid;place-items:center}
 
 /* ---------- title ---------- */
-#s-title{align-items:center;justify-content:center;overflow:hidden}
+#s-title{align-items:center;justify-content:center;overflow:hidden;overflow:clip}
 .floor{position:absolute;left:-50%;right:-50%;bottom:-10%;height:62%;transform-origin:50% 0;transform:perspective(520px) rotateX(68deg);
   background-image:linear-gradient(rgba(242,181,68,.22) 1px,transparent 1px),linear-gradient(90deg,rgba(242,181,68,.22) 1px,transparent 1px);background-size:64px 64px;animation:floor 2.2s linear infinite;
   -webkit-mask-image:linear-gradient(to bottom,transparent,#000 35%);mask-image:linear-gradient(to bottom,transparent,#000 35%)}
