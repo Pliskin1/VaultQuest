@@ -21,6 +21,8 @@ export const G = { li: 0, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chM
 const lvl = () => LANGS[S.lang].levels[G.li], chal = () => lvl().ch[G.ci];
 const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c0 7-11 14-11 14z"';
 const cmd = () => S.lang === 'py' ? 'python main.py' : 'node main.js';
+const consHead = () => `<span class="dim">$ ${cmd()}</span>`;
+const RESET_BTN = '<button class="btn outline" id="b-reset" title="Reset challenge"><svg class="ic-rot" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 7a4.5 4.5 0 1 0 1.3-3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M3.3 1.2v3h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>RESET</button>';
 const plain = s => s.replace(/<[^>]+>/g, '');
 const aiChal = c => ({ type: c.t, q: plain(c.q), code: c.code });
 
@@ -50,15 +52,16 @@ async function renderCh(animate = true) {
   const typ = { mcq: 'MULTIPLE CHOICE', blank: 'FILL THE BLANK', fix: 'FIX THE BUG' }[c.t];
   let h = `<div class="kicker">CHALLENGE ${G.ci + 1}/${lvl().ch.length} · ${typ}</div><h3>${c.q}</h3>`;
   if (c.t === 'mcq') h += `<pre class="codeblk">${hl(c.code, S.lang)}</pre><div class="opts">${c.opts.map((o, k) => `<button class="opt" data-k="${k}"><kbd>${'ABCD'[k]}</kbd>${esc(o[0])}</button>`).join('')}</div>`;
-  if (c.t === 'blank') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
+  if (c.t === 'blank') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button>${RESET_BTN}<span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
   if (c.t === 'fix') {
     const n = c.code.split('\n').length;
     h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(c.code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(c.code)}</textarea></div>
-    <div class="row"><button class="btn" id="b-run"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN</button><span style="color:var(--mut2);font-size:14px">Runs your code for real</span></div>
-    <div class="console" id="cons" aria-live="polite"><span class="dim">$ ${cmd()}</span></div>`;
+    <div class="row"><button class="btn" id="b-run"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN</button>${RESET_BTN}<span style="color:var(--mut2);font-size:14px">Runs your code for real</span></div>
+    <div class="console" id="cons" aria-live="polite">${consHead()}</div>`;
     if (S.lang === 'py') preloadPython();
   }
   card.innerHTML = h; G.lock = false;
+  if (c.t !== 'mcq') $('#b-reset').onclick = resetCh;
   if (c.t === 'mcq') $$('.opt').forEach(b => b.onclick = () => pickOpt(b));
   if (c.t === 'blank') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; }
   if (c.t === 'fix') {
@@ -69,6 +72,15 @@ async function renderCh(animate = true) {
   }
   if (animate) await anim(card, [{ opacity: 0, transform: 'translateX(80px)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 450, easing: EASE.out });
   card.getAnimations().forEach(a => a.cancel());
+}
+
+// Restores the challenge to its starting state: blank field emptied, editor back to the buggy code,
+// console cleared. Ignored while code is running or the card is transitioning.
+function resetCh() {
+  if (G.lock) return;
+  const c = chal();
+  if (c.t === 'blank') { const inp = $('#blank'); inp.value = ''; inp.classList.remove('bad', 'ok'); inp.focus(); }
+  if (c.t === 'fix') { const ta = $('#ed'); ta.value = c.code; ta.oninput(); $('#cons').innerHTML = consHead(); }
 }
 
 function pickOpt(b) {
@@ -92,7 +104,7 @@ const outputOk = (out, ok) => out === ok || out.endsWith('\n' + ok);
 // if the runtime can't load. Running buggy code never costs a heart.
 async function runFix() {
   if (G.lock) return;
-  const c = chal(), code = $('#ed').value, cons = $('#cons'), btn = $('#b-run'), head = `<span class="dim">$ ${cmd()}</span>`;
+  const c = chal(), code = $('#ed').value, cons = $('#cons'), btn = $('#b-run'), head = consHead();
   G.lock = true; btn.disabled = true;
   cons.innerHTML = head + '\n<span class="dim">running…</span>';
   const [res] = await Promise.all([S.lang === 'py' ? runPython(code) : runJsChallenge(code), wait(600)]);

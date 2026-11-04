@@ -16,6 +16,12 @@ button,input,textarea{font-variant-ligatures:none;font-feature-settings:"liga" 0
 .btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
 .btn.ghost{background:transparent;border:1px solid var(--ln2);color:var(--tx)}
 .btn.cyan{background:var(--cyan)}
+.btn.outline{background:transparent;border:2px solid var(--gold);color:var(--gold);transition:background .2s,box-shadow .25s,transform .2s}
+.btn.outline .ic-rot{transition:transform .6s cubic-bezier(.34,1.56,.64,1)}
+.btn.outline:hover{background:rgba(242,181,68,.1);box-shadow:0 0 20px -4px rgba(242,181,68,.55);transform:translateY(-2px)}
+.btn.outline:hover .ic-rot{transform:rotate(-360deg)}
+.btn.outline:active{transform:translateY(0) scale(.97)}
+@media (prefers-reduced-motion:reduce){.btn.outline,.btn.outline .ic-rot{transition:none}.btn.outline:hover{transform:none}}
 .btn:disabled{opacity:.4;cursor:default}
 .iconbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--ln);background:transparent;display:grid;place-items:center}
 
