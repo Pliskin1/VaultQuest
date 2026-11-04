@@ -55,7 +55,8 @@ export function renderMap() {
     const stars = st === 'done' ? `<div class="stars">${[1, 2, 3].map(k => `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">${STAR} fill="${k <= st3 ? (i >= F() ? '#C9B8FF' : '#F2B544') : '#2A3245'}"/></svg>`).join('')}</div>` : '';
     return `<div class="node ${st} ${i >= F() ? 'pro' : ''} ${i === sel ? 'sel' : ''}" data-i="${i}" style="left:${p.left};top:${p.top}"><button class="nbtn" aria-label="${nodeKick(i)}: ${t}">${nodeInner(i, st)}</button><div class="nlab"><b>${nodeKick(i)}</b><span>${t}</span>${stars}</div></div>`;
   }).join('') + (S.pro ? '' : '<div class="gate" id="m-gate">' + ICON.crown.replace('width="28" height="28"', 'width="16" height="16"') + 'PRO</div>');
-  if (!S.pro) { const s3 = $(`#m-svg .gseg[data-i="${F() - 1}"]`), p = s3.getPointAtLength(s3.getTotalLength() / 2), g = $('#m-gate'); Object.assign(g.style, pct(p.x, p.y)); }
+  // The PRO gate sits on the path just past the last FREE vault's label.
+  if (!S.pro) { const s3 = $(`#m-svg .gseg[data-i="${F() - 1}"]`), p = s3.getPointAtLength(s3.getTotalLength() * .62), g = $('#m-gate'); Object.assign(g.style, pct(p.x, p.y)); }
   $$('#m-nodes .node').forEach(n => n.querySelector('.nbtn').onclick = () => { sel = +n.dataset.i; $$('#m-nodes .node').forEach(m => m.classList.toggle('sel', m === n)); renderPanel(); });
   placeAvatar(S.pro ? Math.min(done, NODES.length - 1) : Math.min(done, F() - 1));
   renderPanel();

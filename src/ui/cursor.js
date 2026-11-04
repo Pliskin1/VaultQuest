@@ -57,20 +57,22 @@ async function freeDemo() {
   await click($('#m-play'), 800); await wait(2600);
   cap('CHALLENGES', 'Handcrafted tasks: quizzes, fill-ins, fix-the-bug'); await wait(1600);
   await click($$('.opt')[0], 900); await wait(2600);
-  await move($('#blank'), 800); await type($('#blank'), '==', 180); await wait(400); await click($('#b-check'), 500);
+  await move($('#blank'), 800); await type($('#blank'), '"False"', 150); await wait(400); await click($('#b-check'), 500);
   cap('AI MENTOR', 'Make a mistake? It explains exactly why'); await wait(4200);
-  await click($('#m-in'), 900); await type($('#m-in'), "what's the difference between = and ==?", 45); await wait(300);
+  await click($('#m-in'), 900); await type($('#m-in'), 'what\'s the difference between False and "False"?', 45); await wait(300);
   cap('AI MENTOR', 'Ask it anything about the task'); $('#m-form').requestSubmit(); await wait(6200);
-  await click($('#blank'), 900); await type($('#blank'), '=', 150); await wait(300); await click($('#b-check'), 500); await wait(2800);
+  await click($('#blank'), 900); await type($('#blank'), 'False', 150); await wait(300); await click($('#b-check'), 500);
+  await waitFor(() => $('#ed')); await wait(1200); // the filled-in code runs for real before the next card
   cap('FIX THE BUG', 'Real code runs — real errors, explained in plain words'); await wait(1000);
   await click($('#b-run'), 900); await waitFor(() => !$('#b-run').disabled); await wait(4000);
   await click($('#btn-hint'), 900); await wait(3600);
-  const ta = $('#ed'), idx = ta.value.indexOf('Name'), pre = $('#ed-hl').getBoundingClientRect();
+  const ta = $('#ed'), idx = ta.value.indexOf('Read a book'), pre = $('#ed-hl').getBoundingClientRect();
   const cw = (() => { const c = document.createElement('canvas').getContext('2d'); c.font = '17px JetBrains Mono'; return c.measureText('M').width; })();
   await move({ x: pre.left + 56 + (idx - ta.value.lastIndexOf('\n', idx) - 1) * cw + cw * .5, y: pre.top + 18 + 28.9 * 1.5 }, 900); await wait(300);
-  ta.focus(); ta.selectionStart = ta.selectionEnd = idx + 1; await wait(300);
-  ta.value = ta.value.slice(0, idx) + ta.value.slice(idx + 1); ta.selectionStart = ta.selectionEnd = idx; ta.oninput(); await wait(260);
-  ta.value = ta.value.slice(0, idx) + 'n' + ta.value.slice(idx); ta.selectionStart = ta.selectionEnd = idx + 1; ta.oninput(); await wait(700);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = idx; await wait(300);
+  ta.value = ta.value.slice(0, idx) + '"' + ta.value.slice(idx); ta.selectionStart = ta.selectionEnd = idx + 1; ta.oninput(); await wait(260); // quote the title
+  const end = idx + 1 + 'Read a book'.length;
+  ta.value = ta.value.slice(0, end) + '"' + ta.value.slice(end); ta.selectionStart = ta.selectionEnd = end + 1; ta.oninput(); await wait(700);
   cap(''); await click($('#b-run'), 800);
   await waitFor(() => $('#cine').classList.contains('on')); await wait(8000);
   cap('LEVEL COMPLETE', 'Stars, XP, level-ups and achievements'); await waitFor(() => visible($('#c-next'))); await wait(1500);

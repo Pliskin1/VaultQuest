@@ -1,4 +1,5 @@
 // Lazy Pyodide runner. runPython → { stdout, stderr } (3s limit) or null when Python can't load.
+import { pyHarness, parsePy } from './py-observe.js';
 let worker = null, ready = null, seq = 0;
 
 function boot() {
@@ -25,4 +26,11 @@ export async function runPython(code, timeout = 3000) {
     worker.onmessage = e => { if (e.data.type === 'result' && e.data.id === id) { clearTimeout(to); res(e.data); } };
     worker.postMessage({ id, code });
   });
+}
+
+// Observation run for behaviour-judged challenges (run/py-observe.js) → observation, { timedOut: true },
+// or null when Python can't load.
+export async function observePython(code, spec, timeout = 3000) {
+  const r = await runPython(pyHarness(code, spec), timeout);
+  return r ? parsePy(r) : null;
 }

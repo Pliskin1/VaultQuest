@@ -74,6 +74,8 @@ export function logout() { user = null; try { localStorage.removeItem(CUR); } ca
 export const resetState = () => { const n = S.name; Object.keys(S).forEach(k => delete S[k]); Object.assign(S, fresh(), { name: n, lastDay: day() }); save(); };
 export const initials = () => (S.name || 'YOU').slice(0, 2).toUpperCase();
 
-// Once-only XP: rk(level, part) is the reward key in the current language's curriculum.
-export const rk = (i, part, lang = S.lang) => rewardKey(S.curriculum[lang], i, part);
+// Once-only XP: rk(level, part) is the reward key in the current language's curriculum. A level whose
+// content carried over unchanged from an earlier curriculum (`rewards: 'js-1:4'`) keeps that identity, so it
+// can't pay twice after a curriculum switch.
+export const rk = (i, part, lang = S.lang) => { const base = LANGS[lang].levels[i]?.rewards; return base ? `${base}:${part}` : rewardKey(S.curriculum[lang], i, part); };
 export const reward = (key, amount, run) => grantReward(S, key, amount, run);

@@ -20,12 +20,14 @@ async function boot(storage, search = '') {
 }
 const as = (f, extra = {}) => ({ 'vaultquest:users': JSON.stringify([f.name]), 'vaultquest:user': JSON.stringify(f.name), ['vaultquest:' + f.name.toLowerCase()]: JSON.stringify(f), ...extra });
 
-test('an existing v1 profile loads unchanged, is backed up untouched, then saved as v3', async () => {
+test('an existing v1 profile is backed up untouched, then upgraded: old progress archived, everything else kept', async () => {
   const text = JSON.stringify(V1.jsShipped), st = memoryStorage(as(V1.jsShipped));
   const { S, save } = await boot(st);
-  for (const f of ['xp', 'ach', 'pro', 'projects', 'stars', 'done', 'custom', 'questions']) assert.deepEqual(S[f], V1.jsShipped[f], f);
+  for (const f of ['xp', 'ach', 'pro', 'projects', 'custom', 'questions']) assert.deepEqual(S[f], V1.jsShipped[f], f);
   assert.equal(st.getItem('vaultquest:jsshipped.backup.v1'), text);
-  assert.equal(S.v, 3); assert.deepEqual(S.curriculum, { py: 'py-1', js: 'js-1' }); assert.deepEqual(S.attempts, {});
+  assert.equal(S.v, 3); assert.deepEqual(S.curriculum, { py: 'py-2', js: 'js-2' }); assert.deepEqual(S.attempts, {});
+  assert.deepEqual(S.done, { py: 0, js: 0 }); assert.deepEqual(S.stars, {}); // the new World 1 starts fresh…
+  assert.deepEqual(S.legacy['js-1'].stars, V1.jsShipped.stars); assert.equal(S.legacy['js-1'].done, 4); // …the old one is kept
   save();
   const saved = JSON.parse(st.getItem('vaultquest:jsshipped'));
   assert.equal(saved.v, 3); assert.equal(saved.xp, 1990); assert.equal(saved.awarded['js-1:5:ship'], null);
@@ -78,20 +80,21 @@ test('new profiles start as v3 with the live curricula, no rewards and no attemp
   const { S, login } = await boot(st);
   login('Ben');
   const saved = JSON.parse(st.getItem('vaultquest:ben'));
-  assert.deepEqual({ v: saved.v, curriculum: saved.curriculum, awarded: saved.awarded, legacy: saved.legacy, attempts: saved.attempts, xp: saved.xp }, { v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: {}, xp: 0 });
+  assert.deepEqual({ v: saved.v, curriculum: saved.curriculum, awarded: saved.awarded, legacy: saved.legacy, attempts: saved.attempts, xp: saved.xp }, { v: 3, curriculum: { py: 'py-2', js: 'js-2' }, awarded: {}, legacy: {}, attempts: {}, xp: 0 });
   assert.equal(S.name, 'Ben');
   assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
 });
 
-test('rewards use the current language curriculum and pay once', async () => {
-  const st = memoryStorage(as(V1.jsOne));
+test('rewards use the live curriculum and pay once; unchanged Pro content keeps its old reward identity', async () => {
+  const st = memoryStorage(as(V1.jsShipped)); // shipped the To-Do App and cracked Arrays & Loops in js-1
   const { S, rk, reward } = await boot(st);
-  assert.equal(rk(0, 0), 'js-1:0:0');
-  assert.equal(rk(1, 'bonus', 'py'), 'py-1:1:bonus');
-  assert.equal(reward(rk(0, 0), 50), 0); // vault 1 was completed before versioning
-  assert.equal(reward(rk(1, 0), 50), 50);
-  assert.equal(reward(rk(1, 0), 50), 0);
-  assert.equal(S.xp, 380);
+  assert.equal(rk(0, 0), 'js-2:0:0'); assert.equal(rk(1, 'bonus', 'py'), 'py-2:1:bonus');
+  assert.equal(reward(rk(0, 0), 50), 50); // the new World 1 is genuinely new: it pays once…
+  assert.equal(reward(rk(0, 0), 50), 0); // …and only once
+  assert.equal(rk(4, 0), 'js-1:4:0'); assert.equal(rk(5, 'ship'), 'js-1:5:ship'); assert.equal(rk(4, 0, 'py'), 'py-1:4:0');
+  assert.equal(reward(rk(4, 0), 50), 0); // Arrays & Loops: already earned in js-1
+  assert.equal(reward(rk(5, 'm0'), 50), 0); assert.equal(reward(rk(5, 'ship'), 300), 0); // the shipped project can't pay again
+  assert.equal(S.xp, 1990 + 50);
 });
 
 test('reserved handles are blocked for new accounts only', async () => {
@@ -125,10 +128,35 @@ test('a v2 save (Phase 2 build) is backed up untouched as .backup.v2, then upgra
 });
 
 test('a saved locked attempt is still locked after a page load (Recovery cannot be skipped by refreshing)', async () => {
-  const locked = { lang: 'py', vault: 0, curriculum: 'py-1', session: { hearts: 0, locked: true, failedFingerprints: ['a', 'b', 'c'], attempts: [], recovery: null }, run: { paid: [] }, view: { ci: 2, drafts: { 2: 'print(x)' } } };
-  const v3 = { ...V1.pyPartial, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: { 'py-1:0': locked } };
+  const locked = { lang: 'py', vault: 0, curriculum: 'py-2', session: { hearts: 0, locked: true, failedFingerprints: ['a', 'b', 'c'], attempts: [], recovery: null }, run: { paid: [] }, view: { ci: 2, drafts: { 2: 'print(x)' } } };
+  const v3 = { ...V1.pyPartial, done: { py: 0, js: 0 }, stars: {}, v: 3, curriculum: { py: 'py-2', js: 'js-2' }, awarded: {}, legacy: {}, attempts: { 'py-2:0': locked } };
   const st = memoryStorage(as(v3));
   const { S } = await boot(st);
-  assert.deepEqual(S.attempts['py-1:0'], locked);
+  assert.deepEqual(S.attempts['py-2:0'], locked);
   assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false); // nothing to upgrade
+});
+
+test('a v3 save on the old curricula (Phase 4 build) is backed up, then archived — including a locked old attempt', async () => {
+  const oldLocked = { lang: 'py', vault: 0, curriculum: 'py-1', session: { hearts: 0, locked: true, failedFingerprints: ['a'], attempts: [], recovery: null }, run: { paid: [] }, view: { ci: 2 } };
+  const v3 = { ...V1.proPy, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: { 'py-1:0:0': 50, 'py-1:5:ship': 300 }, legacy: {}, attempts: { 'py-1:0': oldLocked } }, text = JSON.stringify(v3);
+  const st = memoryStorage(as(v3));
+  const { S, save } = await boot(st);
+  assert.equal(st.getItem('vaultquest:propy.backup.py-1+js-1'), text);
+  assert.deepEqual(S.attempts, {}); assert.deepEqual(S.legacy['py-1'].attempts['py-1:0'], oldLocked); // no old Recovery to get stuck in
+  assert.equal(S.legacy['py-1'].done, 4); assert.equal(S.legacy['js-1'].done, 4);
+  assert.deepEqual({ xp: S.xp, pro: S.pro, ach: S.ach, projects: S.projects, awarded: S.awarded }, { xp: v3.xp, pro: true, ach: v3.ach, projects: v3.projects, awarded: v3.awarded });
+  save();
+  for (let i = 0; i < 2; i++) (await boot(st)).save(); // reopening: archived once, no duplicate backups
+  const again = JSON.parse(st.getItem('vaultquest:propy'));
+  assert.equal(again.xp, v3.xp); assert.equal(again.legacy['py-1'].done, 4);
+  assert.equal([...st.m.keys()].filter(k => k.includes('.backup')).length, 1);
+});
+
+test('if the backup before a curriculum switch fails, the original save is never overwritten', async () => {
+  const v3 = { ...V1.jsOne, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: {} }, text = JSON.stringify(v3);
+  const st = memoryStorage(as(v3), k => k.includes('.backup'));
+  const { S, save } = await boot(st);
+  assert.equal(S.curriculum.js, 'js-2'); // the session still runs on the new curriculum…
+  S.xp += 5; save();
+  assert.equal(st.getItem('vaultquest:jsone'), text); // …but nothing is written over the original
 });

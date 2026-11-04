@@ -6,28 +6,28 @@ import { TODO_GENERAL } from '../src/content/recovery-todo.js';
 
 const fail = (...tags) => ({ passed: false, tags });
 
-// ── js-2: the To-Do bank ported from the Demo (selection must match the Demo exactly) ──
-test('js-2 · Mini Boss mistakes pick their own questions', () => {
-  const ids = selectRecoveryQuestions([fail('counts-unfinished'), fail('assignment-in-condition'), fail('log-vs-return')], 'js-2');
+// ── todo: the To-Do bank ported from the Demo (selection must match the Demo exactly) ──
+test('todo · Mini Boss mistakes pick their own questions', () => {
+  const ids = selectRecoveryQuestions([fail('counts-unfinished'), fail('assignment-in-condition'), fail('log-vs-return')], 'todo');
   assert.deepEqual(ids, ['not-operator', 'compare-not-assign', 'return-value']);
 });
 
-test('js-2 · PRO To-Do mistakes pick their own questions', () => {
-  const ids = selectRecoveryQuestions([fail('count-done-vs-left'), fail('assignment-in-condition'), fail('selector-missing-hash')], 'js-2');
+test('todo · PRO To-Do mistakes pick their own questions', () => {
+  const ids = selectRecoveryQuestions([fail('count-done-vs-left'), fail('assignment-in-condition'), fail('selector-missing-hash')], 'todo');
   assert.deepEqual(ids, ['not-operator', 'compare-not-assign', 'id-selector']);
 });
 
-test('js-2 · primary tags rank ahead of side-effect tags, then by frequency', () => {
-  const ids = selectRecoveryQuestions([fail('syntax-error', 'loop-timeout'), fail('missing-comma'), fail('syntax-error')], 'js-2');
+test('todo · primary tags rank ahead of side-effect tags, then by frequency', () => {
+  const ids = selectRecoveryQuestions([fail('syntax-error', 'loop-timeout'), fail('missing-comma'), fail('syntax-error')], 'todo');
   assert.deepEqual(ids, ['brackets', 'object-commas', 'loop-stop']);
 });
 
-test('js-2 · no mistakes: filled from its general order', () => {
-  assert.deepEqual(selectRecoveryQuestions([], 'js-2'), TODO_GENERAL.slice(0, 3));
+test('todo · no mistakes: filled from its general order', () => {
+  assert.deepEqual(selectRecoveryQuestions([], 'todo'), TODO_GENERAL.slice(0, 3));
 });
 
 // ── shared selection rules, both live banks ──
-for (const bank of ['py-1', 'js-1']) {
+for (const bank of ['py-2', 'js-2']) {
   test(`${bank} · two tags sharing a question do not produce a duplicate`, () => {
     const q = getBank(bank).questions.find(q => q.tags.length > 1);
     const ids = selectRecoveryQuestions([fail(q.tags[0]), fail(q.tags[1])], bank, 0);
@@ -35,8 +35,8 @@ for (const bank of ['py-1', 'js-1']) {
   });
 
   test(`${bank} · passing attempts are ignored; unknown tags fall back to refreshers`, () => {
-    const loop = getBank(bank).questions.find(q => q.tags.includes('infinite-loop'));
-    assert.ok(!pickRecovery([{ passed: true, tags: ['infinite-loop'] }], bank, 0).questionIds.includes(loop.id));
+    const loop = getBank(bank).questions.find(q => q.tags.includes('loop-timeout'));
+    assert.ok(!pickRecovery([{ passed: true, tags: ['loop-timeout'] }], bank, 0).questionIds.includes(loop.id));
     const r = pickRecovery([fail('no-such-tag')], bank, 1);
     assert.equal(r.questionIds.length, 3); assert.deepEqual(r.targeted, []);
   });
@@ -62,17 +62,17 @@ test('an unknown bank selects nothing', () => {
 });
 
 test('checks multiple-choice and fill-in answers', () => {
-  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), 1), true);
-  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), 0), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), '1'), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'id-selector'), ' # '), true);
-  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'id-selector'), '.'), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('py-1', 'py-assign'), 1), true);
-  assert.equal(checkRecoveryAnswer(getQuestion('py-1', 'py-assign'), 0), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('todo', 'not-operator'), 1), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('todo', 'not-operator'), 0), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('todo', 'not-operator'), '1'), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('todo', 'id-selector'), ' # '), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('todo', 'id-selector'), '.'), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('py-2', 'py-bool'), 1), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('py-2', 'py-bool'), 2), false);
 });
 
 test('every bank: unique, answerable questions whose hints never give the answer away', () => {
-  assert.equal(RECOVERY_BANKS['js-2'].questions.length, 17);
+  assert.equal(RECOVERY_BANKS.todo.questions.length, 17);
   for (const [id, bank] of Object.entries(RECOVERY_BANKS)) {
     assert.equal(new Set(bank.questions.map(q => q.id)).size, bank.questions.length, id);
     assert.ok(bank.questions.length >= RECOVERY_SIZE, id);

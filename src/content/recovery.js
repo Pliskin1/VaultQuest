@@ -1,10 +1,11 @@
-// Syntax Recovery question banks, one per curriculum (a language's content version).
+// Syntax Recovery question banks, one per live curriculum (a language's content version).
 // Each question: { id, tags, vault, type: 'mcq'|'fill', concept, prompt, code, options + answer | answers + blank,
 //   hint (shown after a wrong answer — points, never answers), explain (shown after a correct one) }.
 // `tags` are the mistakes it repairs (see content/mistakes.js); `vault` is the vault whose concept it covers,
 // used to pick refreshers when the student's mistakes can't be diagnosed. Selection: learn/recovery.js.
 import { TODO_QUESTIONS, TODO_GENERAL } from './recovery-todo.js';
 
+// The first curricula's questions (py-1 / js-1); the ones that fit World 1 are reused below.
 const PY = [
   // ── Vault 1 · Variables ──
   { id: 'py-assign', tags: ['assignment', 'assign-vs-compare', 'assign-operator'], vault: 0, type: 'mcq', concept: 'Storing a value with =',
@@ -201,9 +202,139 @@ const JS = [
     explain: 'Nothing increases `i`, so the condition stays true forever. Add `i++` inside the loop.' }
 ];
 
+// ── Python World 1 (py-2): task dictionaries, lists, functions, conditions ──
+const PY_TASKS = [
+  { id: 'py-dict-key', tags: ['dict-access', 'key-vs-value', 'quotes-in-output'], vault: 0, type: 'mcq', concept: 'Reading a value by its key',
+    prompt: 'What does this print?', code: 'task = {"title": "Read", "done": False}\nprint(task["done"])',
+    options: ['Read', 'False', 'done', '"done"'], answer: 1,
+    hint: 'The key goes in the brackets; what comes out is whatever is stored under that key.',
+    explain: '`task["done"]` looks up the key `"done"` and gives back the value stored there.' },
+  { id: 'py-bool', tags: ['boolean', 'boolean-capital', 'boolean-as-string', 'boolean-wrong-value'], vault: 0, type: 'mcq', concept: 'Python booleans',
+    prompt: 'Which value is the boolean for “not done yet”?', code: 'task = {"title": "Read", "done": ______}',
+    options: ['"False"', 'False', 'false', 'True'], answer: 1,
+    hint: 'A boolean has no quotes, and Python spells its two booleans with a capital first letter.',
+    explain: '`False` is a boolean. `"False"` is only text — and Python’s booleans always start with a capital letter.' },
+  { id: 'py-quote-text', tags: ['string-not-quoted', 'dict-syntax'], vault: 0, type: 'mcq', concept: 'Text needs quotes',
+    prompt: 'Which entry stores the text Read a book as the title?', code: 'task = {\n    ______,\n    "done": False\n}',
+    options: ['"title": Read a book', '"title": "Read a book"', 'title = "Read a book"', '"title" = "Read a book"'], answer: 1,
+    hint: 'Text needs something around it so Python doesn’t read it as code — and a dictionary entry is written key: value.',
+    explain: 'Text is a string and goes in quotes. Dictionary entries are written `key: value`.' },
+  { id: 'py-dict-commas', tags: ['missing-comma', 'dict-syntax'], vault: 0, type: 'mcq', concept: 'Commas in a dictionary',
+    prompt: 'Which dictionary is written correctly?', code: '# a task with a title and a done flag',
+    options: ['{"title": "Read" "done": False}', '{"title": "Read", "done": False}', '{"title" = "Read", "done" = False}', '{"title": "Read"; "done": False}'], answer: 1,
+    hint: 'Look at what separates one entry from the next.',
+    explain: 'Entries are written `key: value` and separated by commas.' },
+  { id: 'py-key-error', tags: ['key-error'], vault: 0, type: 'mcq', concept: 'Keys must match exactly',
+    prompt: "Why does this crash with KeyError: 'Title'?", code: 'task = {"title": "Read"}\nprint(task["Title"])',
+    options: ['print needs quotes', 'The key is "title" — "Title" is a different key', 'The dictionary is empty', 'Values can’t be printed'], answer: 1,
+    hint: 'Compare the key in the dictionary with the key being looked up, letter by letter.',
+    explain: 'Keys must match exactly, capitals included. `"Title"` isn’t `"title"`.' },
+  { id: 'py-len', tags: ['list-len', 'length-vs-index'], vault: 1, type: 'mcq', concept: 'len() counts items',
+    prompt: 'What does this print?', code: 'tasks = ["A", "B", "C", "D"]\nprint(len(tasks))',
+    options: ['3', '4', 'D', 'tasks'], answer: 1,
+    hint: '`len` is a count, not a position or an item.',
+    explain: '`len(tasks)` is how many items the list holds: 4.' },
+  { id: 'py-for-print', tags: ['loop-titles', 'no-output', 'logs-whole-object'], vault: 1, type: 'mcq', concept: 'Printing inside a loop',
+    prompt: 'This loop should print each title. Which line goes inside it?', code: 'for task in tasks:\n    ______',
+    options: ['print(task)', 'print(task["title"])', 'print(tasks["title"])', 'return task["title"]'], answer: 1,
+    hint: 'Inside the loop, `task` is one dictionary. Which part of it do you want to show?',
+    explain: '`print(task["title"])` shows one value of the current task each time round the loop.' },
+  { id: 'py-off-by-one', tags: ['off-by-one', 'index-range'], vault: 1, type: 'mcq', concept: 'Loop bounds',
+    prompt: 'tasks has 3 items. Which loop visits each index exactly once?', code: 'tasks = ["A", "B", "C"]',
+    options: ['for i in range(1, len(tasks)):', 'for i in range(len(tasks)):', 'for i in range(len(tasks) + 1):', 'for i in range(len(tasks) - 1):'], answer: 1,
+    hint: 'Indexes start at 0, and `range` stops just before the number it’s given.',
+    explain: '`range(len(tasks))` gives 0, 1, 2 — every index once. Even simpler: `for task in tasks:`.' },
+  { id: 'py-task-shape', tags: ['task-shape', 'add-task', 'title-as-task', 'missing-done'], vault: 2, type: 'mcq', concept: 'What a task looks like',
+    prompt: 'Which line adds a new unfinished task called Read?', code: 'tasks = []',
+    options: ['tasks.append("Read")', 'tasks.append({"title": "Read", "done": False})', 'tasks.append({"title": "Read"})', 'tasks = {"title": "Read", "done": False}'], answer: 1,
+    hint: 'A task is a whole dictionary with a title and a done flag — and it goes into the list.',
+    explain: 'A new task is a dictionary with both keys, added to the list with `append`.' },
+  { id: 'py-pass', tags: ['not-started'], vault: 2, type: 'mcq', concept: 'A function that does nothing yet',
+    prompt: 'What is result?', code: 'def add_task(tasks, title):\n    pass\n\nresult = add_task([], "Read")',
+    options: ['[]', 'None', '"Read"', 'An error'], answer: 1,
+    hint: '`pass` means “do nothing”. What does a function give back when it has no return?',
+    explain: 'The body does nothing and has no `return`, so the call gives back `None`.' },
+  { id: 'py-if-done', tags: ['if-branch', 'truthy-condition'], vault: 3, type: 'mcq', concept: 'if / else on a task',
+    prompt: 'What does this print?', code: 'task = {"title": "Read", "done": True}\nif task["done"]:\n    print("Finished")\nelse:\n    print("Keep going")',
+    options: ['Keep going', 'Finished', 'Both lines', 'Nothing'], answer: 1,
+    hint: 'What is stored under "done" here? The first block runs only when the condition is True.',
+    explain: '`task["done"]` is True, so the `if` block runs and prints Finished.' },
+  { id: 'py-compare', tags: ['compare', 'assignment-in-condition'], vault: 3, type: 'mcq', concept: 'Comparing vs storing',
+    prompt: 'Which expression only checks whether the task is unfinished, without changing it?', code: 'task = {"title": "Read", "done": False}',
+    options: ['task["done"] = False', 'task["done"] == False', 'task["done"] => False', 'task["done"] =! False'], answer: 1,
+    hint: 'One of these stores a value instead of asking about it. Which one only asks?',
+    explain: 'A single `=` stores a value. `==` compares and gives back True or False.' },
+  { id: 'py-not', tags: ['inverted-condition'], vault: 3, type: 'mcq', concept: 'Flipping a condition with not',
+    prompt: 'Which expression is True for a task that is NOT finished yet?', code: 'task = {"title": "Read", "done": False}',
+    options: ['task["done"]', 'not task["done"]', 'task["done"] == True', '!task["done"]'], answer: 1,
+    hint: '`task["done"]` is False here. Which option turns that into True — in Python?',
+    explain: '`not` flips a boolean: for an unfinished task `not task["done"]` is True.' },
+  { id: 'py-exact', tags: ['status-label', 'string-mismatch'], vault: 3, type: 'mcq', concept: 'Strings are exact',
+    prompt: 'What does this print?', code: 'print("Done" == "done")',
+    options: ['True', 'False', 'Error', 'None'], answer: 1,
+    hint: 'Compare the two strings letter by letter — capitals included.',
+    explain: 'Strings must match exactly, so `"Done"` and `"done"` are different.' }
+];
+
+// ── JavaScript World 1 (js-2): extra task questions; most come from the ported To-Do bank below ──
+const JS_TASKS = [
+  { id: 'js-length-index', tags: ['length-vs-index', 'array-length'], vault: 1, type: 'mcq', concept: 'length counts items',
+    prompt: 'What gets logged?', code: 'const tasks = ["A", "B", "C", "D"];\nconsole.log(tasks.length);',
+    options: ['3', '4', '"D"', 'undefined'], answer: 1,
+    hint: '`length` is a count, not a position or an item.',
+    explain: '`tasks.length` is how many items the array holds: 4.' },
+  { id: 'js-log-output', tags: ['loop-titles', 'no-output', 'logs-whole-object'], vault: 1, type: 'mcq', concept: 'Logging inside a loop',
+    prompt: 'This loop should print each title. Which line goes inside it?', code: 'for (const task of tasks) {\n  ______\n}',
+    options: ['console.log(task);', 'console.log(task.title);', 'console.log(tasks.title);', 'return task.title;'], answer: 1,
+    hint: 'Inside the loop, `task` is one object. Which part of it do you want to show?',
+    explain: '`console.log(task.title)` prints one property of the current task each time round the loop.' },
+  { id: 'js-task-shape', tags: ['task-shape', 'add-task', 'missing-done', 'title-as-task'], vault: 2, type: 'mcq', concept: 'What a task looks like',
+    prompt: 'Which line adds a new unfinished task called Read?', code: 'const tasks = [];',
+    options: ['tasks.push("Read");', 'tasks.push({ title: "Read", done: false });', 'tasks.push({ title: "Read" });', 'tasks = { title: "Read", done: false };'], answer: 1,
+    hint: 'A task is a whole object with a title and a done flag — and it goes into the array.',
+    explain: 'A new task is an object with both properties, added with `push`.' },
+  { id: 'js-empty-fn', tags: ['not-started'], vault: 2, type: 'mcq', concept: 'A function that does nothing yet',
+    prompt: 'What is result?', code: 'function addTask(tasks, title) {\n}\nconst result = addTask([], "Read");',
+    options: ['[]', 'undefined', '"Read"', 'null'], answer: 1,
+    hint: 'The function body is empty. What does a function give back when it has no return?',
+    explain: 'An empty function has no `return`, so the call gives back `undefined`.' }
+];
+
+// Reuses a question in another bank, with that bank's vault and any extra tags it should answer for.
+const reuse = (pool, id, { vault, tags = [] } = {}) => { const q = pool.find(x => x.id === id); return { ...q, vault, tags: [...new Set([...q.tags, ...tags])] }; };
+// The To-Do questions ported from the Demo were written for exactly this curriculum (docs/PLAN.md §D, §G.2).
+const TODO_VAULT = { 'quote-strings': [0, ['object-syntax']], 'object-commas': [0, ['object-syntax']], 'boolean-literal': [0, ['boolean-literal']], 'dot-access': [0, ['dot-access']], brackets: [0], 'case-sensitive': [0],
+  'array-push': [1, ['array-push']], 'loop-bounds': [1, ['loop-titles']], 'loop-stop': [1], 'return-value': [2, ['return-value']],
+  'if-branch': [3, ['if-branch']], 'compare-not-assign': [3, ['compare']], 'not-operator': [3], 'exact-strings': [3, ['status-label']] };
+
+const PY2 = [
+  ...PY_TASKS,
+  reuse(PY, 'py-append', { vault: 1, tags: ['not-a-method', 'push-length'] }),
+  reuse(PY, 'py-indent', { vault: 1 }),
+  reuse(PY, 'py-loop-stop', { vault: 1, tags: ['loop-timeout'] }),
+  reuse(PY, 'py-return', { vault: 2, tags: ['missing-return', 'log-vs-return'] }),
+  reuse(PY, 'py-none', { vault: 2 }),
+  reuse(PY, 'py-case', { vault: 0 }),
+  reuse(PY, 'py-syntax', { vault: 0 }),
+  reuse(PY, 'py-colon', { vault: 3 }),
+  reuse(PY, 'py-range', { vault: 4 }),
+  reuse(PY, 'py-index', { vault: 4 }),
+  reuse(PY, 'py-convert', {})
+];
+const JS2 = [
+  ...JS_TASKS,
+  ...TODO_QUESTIONS.map(q => (q.id in TODO_VAULT ? { ...q, vault: TODO_VAULT[q.id][0], tags: [...q.tags, ...(TODO_VAULT[q.id][1] ?? [])] } : q)),
+  reuse(JS, 'js-undefined', { vault: 2, tags: ['undefined-value'] }),
+  reuse(JS, 'js-const-change', {}),
+  reuse(JS, 'js-length', { vault: 4 }),
+  reuse(JS, 'js-map', { vault: 4 }),
+  reuse(JS, 'js-bounds', { vault: 4 })
+];
+
 // bank id = curriculum id. `general`: optional fill order when a bank has no vault structure.
+// 'todo': the Demo's To-Do bank as ported (kept for the Mini Boss and PRO project phases).
 export const RECOVERY_BANKS = {
-  'py-1': { lang: 'py', questions: PY },
-  'js-1': { lang: 'js', questions: JS },
-  'js-2': { lang: 'js', questions: TODO_QUESTIONS, general: TODO_GENERAL }
+  'py-2': { lang: 'py', questions: PY2 },
+  'js-2': { lang: 'js', questions: JS2 },
+  todo: { lang: 'js', questions: TODO_QUESTIONS, general: TODO_GENERAL }
 };

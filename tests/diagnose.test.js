@@ -1,78 +1,70 @@
-// Mistake detection (learn/diagnose.js + content/mistakes.js) and how it targets Recovery, per language.
+// Mistake detection (learn/diagnose.js) on the live World 1 content, and how it targets Recovery per language.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { diagnose } from '../src/learn/diagnose.js';
 import { pickRecovery } from '../src/learn/recovery.js';
+import { LANGS } from '../src/content/languages.js';
 
-const py = (vault, challenge, type, answer, error) => diagnose({ curriculum: 'py-1', lang: 'py', vault, challenge, type, answer, error });
-const js = (vault, challenge, type, answer, error) => diagnose({ curriculum: 'js-1', lang: 'js', vault, challenge, type, answer, error });
+const ch = (lang, v, k) => LANGS[lang].levels[v].ch[k];
+const d = (lang, v, k, type, answer, error, found) => diagnose({ lang, challenge: ch(lang, v, k), type, answer, error, found });
 
-test('py: a known wrong option is the main mistake, the challenge concept follows', () => {
-  assert.deepEqual(py(0, 0, 'mcq', 1).tags, ['quotes-in-output', 'print-values']);
-  assert.deepEqual(py(0, 0, 'mcq', 3).tags, ['variable-defined', 'print-values']);
-  assert.deepEqual(py(2, 0, 'mcq', 2).tags, ['if-else-branch']); // no finer tag known: just the concept
+test('order of evidence: judged behaviour, then the wrong answer, then a runtime error, then the concept', () => {
+  assert.deepEqual(d('js', 1, 1, 'blank', 'length', 'TypeError: tasks.length is not a function', ['push-length', 'not-a-method']).tags, ['push-length', 'not-a-method', 'array-push']);
+  assert.deepEqual(d('py', 0, 1, 'blank', 'false', "NameError: name 'false' is not defined", ['boolean-capital']).tags, ['boolean-capital', 'name-error', 'boolean']);
 });
 
-test('py: known wrong blanks, trimmed', () => {
-  assert.deepEqual(py(0, 1, 'blank', ' == ').tags, ['assign-vs-compare', 'assignment']);
-  assert.deepEqual(py(2, 2, 'blank', '&&').tags, ['python-and-keyword', 'logical-and']);
-  assert.deepEqual(py(2, 2, 'blank', 'both').tags, ['logical-and']);
+test('py: wrong options carry their own mistake; the challenge concept follows', () => {
+  assert.deepEqual(d('py', 0, 0, 'mcq', 1).tags, ['quotes-in-output', 'dict-access']);
+  assert.deepEqual(d('py', 0, 0, 'mcq', 2).tags, ['key-vs-value', 'dict-access']);
+  assert.deepEqual(d('py', 3, 0, 'mcq', 2).tags, ['truthy-condition', 'if-branch']);
 });
 
-test('py: real Pyodide errors become evidence', () => {
-  assert.deepEqual(py(0, 2, 'code', 'x', "Traceback (most recent call last):\n  File \"main.py\", line 2, in <module>\nNameError: name 'Name' is not defined").tags, ['name-error', 'case-sensitive']);
-  assert.deepEqual(py(2, 1, 'code', 'x', "  File \"main.py\", line 2\n    if score >= 50\n                  ^\nSyntaxError: expected ':'").tags, ['missing-colon']);
-  assert.deepEqual(py(2, 1, 'code', 'x', 'IndentationError: expected an indented block after \'if\' statement on line 2').tags, ['indentation', 'missing-colon']);
-  assert.deepEqual(py(3, 1, 'code', 'x', "TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'").tags, ['none-value', 'return-vs-print']);
-  assert.deepEqual(py(4, 2, 'code', 'x', 'IndexError: list index out of range').tags, ['index-range']);
-  assert.deepEqual(py(4, 2, 'code', 'x', 'TimeoutError: your program ran longer than 3 seconds (infinite loop?)').tags, ['infinite-loop', 'index-range']);
-  assert.deepEqual(py(1, 2, 'code', 'x', 'TypeError: can only concatenate str (not "int") to str').tags, ['str-int-concat', 'type-conversion']);
+test('py: real Python errors become evidence', () => {
+  assert.deepEqual(d('py', 1, 2, 'code', 'x', 'IndentationError: expected an indented block after \'for\' statement on line 2').tags, ['indentation', 'loop-titles']);
+  assert.deepEqual(d('py', 0, 2, 'code', 'x', 'SyntaxError: invalid syntax. Perhaps you forgot a comma?').tags, ['syntax-error', 'dict-syntax']);
+  assert.deepEqual(d('py', 1, 1, 'blank', 'push', "AttributeError: 'list' object has no attribute 'push'").tags, ['not-a-method', 'list-append']);
+  assert.deepEqual(d('py', 2, 2, 'code', 'x', "KeyError: 'Title'").tags, ['key-error', 'add-task']);
+  assert.deepEqual(d('py', 1, 2, 'code', 'x', 'IndexError: list index out of range').tags, ['index-range', 'loop-titles']);
+  assert.deepEqual(d('py', 1, 2, 'code', 'x', 'Timeout: the code kept running and was stopped (an endless loop?)').tags, ['loop-timeout', 'loop-titles']);
+  assert.deepEqual(d('py', 4, 1, 'blank', 'push').tags, ['list-append']); // Pro vault: known wrong blank
 });
 
-test('js: known wrong options and blanks', () => {
-  assert.deepEqual(js(0, 0, 'mcq', 2).tags, ['number-plus', 'reassign-let']);
-  assert.deepEqual(js(0, 1, 'blank', 'let').tags, ['const-vs-let', 'const-keyword']);
-  assert.deepEqual(js(1, 2, 'blank', '==').tags, ['loose-equality', 'strict-equality']);
-  assert.deepEqual(js(2, 2, 'blank', 'and').tags, ['js-and-operator', 'logical-and']);
+test('js: wrong options and real Worker errors become evidence', () => {
+  assert.deepEqual(d('js', 0, 0, 'mcq', 1).tags, ['quotes-in-output', 'dot-access']);
+  assert.deepEqual(d('js', 0, 2, 'code', 'x', 'SyntaxError: Unexpected identifier \'a\'').tags, ['syntax-error', 'object-syntax']);
+  assert.deepEqual(d('js', 2, 2, 'code', 'x', 'addTask is not defined as a function').tags, ['missing-function', 'add-task']);
+  assert.deepEqual(d('js', 1, 2, 'code', 'x', "TypeError: Cannot read properties of undefined (reading 'title')").tags, ['undefined-value', 'loop-titles']);
+  assert.deepEqual(d('js', 4, 1, 'blank', 'forEach').tags, ['map-vs-foreach', 'array-map']); // Pro vault
+  assert.deepEqual(d('js', 4, 2, 'code', 'x', 'Error: your code ran longer than 1 second (infinite loop?)').tags, ['loop-timeout', 'off-by-one']);
 });
 
-test('js: real Worker errors become evidence', () => {
-  assert.deepEqual(js(0, 2, 'code', 'x', 'TypeError: Assignment to constant variable.').tags, ['const-reassign']);
-  assert.deepEqual(js(2, 1, 'code', 'x', 'SyntaxError: missing ) after argument list').tags, ['syntax-error', 'condition-parens']);
-  assert.deepEqual(js(3, 1, 'code', 'x', "TypeError: Cannot read properties of undefined (reading 'toUpperCase')").tags, ['undefined-value', 'return-vs-log']);
-  assert.deepEqual(js(0, 2, 'code', 'x', 'ReferenceError: scor is not defined').tags, ['undefined-variable', 'const-reassign']);
-  assert.deepEqual(js(4, 2, 'code', 'x', 'Error: your code ran longer than 1 second (infinite loop?)').tags, ['infinite-loop', 'off-by-one']);
-});
-
-test('no evidence, no diagnosis: unknown challenges and unknown curricula give no tags', () => {
-  assert.deepEqual(py(9, 9, 'mcq', 1).tags, []);
-  assert.deepEqual(diagnose({ curriculum: 'zz-1', lang: 'zz', vault: 0, challenge: 0, type: 'code', answer: 'x', error: 'SyntaxError' }).tags, []);
-  assert.deepEqual(py(0, 2, 'code', 'x', 'Some unrecognised failure').tags, ['case-sensitive']); // only the concept
+test('no evidence, no invented diagnosis', () => {
+  assert.deepEqual(diagnose({ lang: 'js', challenge: null, type: 'code', answer: 'x', error: 'Something odd' }).tags, []);
+  assert.deepEqual(d('py', 2, 2, 'code', 'x', 'Some unrecognised failure').tags, ['add-task']); // only the concept tested
 });
 
 test('evidence keeps the answer for options/blanks and the last error line for code — never the whole code', () => {
-  assert.deepEqual(py(0, 1, 'blank', '==').evidence, { type: 'blank', answer: '==' });
-  const e = js(3, 1, 'code', 'function greet(name) { /* secret */ }', "Hi Ana\nTypeError: Cannot read properties of undefined (reading 'toUpperCase')").evidence;
-  assert.deepEqual(e, { type: 'code', error: "TypeError: Cannot read properties of undefined (reading 'toUpperCase')" });
+  assert.deepEqual(d('py', 0, 1, 'blank', '"False"').evidence, { type: 'blank', answer: '"False"' });
+  assert.deepEqual(d('js', 3, 2, 'code', 'function secret() {}', 'line 1\nTypeError: boom').evidence, { type: 'code', error: 'TypeError: boom' });
 });
 
 // From mistakes to questions: the same shared selection, each language's own bank.
-test('py: Recovery targets the Python mistakes actually made', () => {
-  const attempts = [{ passed: false, ...py(0, 1, 'blank', '==') }, { passed: false, ...py(0, 2, 'code', 'x', "NameError: name 'Name' is not defined") }, { passed: false, ...py(0, 0, 'mcq', 1) }];
-  const r = pickRecovery(attempts, 'py-1', 0);
-  assert.deepEqual(r.questionIds, ['py-assign', 'py-case', 'py-print']);
+const failed = (...ds) => ds.map(x => ({ passed: false, ...x }));
+test('py: Recovery targets the Python mistakes actually made in Vault 1', () => {
+  const r = pickRecovery(failed(d('py', 0, 0, 'mcq', 2), d('py', 0, 1, 'blank', 'false', "NameError: name 'false' is not defined", ['boolean-capital']), d('py', 0, 2, 'code', 'x', 'SyntaxError: invalid syntax', ['string-not-quoted'])), 'py-2', 0);
+  assert.deepEqual(r.questionIds, ['py-dict-key', 'py-bool', 'py-quote-text']);
   assert.deepEqual(r.targeted, r.questionIds);
 });
 
-test('js: Recovery targets the JavaScript mistakes actually made', () => {
-  const attempts = [{ passed: false, ...js(0, 1, 'blank', 'let') }, { passed: false, ...js(0, 2, 'code', 'x', 'TypeError: Assignment to constant variable.') }, { passed: false, ...js(0, 0, 'mcq', 1) }];
-  const r = pickRecovery(attempts, 'js-1', 0);
-  assert.deepEqual(r.questionIds, ['js-const', 'js-const-change', 'js-let']);
+test('js: Recovery targets the JavaScript mistakes actually made in Vault 3', () => {
+  const r = pickRecovery(failed(d('js', 2, 0, 'mcq', 1), d('js', 2, 2, 'code', 'x', '', ['title-as-task']), d('js', 2, 2, 'code', 'y', '', ['not-started'])), 'js-2', 2);
+  assert.deepEqual(r.questionIds, ['return-value', 'js-task-shape', 'js-empty-fn']);
 });
 
-test('one repeated mistake: one targeted question, refreshers for the rest from the same vault', () => {
-  const same = { passed: false, ...py(2, 2, 'blank', 'or') };
-  const r = pickRecovery([same, same, same], 'py-1', 2);
-  assert.equal(r.questionIds[0], 'py-and'); assert.deepEqual(r.targeted, ['py-and']);
-  assert.ok(r.questionIds.every(id => id.startsWith('py-')));
+test('one repeated mistake: one targeted question, refreshers from the same vault and language', () => {
+  const same = { passed: false, ...d('py', 3, 1, 'blank', '!=', '', ['inverted-condition']) };
+  const r = pickRecovery([same, same, same], 'py-2', 3);
+  assert.deepEqual(r.targeted, ['py-not', 'py-compare']); // the main mistake first, then the concept the challenge tests
+  assert.equal(r.questionIds[0], 'py-not'); assert.ok(!r.targeted.includes(r.questionIds[2])); // the third is a refresher
+  assert.equal(r.questionIds.length, 3); assert.ok(r.questionIds.every(id => id.startsWith('py-')));
 });

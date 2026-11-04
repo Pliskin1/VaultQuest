@@ -1,19 +1,21 @@
-// Turns a failed submission into mistake tags with evidence — one function for every language; the
-// language-specific knowledge lives in content/mistakes.js. Tags are only added with evidence: the wrong
-// answer itself, a real runtime error, or the concept the failed challenge tests. Most specific first.
-import { MISTAKES, ERRORS } from '../content/mistakes.js';
+// Turns a failed submission into mistake tags with evidence — one function for every language. Tags are only
+// added with evidence, most specific first: what the judged behaviour showed (the challenge's own mistake
+// rules, learn/judge.js), the wrong answer itself (an option's tag, a known wrong blank), a real runtime error
+// (content/mistakes.js), and finally the concept the challenge tests (`challenge.tag`).
+import { ERRORS } from '../content/mistakes.js';
 
-const firstLine = s => String(s ?? '').split('\n').map(l => l.trim()).filter(Boolean).pop()?.slice(0, 160) || null;
+const lastLine = s => String(s ?? '').split('\n').map(l => l.trim()).filter(Boolean).pop()?.slice(0, 160) || null;
 
-// type: 'mcq' (answer = option index) | 'blank' (answer = text) | 'code' (answer = code, error = stderr)
-export function diagnose({ curriculum, lang, vault, challenge, type, answer, error }) {
-  const entry = MISTAKES[curriculum]?.[`${vault}:${challenge}`], tags = [];
-  const known = entry?.answers?.[type === 'mcq' ? answer : String(answer ?? '').trim()];
+// challenge: the content object · type: 'mcq' (answer = option index) | 'blank' (answer = text) | 'code'
+// found: tags already found by judging behaviour.
+export function diagnose({ lang, challenge, type, answer, error, found = [] }) {
+  const tags = [...found];
+  const known = type === 'mcq' ? challenge?.opts?.[answer]?.[3] : type === 'blank' ? challenge?.answerTags?.[String(answer ?? '').trim()] : null;
   if (known) tags.push(known);
   if (error) { const hit = (ERRORS[lang] ?? []).find(([re]) => re.test(error)); if (hit) tags.push(hit[1]); }
-  if (entry?.tag) tags.push(entry.tag);
+  if (challenge?.tag) tags.push(challenge.tag);
   return {
     tags: [...new Set(tags)],
-    evidence: { type, ...(type === 'code' ? {} : { answer: String(answer ?? '').slice(0, 80) }), ...(error ? { error: firstLine(error) } : {}) }
+    evidence: { type, ...(type === 'code' ? {} : { answer: String(answer ?? '').slice(0, 80) }), ...(error ? { error: lastLine(error) } : {}) }
   };
 }

@@ -1,4 +1,4 @@
-// Level screen: 3 challenges (mcq / blank / fix), hearts, combo, mentor panel.
+// Level screen: 3 challenges (mcq / fill / code — and the Pro vault's blank / fix), hearts, combo, mentor panel.
 // Hearts, answer identity, saving/resuming and Syntax Recovery come from the shared engine
 // (learn/attempt.js); this file only judges answers per language (option, blank, real code run),
 // diagnoses failures through learn/diagnose.js and draws the result.
@@ -6,12 +6,13 @@ import { $, $$, ctr } from '../core/dom.js';
 import { anim, EASE, shake } from '../core/anim.js';
 import { wait } from '../core/clock.js';
 import { FX } from '../core/fx.js';
-import { esc } from '../core/md.js';
+import { esc, md } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, lvlOf, rk, reward } from '../core/state.js';
-import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
+import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
 import { diagnose } from '../learn/diagnose.js';
+import { judge, fillCode } from '../learn/judge.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
@@ -19,8 +20,8 @@ import { LANGS, freeOf } from '../content/languages.js';
 import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { openRecovery } from './recovery.js';
-import { runJsChallenge } from '../run/js-runner.js';
-import { runPython, preloadPython } from '../run/py-runner.js';
+import { runJsChallenge, observeJs } from '../run/js-runner.js';
+import { runPython, preloadPython, observePython } from '../run/py-runner.js';
 
 let A = null; // the current attempt (shared engine state: hearts, answers tried, recovery, saved view)
 export const G = { li: 0, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
@@ -87,11 +88,12 @@ async function renderCh(animate = true, resume = false) {
   if (!resume) { G.chMistake = false; G.hintIdx = 0; }
   G.lock = true; renderSegs(); updHint();
   if (animate) await anim(card, [{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'translateX(-80px)', filter: 'blur(8px)' }], { duration: 350, easing: EASE.in });
-  const typ = { mcq: 'MULTIPLE CHOICE', blank: 'FILL THE BLANK', fix: 'FIX THE BUG' }[c.t];
-  let h = `<div class="kicker">CHALLENGE ${G.ci + 1}/${lvl().ch.length} · ${typ}</div><h3>${c.q}</h3>`;
+  const typ = { mcq: 'MULTIPLE CHOICE', blank: 'FILL THE BLANK', fill: 'FILL THE BLANK', fix: 'FIX THE BUG', code: c.kind === 'fix' ? 'FIX THE BUG' : 'WRITE THE CODE' }[c.t];
+  const q = /<[a-z]/i.test(c.q) ? c.q : md(c.q); // Pro vault prompts are HTML; World 1 prompts use `code` / **bold**
+  let h = `<div class="kicker">CHALLENGE ${G.ci + 1}/${lvl().ch.length} · ${typ}</div><h3>${q}</h3>`;
   if (c.t === 'mcq') h += `<pre class="codeblk">${hl(c.code, S.lang)}</pre><div class="opts">${c.opts.map((o, k) => `<button class="opt" data-k="${k}"><kbd>${'ABCD'[k]}</kbd>${esc(o[0])}</button>`).join('')}</div>`;
-  if (c.t === 'blank') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false" value="${esc(draft ?? '').replace(/"/g, '&quot;')}">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
-  if (c.t === 'fix') {
+  if (c.t === 'blank' || c.t === 'fill') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false" value="${esc(draft ?? '').replace(/"/g, '&quot;')}">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
+  if (c.t === 'fix' || c.t === 'code') {
     const code = draft ?? c.code, n = Math.max(code.split('\n').length, c.code.split('\n').length);
     h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(code)}</textarea></div>
     <div class="row"><button class="btn" id="b-run"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN</button><span style="color:var(--mut2);font-size:14px">Runs your code for real</span></div>
@@ -100,12 +102,12 @@ async function renderCh(animate = true, resume = false) {
   }
   card.innerHTML = h; G.lock = false;
   if (c.t === 'mcq') $$('.opt').forEach(b => b.onclick = () => pickOpt(b));
-  if (c.t === 'blank') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; $('#blank').oninput = keepDraft; }
-  if (c.t === 'fix') {
+  if (c.t === 'blank' || c.t === 'fill') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; $('#blank').oninput = keepDraft; }
+  if (c.t === 'fix' || c.t === 'code') {
     const ta = $('#ed');
     ta.oninput = () => { $('#ed-hl').innerHTML = hl(ta.value, S.lang) + '\n'; keepDraft(); };
     ta.onkeydown = e => { if (e.key === 'Tab') { e.preventDefault(); const s = ta.selectionStart; ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(ta.selectionEnd); ta.selectionStart = ta.selectionEnd = s + 4; ta.oninput(); } };
-    $('#b-run').onclick = runFix;
+    $('#b-run').onclick = c.t === 'code' ? runCode : runFix;
   }
   if (animate) await anim(card, [{ opacity: 0, transform: 'translateX(80px)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 450, easing: EASE.out });
   card.getAnimations().forEach(a => a.cancel());
@@ -116,9 +118,9 @@ const begin = () => G.lock ? null : beginSubmission(A);
 
 // One judged submission → mistake diagnosis (language content) → shared heart rules → feedback.
 // why() → the mentor's explanation, asked for only when it's shown (not for a repeated answer).
-// error: the real runtime message for code, used as evidence for the diagnosis.
-function settle(tok, el, type, value, passed, why, error = '') {
-  const d = passed ? {} : diagnose({ curriculum: A.curriculum, lang: A.lang, vault: A.vault, challenge: G.ci, type, answer: value, error });
+// error: the real runtime message, used as evidence · found: mistake tags from judging the behaviour.
+function settle(tok, el, type, value, passed, why, error = '', found = []) {
+  const d = passed ? {} : diagnose({ lang: A.lang, challenge: chal(), type, answer: value, error, found });
   const out = settleSubmission(A, tok, { key: answerKey(A, G.ci, type, value), passed, ...d });
   if (!out) return null; // stale: the attempt it belongs to has ended
   if (passed) correct(el, tok); else wrong(el, why, out, tok);
@@ -135,12 +137,61 @@ function pickOpt(b) {
 function checkBlank() {
   const inp = $('#blank'), v = inp.value.trim(), c = chal(); if (!v) return; // an empty blank isn't an answer
   const tok = begin(); if (!tok) return;
+  if (c.t === 'fill') return checkFill(inp, v, c, tok);
   const ok = c.ans.includes(v);
   if (ok) { inp.classList.remove('bad'); inp.classList.add('ok'); }
   else { inp.classList.add('bad'); inp.value = ''; A.view.drafts = { ...A.view.drafts, [G.ci]: '' }; wait(900).then(() => inp.classList.remove('bad')); }
   settle(tok, inp, 'blank', v, ok, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: v }, c.wrong[v] || c.why));
 }
 
+// ── Behaviour-judged challenges (World 1): the code really runs, the challenge's checks judge what it did ──
+const observe = (code, spec) => A.lang === 'py' ? observePython(code, spec) : observeJs(code, spec);
+const plainName = s => String(s).replace(/`/g, '');
+// The mentor's fallback when no mistake rule matched: point at the evidence, ask — never the fix.
+function fallbackWhy(j) {
+  if (j.error) return 'Read the **last line** of the error — it names the problem. Which word or symbol on that line looks different from what you meant?';
+  const r = j.results.find(x => !x.pass);
+  return r ? `"${plainName(r.name)}" expected **${r.expected}** but got **${r.actual}**. Work that case through by hand: what does your code produce, and why?` : 'Something isn\'t right yet. What did you expect to happen, and what happened instead?';
+}
+const failText = j => j.error || j.results.filter(r => !r.pass).map(r => `${plainName(r.name)}: expected ${r.expected}, got ${r.actual}`).join('; ');
+// The runtime couldn't start (e.g. Python offline): nothing was judged, so nothing is recorded or charged.
+function unavailable(tok) {
+  cancelSubmission(A, tok);
+  Mentor.say(A.lang === 'py' ? 'Python couldn\'t start — check your internet connection and try again. **No heart was used.**' : 'The code runner couldn\'t start — try again. **No heart was used.**', { kind: 'fix', label: 'MENTOR' });
+}
+
+async function checkFill(inp, v, c, tok) {
+  inp.disabled = true; $('#b-check').disabled = true;
+  const code = fillCode(c, v);
+  let obs;
+  try { obs = await observe(code, c.observe); } catch (e) { obs = null; }
+  if (!isCurrent(A, tok)) return; // left the vault while it ran
+  inp.disabled = false; $('#b-check').disabled = false;
+  if (!obs) return unavailable(tok);
+  const j = judge(c, obs, { code, answer: v });
+  if (j.passed) { inp.classList.remove('bad'); inp.classList.add('ok'); }
+  else { inp.classList.add('bad'); inp.value = ''; A.view.drafts = { ...A.view.drafts, [G.ci]: '' }; wait(900).then(() => inp.classList.remove('bad')); }
+  settle(tok, inp, 'blank', v, j.passed, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: v, error: failText(j) }, j.why || fallbackWhy(j)), j.error, j.tags);
+}
+
+async function runCode() {
+  const tok = begin(); if (!tok) return;
+  const c = chal(), code = $('#ed').value, cons = $('#cons'), btn = $('#b-run'), head = `<span class="dim">$ ${cmd()}</span>`;
+  btn.disabled = true; A.view.drafts = { ...A.view.drafts, [G.ci]: code };
+  cons.innerHTML = head + '\n<span class="dim">running…</span>';
+  let obs;
+  try { [obs] = await Promise.all([observe(code, c.observe), wait(600)]); } catch (e) { obs = null; }
+  if (!isCurrent(A, tok)) return; // left the vault while it ran
+  btn.disabled = false;
+  if (!obs) { cons.innerHTML = `${head}\n<span class="err">${A.lang === 'py' ? 'Python couldn\'t start (no connection?)' : 'The code runner couldn\'t start'} — no heart used.</span>`; return unavailable(tok); }
+  const j = judge(c, obs, { code }), printed = [...(obs.logs ?? []), ...(obs.callLogs ?? [])];
+  cons.innerHTML = `${head}\n${printed.length ? esc(printed.join('\n')) + '\n' : ''}${j.error ? `<span class="err">${esc(j.error)}</span>\n` : ''}` +
+    j.results.map(r => r.pass ? `<span class="okl">✓ ${esc(plainName(r.name))}</span>` : `<span class="err">✗ ${esc(plainName(r.name))} — expected ${esc(r.expected)}, got ${esc(r.actual)}</span>`).join('\n');
+  if (j.passed) { if (c.kind === 'fix') award('debug'); settle(tok, cons, 'code', code, true); return; }
+  settle(tok, cons, 'code', code, false, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: failText(j) }, j.why || fallbackWhy(j)), j.error, j.tags);
+}
+
+// ── Pro vault (older format): real output + structure checks ──
 const regexFail = (c, code) => c.checks.find(k => (k.bad && k.bad.test(code)) || (k.need && !k.need.test(code)));
 const outputOk = (out, ok) => out === ok || out.endsWith('\n' + ok);
 

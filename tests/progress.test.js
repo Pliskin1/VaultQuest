@@ -13,9 +13,59 @@ const sorted = a => [...a].sort();
 const reload = s => up(JSON.parse(JSON.stringify(s))); // what a page reload does with a save
 
 // ── content configuration ──
-test('both languages: 4 FREE levels and a first curriculum id', () => {
+test('both languages: 4 FREE vaults and the World 1 curricula are live', () => {
   assert.equal(freeOf('py'), 4); assert.equal(freeOf('js'), 4);
-  assert.deepEqual({ py: LANGS.py.curriculum, js: LANGS.js.curriculum }, LIVE_NOW);
+  assert.deepEqual({ py: LANGS.py.curriculum, js: LANGS.js.curriculum }, LIVE_W1);
+});
+
+// ── The live switch to World 1 (py-1 → py-2, js-1 → js-2), for every kind of existing profile ──
+const LIVE_W1 = { py: 'py-2', js: 'js-2' };
+const w1 = s => migrate(s, LIVE_W1, NOW);
+const KEEP = ['xp', 'ach', 'pro', 'projects', 'streak', 'questions', 'name', 'lang'];
+const attemptOf = (lang, vault, locked) => ({ lang, vault, curriculum: lang + '-1', session: { hearts: locked ? 0 : 2, locked, failedFingerprints: ['f'], attempts: [], recovery: null }, run: { paid: [] }, view: { ci: 1 } });
+const PROFILES = {
+  newUser: { name: 'New', lang: 'py', xp: 0, done: { py: 0, js: 0 }, stars: {}, ach: [], fresh: [], streak: 1, lastDay: '', questions: 0, pro: false, projects: [] },
+  jsOnly: V1.jsOne, pyOnly: V1.pyPartial, both: V1.proPy, jsArraysAndShipped: V1.jsShipped, ancient: V1.ancient,
+  v2: { ...V1.jsOne, v: 2, curriculum: { py: 'py-1', js: 'js-1' }, awarded: { 'js-1:0:0': null }, legacy: {} },
+  v3Unfinished: { ...V1.pyPartial, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: { 'py-1:2': attemptOf('py', 2, false) } },
+  v3InOldRecovery: { ...V1.jsOne, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: { 'js-1:1': attemptOf('js', 1, true) } }
+};
+
+for (const [id, p] of Object.entries(PROFILES)) {
+  test(`World 1 switch · ${id}: history kept, old progress archived, new curriculum starts fresh, idempotent`, () => {
+    const before = migrate(p, LIVE_NOW, NOW), after = w1(p);
+    for (const f of KEEP) assert.deepEqual(after[f], p[f] ?? before[f], `${id}.${f}`); // XP, achievements, PRO, projects…
+    assert.deepEqual(after.curriculum, LIVE_W1);
+    assert.deepEqual(after.done, { ...(p.done ?? {}), py: 0, js: 0 }); assert.deepEqual(after.stars, {});
+    assert.deepEqual(after.attempts, {}); // no old attempt (or old Recovery) leaks into World 1
+    for (const lang of ['py', 'js']) {
+      const old = after.legacy[lang + '-1'];
+      assert.equal(old.done, Number(p.done?.[lang]) || 0, `${id} ${lang}`);
+      assert.deepEqual(old.stars, Object.fromEntries(Object.entries(p.stars ?? {}).filter(([k]) => k.startsWith(lang))));
+    }
+    for (const [k, v] of Object.entries(before.awarded)) assert.equal(after.awarded[k], v, `reward ${k} kept`);
+    assert.ok(!Object.keys(after.awarded).some(k => k.startsWith('js-2') || k.startsWith('py-2'))); // nothing of World 1 pre-paid
+    assert.deepEqual(w1(after), after); assert.deepEqual(w1(JSON.parse(JSON.stringify(after))), after); // reopening changes nothing
+    for (const [k, a] of Object.entries(p.attempts ?? {})) assert.deepEqual(after.legacy[k.slice(0, 4)].attempts[k], a);
+  });
+}
+
+test('World 1 switch: languages are independent — switching one never touches the other', () => {
+  const pyFirst = migrate(V1.proPy, { py: 'py-2', js: 'js-1' }, NOW);
+  assert.equal(pyFirst.done.js, 4); assert.equal(pyFirst.stars.js0, 3); assert.equal(pyFirst.legacy['js-1'], undefined);
+  assert.equal(pyFirst.done.py, 0); assert.equal(pyFirst.legacy['py-1'].done, 4);
+  const thenJs = w1(pyFirst);
+  assert.equal(thenJs.legacy['py-1'].archivedAt, pyFirst.legacy['py-1'].archivedAt); // not archived twice
+  assert.equal(thenJs.legacy['js-1'].done, 4); assert.equal(thenJs.xp, V1.proPy.xp);
+});
+
+test('World 1 switch: old completion never counts — every World 1 reward is still earnable once', () => {
+  const s = w1(V1.proPy);
+  for (const lang of ['py', 'js']) for (let v = 0; v < 4; v++) {
+    for (const part of [0, 1, 2, 'bonus']) assert.equal(grantReward(s, rewardKey(lang + '-2', v, part), 10), 10);
+    assert.equal(grantReward(s, rewardKey(lang + '-2', v, 'bonus'), 10), 0);
+  }
+  assert.equal(grantReward(s, rewardKey('py-1', 5, 'ship'), 300), 0); // the shipped Guess the Number stays paid
 });
 
 // ── v1 → v2 ──
