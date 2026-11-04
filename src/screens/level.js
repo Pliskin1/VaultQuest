@@ -1,4 +1,6 @@
 // Level screen: 3 challenges (mcq / blank / fix), hearts, combo, mentor panel.
+// Hearts, answer identity and the zero-hearts transition come from the shared engine (learn/attempt.js);
+// this file only judges answers per language (option, blank, real code run) and draws the result.
 import { $, $$, ctr } from '../core/dom.js';
 import { anim, EASE, shake } from '../core/anim.js';
 import { wait } from '../core/clock.js';
@@ -7,7 +9,8 @@ import { esc } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, lvlOf, rk, reward } from '../core/state.js';
-import { newRun, rollbackRun } from '../learn/progress.js';
+import { rollbackRun } from '../learn/progress.js';
+import { newAttempt, answerKey, beginSubmission, settleSubmission, endAttempt, isCurrent, whenExhausted } from '../learn/attempt.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
@@ -17,19 +20,19 @@ import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { runJsChallenge } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
 
-let run = newRun(); // rewards paid during this attempt; a reset takes back exactly these
-export const G = { li: 0, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
+let A = null; // the current attempt (shared engine state: hearts, answers tried, rewards paid)
+export const G = { li: 0, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
 const lvl = () => LANGS[S.lang].levels[G.li], chal = () => lvl().ch[G.ci];
+const hearts = () => A ? A.session.hearts : 3;
 const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c0 7-11 14-11 14z"';
 const cmd = () => S.lang === 'py' ? 'python main.py' : 'node main.js';
 const plain = s => s.replace(/<[^>]+>/g, '');
 const aiChal = c => ({ type: c.t, q: plain(c.q), code: c.code });
 
-export function startLevel(i, retry = false) {
-  Mentor.use('lv');
-  if (retry) { rollbackRun(S, run); save(); }
-  run = newRun();
-  Object.assign(G, { li: i, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false });
+export function startLevel(i) {
+  endAttempt(A); Mentor.cancel(); Mentor.use('lv');
+  A = newAttempt(S.lang, i);
+  Object.assign(G, { li: i, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false });
   const L = LANGS[S.lang];
   $('#lv-kick').textContent = `VAULT 0${i + 1} · ${L.name.toUpperCase()}`; $('#lv-name').textContent = L.titles[i];
   $('#msgs').innerHTML = ''; $('#lv-combo').textContent = ''; renderHearts(); updHud();
@@ -37,8 +40,11 @@ export function startLevel(i, retry = false) {
   renderCh(false);
 }
 
+// Leaving the vault ends the attempt: pending runs, replies and resets from it are ignored.
+function leaveLevel() { endAttempt(A); Mentor.cancel(); openMap(); }
+
 const renderSegs = () => { $('#lv-segs').innerHTML = lvl().ch.map((_, k) => `<i class="${k < G.ci ? 'on' : k === G.ci ? 'now' : ''}"></i>`).join(''); };
-const renderHearts = () => { $('#lv-hearts').innerHTML = [0, 1, 2].map(k => `<div class="heart" aria-hidden="true">${k < G.hearts ? `<svg viewBox="0 0 26 24">${HEART} fill="#FF9B7A"/></svg>` : `<svg viewBox="0 0 26 24">${HEART} fill="none" stroke="#3A4256" stroke-width="2"/></svg>`}</div>`).join(''); $('#lv-hearts').setAttribute('aria-label', G.hearts + ' hearts left'); };
+const renderHearts = () => { $('#lv-hearts').innerHTML = [0, 1, 2].map(k => `<div class="heart" aria-hidden="true">${k < hearts() ? `<svg viewBox="0 0 26 24">${HEART} fill="#FF9B7A"/></svg>` : `<svg viewBox="0 0 26 24">${HEART} fill="none" stroke="#3A4256" stroke-width="2"/></svg>`}</div>`).join(''); $('#lv-hearts').setAttribute('aria-label', hearts() + ' hearts left'); };
 
 function updHint() {
   const n = G.hintIdx, b = $('#btn-hint');
@@ -73,49 +79,67 @@ async function renderCh(animate = true) {
   card.getAnimations().forEach(a => a.cancel());
 }
 
+// Starts a submission → token, or null while the card is busy, one is being judged, or the attempt is over.
+const begin = () => G.lock ? null : beginSubmission(A);
+
+// One judged submission → shared heart rules → feedback. why() → the mentor's explanation, asked for only
+// when it's shown (not for a repeated answer).
+function settle(tok, el, type, value, passed, why) {
+  const out = settleSubmission(A, tok, { key: answerKey(A, G.ci, type, value), passed });
+  if (!out) return null; // stale: the attempt it belongs to has ended
+  if (passed) correct(el, tok); else wrong(el, why, out, tok);
+  return out;
+}
+
 function pickOpt(b) {
-  if (G.lock) return;
-  const c = chal(), o = c.opts[+b.dataset.k];
-  if (o[1]) { b.classList.add('ok'); correct(b); }
-  else { b.classList.add('bad'); wrong(b, Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: o[0] }, o[2])); }
+  const tok = begin(); if (!tok) return;
+  const c = chal(), k = +b.dataset.k, o = c.opts[k];
+  b.classList.add(o[1] ? 'ok' : 'bad');
+  settle(tok, b, 'mcq', k, !!o[1], () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: o[0] }, o[2]));
 }
 
 function checkBlank() {
-  if (G.lock) return;
-  const inp = $('#blank'), v = inp.value.trim(), c = chal(); if (!v) return;
-  if (c.ans.includes(v)) { inp.classList.remove('bad'); inp.classList.add('ok'); correct(inp); }
-  else { inp.classList.add('bad'); inp.value = ''; wait(900).then(() => inp.classList.remove('bad')); wrong(inp, Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: v }, c.wrong[v] || c.why)); }
+  const inp = $('#blank'), v = inp.value.trim(), c = chal(); if (!v) return; // an empty blank isn't an answer
+  const tok = begin(); if (!tok) return;
+  const ok = c.ans.includes(v);
+  if (ok) { inp.classList.remove('bad'); inp.classList.add('ok'); }
+  else { inp.classList.add('bad'); inp.value = ''; wait(900).then(() => inp.classList.remove('bad')); }
+  settle(tok, inp, 'blank', v, ok, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: v }, c.wrong[v] || c.why));
 }
 
 const regexFail = (c, code) => c.checks.find(k => (k.bad && k.bad.test(code)) || (k.need && !k.need.test(code)));
 const outputOk = (out, ok) => out === ok || out.endsWith('\n' + ok);
 
 // Runs the user's code for real (Pyodide worker / sandboxed JS worker). Falls back to regex checks
-// if the runtime can't load. Running buggy code never costs a heart.
+// if the runtime can't load. A run is a submission like any other: new failing code costs a heart,
+// re-running code that already failed doesn't.
 async function runFix() {
-  if (G.lock) return;
+  const tok = begin(); if (!tok) return;
   const c = chal(), code = $('#ed').value, cons = $('#cons'), btn = $('#b-run'), head = `<span class="dim">$ ${cmd()}</span>`;
-  G.lock = true; btn.disabled = true;
+  btn.disabled = true;
   cons.innerHTML = head + '\n<span class="dim">running…</span>';
-  const [res] = await Promise.all([S.lang === 'py' ? runPython(code) : runJsChallenge(code), wait(600)]);
+  let res;
+  try { [res] = await Promise.all([S.lang === 'py' ? runPython(code) : runJsChallenge(code), wait(600)]); }
+  catch (e) { res = null; }
+  if (!isCurrent(A, tok)) return; // left or restarted the vault while the code ran
   let out, err;
   if (res) { out = res.stdout.trim(); err = res.stderr.trim(); }
   else { const f = regexFail(c, code); out = f ? '' : c.ok; err = f ? f.out : ''; }
   const f = regexFail(c, code);
   if (!err && outputOk(out, c.ok) && !f) {
     cons.innerHTML = `${head}\n${esc(out)}\n<span class="okl">✓ All checks passed</span>`;
-    award('debug'); correct(cons); return;
+    award('debug'); settle(tok, cons, 'code', code, true); return;
   }
   const msg = err || (outputOk(out, c.ok) ? '✗ Right output, but the bug is still in the code' : `✗ Expected output: ${c.ok}`);
   cons.innerHTML = `${head}\n${out ? esc(out) + '\n' : ''}<span class="err">${esc(msg)}</span>`;
-  btn.disabled = false; G.lock = false;
+  btn.disabled = false;
   const fallback = f ? f.why : err ? 'Read the **last line** of the error — it names the problem. Which word or symbol on that line looks different from what Python/JS expects?' : `It runs, but prints \`${out.split('\n').pop() || 'nothing'}\` instead of \`${c.ok.split('\n').pop()}\`. Which line produces the output?`;
-  await wrong(cons, Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: err || `wrong output: ${out}` }, fallback), true);
+  settle(tok, cons, 'code', code, false, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: err || `wrong output: ${out}` }, fallback));
 }
 
-async function correct(el) {
+async function correct(el, tok) {
   G.lock = true; const p = ctr(el); G.combo++;
-  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, run); updHud(); save(); // 0 on replay
+  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, A.run); updHud(); save(); // 0 on replay
   FX.spark(p.x, p.y, 46, null, .9); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); floatText('+' + gain + ' XP', p.x, p.y - 30);
   anim($('#card'), [{ boxShadow: '0 0 0 0 rgba(79,216,196,0)' }, { boxShadow: '0 0 0 3px rgba(79,216,196,.7), 0 0 60px -10px rgba(79,216,196,.6)' }, { boxShadow: '0 0 0 0 rgba(79,216,196,0)' }], { duration: 900, fill: 'none' });
   if (G.combo >= 2) { $('#lv-combo').textContent = 'COMBO x' + G.combo; const m = ctr($('.l-main')); floatText('COMBO x' + G.combo, m.x, m.y - 200, 'slam'); }
@@ -123,42 +147,53 @@ async function correct(el) {
   if (G.chMistake) award('bounce');
   const praise = G.chMistake ? ['There it is. You found it yourself — that\'s how it sticks.', 'Yes! Mistake → understanding. That\'s the whole game.'] : ['Clean. Nice work.', 'Exactly right.', 'Sharp. On to the next one.'];
   Mentor.say(praise[(G.ci + G.combo) % praise.length], { kind: 'good', fast: true });
-  await wait(1500); G.ci++;
+  await wait(1500);
+  if (!isCurrent(A, tok)) return; // left the vault during the pause
+  G.ci++;
   if (G.ci >= lvl().ch.length) return levelDone();
   renderCh(true);
 }
 
-// why: string or Promise<string>. soft = no heart lost (running buggy code).
-async function wrong(el, why, soft) {
-  G.combo = 0; $('#lv-combo').textContent = '';
-  if (!soft) { G.mistakes++; G.chMistake = true; }
+const DUPLICATE = 'Same answer as before, so **no heart lost** — and the result won\'t change. What will you try differently?';
+
+async function wrong(el, why, out, tok) {
+  G.combo = 0; $('#lv-combo').textContent = ''; G.chMistake = true;
   anim(el, [{ transform: 'translateX(0)' }, { transform: 'translateX(-12px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(-7px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 450, fill: 'none' });
+  if (out.duplicate) return Mentor.say(DUPLICATE, { label: 'MENTOR' });
+  G.mistakes++;
   shake($('#app'));
   anim($('#vign'), [{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 800, fill: 'none' });
-  // Only the answer that takes the last heart resets the vault (replies to earlier answers may still be
-  // typing), and nothing can be answered until it does — so a reset never undoes XP from the next attempt.
-  const lastHeart = !soft && G.hearts === 1;
-  if (!soft) loseHeart();
-  if (lastHeart) G.lock = true;
-  await Mentor.say(why, { kind: 'fix' });
-  if (lastHeart) { await Mentor.say('Out of hearts — the vault resets. Take a breath, you\'ve got this.', { kind: 'fix' }); await wait(1200); startLevel(G.li, true); }
+  loseHeart();
+  if (out.exhausted) G.lock = true; // nothing more can be answered in this attempt
+  await Mentor.say(why(), { kind: 'fix' });
+  if (out.exhausted) outOfHearts(tok);
+}
+
+// Zero hearts — the single place this is handled, for every language. Until Syntax Recovery exists
+// (Phase 4) the vault restarts: only this attempt's XP is taken back, and nothing happens if the
+// player has left the vault in the meantime.
+function outOfHearts(tok) {
+  return whenExhausted(() => A, tok, {
+    announce: () => Mentor.say('Out of hearts — the vault resets. Take a breath, you\'ve got this.', { kind: 'fix' }),
+    pause: () => wait(1200),
+    next: () => { rollbackRun(S, A.run); save(); updHud(); startLevel(G.li); }
+  });
 }
 
 function loseHeart() {
-  if (G.hearts <= 0) return; G.hearts--;
-  const h = $$('#lv-hearts .heart')[G.hearts]; if (!h) return; const p = ctr(h);
+  const left = hearts(), h = $$('#lv-hearts .heart')[left]; if (!h) return; const p = ctr(h);
   h.innerHTML = `<svg viewBox="0 0 26 24">${HEART} fill="none" stroke="#3A4256" stroke-width="2"/></svg><svg class="hl" viewBox="0 0 26 24" style="clip-path:inset(0 50% 0 0)">${HEART} fill="#FF9B7A"/></svg><svg class="hr" viewBox="0 0 26 24" style="clip-path:inset(0 0 0 50%)">${HEART} fill="#FF9B7A"/></svg>`;
   anim(h.querySelector('.hl'), [{ transform: 'none', opacity: 1 }, { transform: 'translate(-10px,26px) rotate(-35deg)', opacity: 0 }], { duration: 800, easing: EASE.in });
   anim(h.querySelector('.hr'), [{ transform: 'none', opacity: 1 }, { transform: 'translate(10px,26px) rotate(35deg)', opacity: 0 }], { duration: 800, easing: EASE.in });
   FX.spark(p.x, p.y, 18, '#FF9B7A', .5);
-  $('#lv-hearts').setAttribute('aria-label', G.hearts + ' hearts left');
+  $('#lv-hearts').setAttribute('aria-label', left + ' hearts left');
 }
 
 async function levelDone() {
   const i = G.li, stars = G.mistakes <= 1 ? 3 : G.mistakes <= 3 ? 2 : 1;
   const free = freeOf(S.lang), wasDone = i < free ? i < S.done[S.lang] : !!S.stars[S.lang + i];
-  const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), 150 + i * 50 + stars * 30, run); // once per vault; better stars on replay pay nothing
-  run = newRun(); // the vault is cracked: nothing from this attempt can be taken back any more
+  const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), 150 + i * 50 + stars * 30, A.run); // once per vault; better stars on replay pay nothing
+  endAttempt(A); // the vault is cracked: nothing from this attempt can be taken back any more
   S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
   if (!wasDone && i < free) S.done[S.lang] = i + 1;
   save();
@@ -195,5 +230,5 @@ export function mount() {
     Mentor.ask('hint', { lang: S.lang, challenge: aiChal(c), hintLevel: n }, c.hints[n - 1], { kind: 'hint', label: `HINT ${n}/3` });
   };
   $('#btn-explain').onclick = () => Mentor.ask('explain', { lang: S.lang, concept: lvl().concept, challenge: aiChal(chal()) }, lvl().concept, { label: 'CONCEPT' });
-  $('#lv-back').onclick = () => openMap();
+  $('#lv-back').onclick = leaveLevel;
 }

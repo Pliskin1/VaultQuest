@@ -24,13 +24,17 @@ export const Mentor = {
   q: Promise.resolve(),
   use(k) { const p = k === 'pj'; this.box = $(p ? '#pj-msgs' : '#msgs'); this.root = $(p ? '#pj-mentor' : '#mentor'); this.st = $(p ? '#pj-stat' : '#m-stat'); },
   // text may be a string or a Promise<string>; typing dots show while it resolves.
-  say(text, o = {}) { this.q = this.q.then(() => this._say(text, o)).catch(() => {}); return this.q; },
-  async _say(text, { kind = '', label, fast } = {}) {
+  gen: 0,
+  say(text, o = {}) { const g = this.gen; this.q = this.q.then(() => g === this.gen && this._say(text, o, g)).catch(() => {}); return this.q; },
+  // Drops replies still queued or typing (the player left or restarted the vault).
+  cancel() { this.gen++; this.root?.classList.remove('thinking'); if (this.st) this.st.textContent = 'Your mentor · online'; },
+  async _say(text, { kind = '', label, fast } = {}, g = this.gen) {
     const { box, root: m, st } = this, d = document.createElement('div');
     d.className = 'msg ' + kind; d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
     box.appendChild(d); box.scrollTop = 1e6; m.classList.add('thinking'); st.textContent = 'thinking…';
     anim(d, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 300, easing: EASE.out, fill: 'none' });
     const [t] = await Promise.all([Promise.resolve(text), wait(fast ? 350 : 800)]);
+    if (g !== this.gen) return d.remove();
     const lab = label || LABELS[kind] || '', head = lab ? `<span class="lab">${lab}</span>` : '';
     const tok = t.split(/(`[^`]+`|\*\*[^*]+\*\*)/), raw = x => x.startsWith('`') ? x.slice(1, -1) : x.startsWith('**') ? x.slice(2, -2) : x;
     const full = tok.map(raw).join('');
@@ -41,6 +45,7 @@ export const Mentor = {
         h += x.startsWith('`') ? `<span class="code">${esc(part)}</span>` : x.startsWith('**') ? `<b>${esc(part)}</b>` : esc(part);
       }
       d.innerHTML = head + h; box.scrollTop = 1e6; await wait(28);
+      if (g !== this.gen) return d.remove();
     }
     d.innerHTML = head + md(t); m.classList.remove('thinking'); st.textContent = 'Your mentor · online';
   },
