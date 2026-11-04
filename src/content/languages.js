@@ -3,10 +3,13 @@
 //  mcq.opts: [label, isCorrect, whyWrong?]   blank.ans: accepted answers, blank.wrong: {answer: explanation}
 //  fix.checks: [{bad|need: RegExp, out: fake stderr, why: explanation}]  (used for instant feedback + fallback when real execution is unavailable)
 //  project.tests: (code, sandboxRoot, execApp) => null | failureMessage
-// Text uses `code` and **bold** markdown only. FREE = first 4 levels per language; index >= 4 is Pro.
-export const FREE = 4;
+// Text uses `code` and **bold** markdown only.
+// Per language: `free` = how many levels from the start are FREE (index >= free is Pro); `curriculum` = id of
+// this content version. Progress and reward keys are tied to it — bump it (py-2, js-2) when the content is
+// replaced, and saved progress on the old version is archived instead of counting as the new one.
+export const freeOf = lang => LANGS[lang].free;
 export const LANGS={
- py:{name:'Python',world:'The Foundations',titles:['Variables','Data types','Conditions','Functions','Loops & Lists','Project: Guess the Number','Project: Expense Tracker','Boss: Weather CLI'],
+ py:{name:'Python',world:'The Foundations',free:4,curriculum:'py-1',titles:['Variables','Data types','Conditions','Functions','Loops & Lists','Project: Guess the Number','Project: Expense Tracker','Boss: Weather CLI'],
   levels:[
   {concept:'A **variable** is a labeled box that holds a value. You create one with a single `=` : `score = 10`. Names are case-sensitive, so `score` and `Score` are different boxes.',
    ch:[
@@ -56,7 +59,7 @@ export const LANGS={
      return['Compare `guess` with `secret`: when the guess is smaller, return `"Too low"`.','Add the opposite case: a guess bigger than the secret returns `"Too high"`.','When neither is true the guess is right — return `"Correct!"` (exact text, with the `!`).','Loop over `guesses` with a counter; when `check(g, secret)` is `"Correct!"`, return the counter.'][k]}}
 
   ]},
- js:{name:'JavaScript',world:'Web Basics',titles:['Variables','Types','Conditions','Functions','Arrays & Loops','Project: To-Do App','Project: Pomodoro Timer','Boss: Weather App'],
+ js:{name:'JavaScript',world:'Web Basics',free:4,curriculum:'js-1',titles:['Variables','Types','Conditions','Functions','Arrays & Loops','Project: To-Do App','Project: Pomodoro Timer','Boss: Weather App'],
   levels:[
   {concept:'Declare variables with `let` (can change) or `const` (can\'t be reassigned). Avoid the old `var`.',
    ch:[

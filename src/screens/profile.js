@@ -3,7 +3,8 @@ import { anim, EASE } from '../core/anim.js';
 import { wait } from '../core/clock.js';
 import { FX } from '../core/fx.js';
 import { go } from '../core/router.js';
-import { S, save, lvlOf, resetState, logout, initials } from '../core/state.js';
+import { S, save, lvlOf, resetState, logout, initials, LIVE } from '../core/state.js';
+import { isEarlierVersion } from '../learn/progress.js';
 import { esc } from '../core/md.js';
 import { updHud } from '../ui/hud.js';
 import { ACH } from '../content/achievements.js';
@@ -20,7 +21,8 @@ function portfolio() {
   if (!S.projects || !S.projects.length) return '';
   return S.projects.map(p => {
     const pr = typeof p === 'string' ? { title: p, lang: 'js', score: 92 } : p;
-    return `<div class="panel pf"><div class="pf-shot" aria-hidden="true">${pr.lang === 'py' ? PY_SHOT : JS_SHOT}</div><div style="flex:1"><div class="kicker" style="color:var(--violet)">PORTFOLIO · NEW</div><div style="font-family:var(--disp);font-weight:700;font-size:30px;margin-top:4px">${esc(pr.title)}</div><div style="color:var(--mut);font-size:14px;margin-top:2px">${LANGS[pr.lang].name} · Pro project · shipped</div><div style="display:flex;gap:8px;margin-top:12px"><span class="pill" style="color:var(--cyan)">4/4 milestones</span><span class="pill" style="color:var(--violet)">AI review ${pr.score}/100</span><span class="pill" style="color:var(--gold)">Certificate</span></div></div><div style="display:flex;flex-direction:column;gap:10px"><button class="btn pf-open" data-title="${pr.title}" data-lang="${pr.lang}">VIEW LIVE APP ↗</button><button class="btn ghost pf-share">SHARE ON LINKEDIN</button></div></div>`;
+    const earlier = isEarlierVersion(p, LIVE) ? '<span class="pill" style="color:var(--mut)">Earlier version</span>' : '';
+    return `<div class="panel pf"><div class="pf-shot" aria-hidden="true">${pr.lang === 'py' ? PY_SHOT : JS_SHOT}</div><div style="flex:1"><div class="kicker" style="color:var(--violet)">PORTFOLIO · NEW</div><div style="font-family:var(--disp);font-weight:700;font-size:30px;margin-top:4px">${esc(pr.title)}</div><div style="color:var(--mut);font-size:14px;margin-top:2px">${LANGS[pr.lang].name} · Pro project · shipped</div><div style="display:flex;gap:8px;margin-top:12px">${earlier}<span class="pill" style="color:var(--cyan)">4/4 milestones</span><span class="pill" style="color:var(--violet)">AI review ${pr.score}/100</span><span class="pill" style="color:var(--gold)">Certificate</span></div></div><div style="display:flex;flex-direction:column;gap:10px"><button class="btn pf-open" data-title="${pr.title}" data-lang="${pr.lang}">VIEW LIVE APP ↗</button><button class="btn ghost pf-share">SHARE ON LINKEDIN</button></div></div>`;
   }).join('');
 }
 

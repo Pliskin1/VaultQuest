@@ -1,0 +1,114 @@
+// core/state.js against an in-memory localStorage: loading, upgrading, backups, corrupt saves, demo mode.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { V1 } from './fixtures/profiles.js';
+
+let n = 0;
+function memoryStorage(initial = {}, fail = () => false) {
+  const m = new Map(Object.entries(initial));
+  return {
+    m, getItem: k => (m.has(k) ? m.get(k) : null),
+    setItem: (k, v) => { if (fail(k)) throw new Error('QuotaExceededError'); m.set(k, String(v)); },
+    removeItem: k => m.delete(k)
+  };
+}
+// A fresh copy of state.js, as on a page load, against the given storage and URL.
+async function boot(storage, search = '') {
+  globalThis.localStorage = storage; globalThis.location = { search };
+  const warn = console.warn; console.warn = () => {};
+  try { return await import(`../src/core/state.js?boot=${++n}`); } finally { console.warn = warn; }
+}
+const as = (f, extra = {}) => ({ 'vaultquest:users': JSON.stringify([f.name]), 'vaultquest:user': JSON.stringify(f.name), ['vaultquest:' + f.name.toLowerCase()]: JSON.stringify(f), ...extra });
+
+test('an existing v1 profile loads unchanged, is backed up untouched, then saved as v2', async () => {
+  const text = JSON.stringify(V1.jsShipped), st = memoryStorage(as(V1.jsShipped));
+  const { S, save } = await boot(st);
+  for (const f of ['xp', 'ach', 'pro', 'projects', 'stars', 'done', 'custom', 'questions']) assert.deepEqual(S[f], V1.jsShipped[f], f);
+  assert.equal(st.getItem('vaultquest:jsshipped.backup.v1'), text);
+  assert.equal(S.v, 2); assert.deepEqual(S.curriculum, { py: 'py-1', js: 'js-1' });
+  save();
+  const saved = JSON.parse(st.getItem('vaultquest:jsshipped'));
+  assert.equal(saved.v, 2); assert.equal(saved.xp, 1990); assert.equal(saved.awarded['js-1:5:ship'], null);
+});
+
+test('later page loads: no second backup, nothing changes', async () => {
+  const st = memoryStorage(as(V1.proPy));
+  (await boot(st)).save();
+  const first = st.getItem('vaultquest:propy'), backups = [...st.m.keys()].filter(k => k.includes('.backup'));
+  for (let i = 0; i < 3; i++) (await boot(st)).save();
+  assert.deepEqual(JSON.parse(st.getItem('vaultquest:propy')), JSON.parse(first));
+  assert.deepEqual([...st.m.keys()].filter(k => k.includes('.backup')), backups);
+  assert.equal(backups.length, 1);
+});
+
+test('if the backup cannot be written, the original profile is never overwritten', async () => {
+  const text = JSON.stringify(V1.pyPartial), st = memoryStorage(as(V1.pyPartial), k => k.includes('.backup'));
+  const { S, save } = await boot(st);
+  assert.equal(S.xp, 420); // the player still sees their progress…
+  S.xp = 999; save();
+  assert.equal(st.getItem('vaultquest:pypartial'), text); // …but nothing is written over the original
+});
+
+test('a corrupt save is copied aside before the profile starts fresh', async () => {
+  const st = memoryStorage({ 'vaultquest:users': '["Ana"]', 'vaultquest:user': '"Ana"', 'vaultquest:ana': '{"xp": 12, broken' });
+  const { S, save } = await boot(st);
+  assert.equal(S.xp, 0);
+  assert.equal(st.getItem('vaultquest:ana.corrupt'), '{"xp": 12, broken');
+  save();
+  assert.equal(JSON.parse(st.getItem('vaultquest:ana')).v, 2);
+  assert.equal(st.getItem('vaultquest:ana.corrupt'), '{"xp": 12, broken');
+});
+
+test('an older corrupt copy is kept; a different one is stored next to it', async () => {
+  const st = memoryStorage({ 'vaultquest:user': '"Ana"', 'vaultquest:ana': 'garbage-2', 'vaultquest:ana.corrupt': 'garbage-1' });
+  await boot(st);
+  assert.equal(st.getItem('vaultquest:ana.corrupt'), 'garbage-1');
+  assert.ok([...st.m.entries()].some(([k, v]) => k.startsWith('vaultquest:ana.corrupt-') && v === 'garbage-2'));
+});
+
+test('if a corrupt save cannot be copied, it is not overwritten either', async () => {
+  const st = memoryStorage({ 'vaultquest:user': '"Ana"', 'vaultquest:ana': '[1,2' }, k => k.includes('.corrupt'));
+  const { S, save } = await boot(st);
+  S.xp = 50; save();
+  assert.equal(st.getItem('vaultquest:ana'), '[1,2');
+});
+
+test('new profiles start as v2 with the live curricula and no rewards', async () => {
+  const st = memoryStorage();
+  const { S, login } = await boot(st);
+  login('Ben');
+  const saved = JSON.parse(st.getItem('vaultquest:ben'));
+  assert.deepEqual({ v: saved.v, curriculum: saved.curriculum, awarded: saved.awarded, legacy: saved.legacy, xp: saved.xp }, { v: 2, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, xp: 0 });
+  assert.equal(S.name, 'Ben');
+  assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
+});
+
+test('rewards use the current language curriculum and pay once', async () => {
+  const st = memoryStorage(as(V1.jsOne));
+  const { S, rk, reward } = await boot(st);
+  assert.equal(rk(0, 0), 'js-1:0:0');
+  assert.equal(rk(1, 'bonus', 'py'), 'py-1:1:bonus');
+  assert.equal(reward(rk(0, 0), 50), 0); // vault 1 was completed before versioning
+  assert.equal(reward(rk(1, 0), 50), 50);
+  assert.equal(reward(rk(1, 0), 50), 0);
+  assert.equal(S.xp, 380);
+});
+
+test('reserved handles are blocked for new accounts only', async () => {
+  const fresh = await boot(memoryStorage());
+  for (const h of ['user', 'users', 'User', 'USERS']) { assert.equal(fresh.validHandle(h), false, h); assert.equal(fresh.isReserved(h), true, h); }
+  for (const h of ['Ana', 'user1', 'my-users', 'Ben_2']) assert.equal(fresh.validHandle(h), true, h);
+  assert.equal(fresh.validHandle('a'), false);
+  const existing = await boot(memoryStorage({ 'vaultquest:users': '["Users"]' }));
+  assert.equal(existing.validHandle('users'), true); // an existing profile keeps working
+});
+
+test('demo modes never read or write profile data', async () => {
+  for (const mode of ['?demo=1', '?demo=pro']) {
+    const st = memoryStorage(as(V1.jsShipped)), before = new Map(st.m);
+    const { S, save, login, reward } = await boot(st, mode);
+    assert.equal(S.name, 'DEMO'); assert.equal(S.xp, 0);
+    reward('js-1:5:m0', 50); S.xp += 10; save(); login('Someone');
+    assert.deepEqual(st.m, before, mode);
+  }
+});

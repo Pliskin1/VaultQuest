@@ -5,7 +5,7 @@ import { wait } from '../core/clock.js';
 import { go } from '../core/router.js';
 import { S, save } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
-import { LANGS, FREE } from '../content/languages.js';
+import { LANGS, freeOf } from '../content/languages.js';
 import { playProCinematic, proChain } from '../cine/pro.js';
 import { openMap, renderMap, setSel } from './map.js';
 
@@ -41,8 +41,8 @@ export function mount() {
     closeCheckout(); $('#checkout').getAnimations().forEach(a => a.cancel());
     b.disabled = false; b.innerHTML = 'CONFIRM &amp; START TRIAL'; b.style.background = '';
     await playProCinematic();
-    const proj = LANGS[S.lang].levels.findIndex((l, i) => i >= FREE && l.t === 'project');
-    setSel(proj > 0 ? proj : FREE);
+    const proj = LANGS[S.lang].levels.findIndex((l, i) => i >= freeOf(S.lang) && l.t === 'project');
+    setSel(proj > 0 ? proj : freeOf(S.lang));
     await go('s-map'); S.pro = false; renderMap(); S.pro = true; await wait(400); await proChain();
   };
 }

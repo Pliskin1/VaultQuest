@@ -7,7 +7,8 @@ import { FX } from '../core/fx.js';
 import { esc, md } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
-import { S, save } from '../core/state.js';
+import { S, save, rk, reward } from '../core/state.js';
+import { projectCurriculum } from '../learn/progress.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
@@ -102,14 +103,14 @@ async function run() {
   const before = PJ.passed.slice(); PJ.passed = res.map(r => r === null);
   cons.innerHTML = `<span class="dim">$ ${cmd}</span>\n` + res.map((r, k) => r === null ? `<span class="okl">✓ ${esc(lv.ms[k].n)}</span>` : `<span class="err">✗ ${esc(lv.ms[k].n)} — ${esc(r)}</span>`).join('\n');
   renderMs();
-  const shipped = !!S.stars[S.lang + PJ.i]; // replaying a shipped project gives no XP
   let gained = false;
   PJ.passed.forEach((p, k) => {
     if (!p || before[k]) return;
     const li = $$('#pj-ms li')[k], c = ctr(li.querySelector('.mn'));
     FX.spark(c.x, c.y, 34, null, .6); FX.ring(c.x, c.y, 90, '#4FD8C4', 3);
     anim(li, [{ transform: 'scale(1)' }, { transform: 'scale(1.05)' }, { transform: 'scale(1)' }], { duration: 450, fill: 'none' });
-    if (!shipped) { S.xp += 50; PJ.gained += 50; gained = true; floatText('+50 XP', c.x + 90, c.y); }
+    const xp = reward(rk(PJ.i, 'm' + k), 50); // once per milestone, also across restarts and after shipping
+    if (xp) { PJ.gained += xp; gained = true; floatText('+' + xp + ' XP', c.x + 90, c.y); }
   });
   if (gained) { updHud(); save(); }
   b.disabled = false;
@@ -136,9 +137,10 @@ async function submit() {
   await Mentor.say(r.then(x => x.text), { kind: 'good', label: 'FINAL REVIEW' });
   const score = (await r).score || fbScore;
   await wait(1100);
-  S.projects = (S.projects || []).filter(p => (p.title || p) !== lv.title);
-  S.projects.push({ title: lv.title, lang: S.lang, score });
-  if (!S.stars[S.lang + PJ.i]) { S.xp += 300; PJ.gained += 300; }
+  // Re-shipping replaces this curriculum's entry; projects from earlier curricula stay in the portfolio.
+  S.projects = (S.projects || []).filter(p => (p.title || p) !== lv.title || projectCurriculum(p) !== S.curriculum[S.lang]);
+  S.projects.push({ title: lv.title, lang: S.lang, score, curriculum: S.curriculum[S.lang] });
+  PJ.gained += reward(rk(PJ.i, 'ship'), 300);
   S.stars[S.lang + PJ.i] = 3; save();
   s.disabled = false;
   await playShipCinematic({ score, xp: PJ.gained, title: lv.title, lang: LANGS[S.lang].name });

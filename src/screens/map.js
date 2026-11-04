@@ -6,7 +6,7 @@ import { md } from '../core/md.js';
 import { go } from '../core/router.js';
 import { S } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
-import { LANGS, FREE } from '../content/languages.js';
+import { LANGS, freeOf } from '../content/languages.js';
 import { startLevel } from './level.js';
 import { startProject } from './project.js';
 import { openPro } from './pro.js';
@@ -20,6 +20,7 @@ export const ICON = {
 const ARROW = '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const STAR = '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"';
 
+const F = () => freeOf(S.lang); // FREE nodes on this language's map
 let sel = 0;
 export const getSel = () => sel;
 export const setSel = i => { sel = i; };
@@ -28,14 +29,14 @@ export const segD = i => { const [a, b] = [NODES[i], NODES[i + 1]], dx = (b[0] -
 
 export function nstate(i) {
   const L = LANGS[S.lang], done = S.done[S.lang];
-  if (i < FREE) return i < done ? 'done' : i === done ? 'cur' : 'lock';
+  if (i < F()) return i < done ? 'done' : i === done ? 'cur' : 'lock';
   if (!S.pro) return 'plock';
   if (S.stars[S.lang + i]) return 'done';
-  if (done < FREE) return 'lock';
+  if (done < F()) return 'lock';
   return L.levels[i] ? 'cur' : 'soon';
 }
 export const nodeInner = (i, st) => st === 'done' ? ICON.check : st === 'cur' ? `<span class="nnum">${i + 1}</span>` : (st === 'plock' || st === 'soon') ? ICON.crown : ICON.lock;
-const nodeKick = i => { const t = LANGS[S.lang].titles[i]; return t.startsWith('Boss') ? 'BOSS' : t.startsWith('Project') ? 'PROJECT' : i >= FREE ? 'PRO VAULT' : 'VAULT 0' + (i + 1); };
+const nodeKick = i => { const t = LANGS[S.lang].titles[i]; return t.startsWith('Boss') ? 'BOSS' : t.startsWith('Project') ? 'PROJECT' : i >= F() ? 'PRO VAULT' : 'VAULT 0' + (i + 1); };
 
 export function openMap() { go('s-map'); renderMap(); }
 
@@ -43,20 +44,20 @@ export function renderMap() {
   const L = LANGS[S.lang], done = S.done[S.lang]; updHud();
   $('#m-kicker').textContent = L.name + ' · World 1 · Free + Pro';
   $('#s-map h2').textContent = L.world;
-  $('#m-count').textContent = S.pro ? 'Pro unlocked · advanced vaults & projects' : `${done} of ${FREE} free vaults cracked`;
+  $('#m-count').textContent = S.pro ? 'Pro unlocked · advanced vaults & projects' : `${done} of ${F()} free vaults cracked`;
   let svg = '';
-  for (let i = 0; i < NODES.length - 1; i++) svg += `<path d="${segD(i)}" fill="none" stroke="${i >= FREE - 1 ? '#3A3160' : '#2A3245'}" stroke-width="3" stroke-dasharray="6 10" vector-effect="non-scaling-stroke"/>`;
-  for (let i = 0; i < NODES.length - 1; i++) svg += `<path class="gseg" data-i="${i}" d="${segD(i)}" fill="none" stroke="#F2B544" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke" style="opacity:${i < Math.min(done, FREE - 1) ? 1 : 0}"/>`;
-  for (let i = FREE - 1; i < NODES.length - 1; i++) svg += `<path class="pseg" data-i="${i}" d="${segD(i)}" fill="none" stroke="#C9B8FF" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke" style="opacity:${S.pro ? 1 : 0}"/>`;
+  for (let i = 0; i < NODES.length - 1; i++) svg += `<path d="${segD(i)}" fill="none" stroke="${i >= F() - 1 ? '#3A3160' : '#2A3245'}" stroke-width="3" stroke-dasharray="6 10" vector-effect="non-scaling-stroke"/>`;
+  for (let i = 0; i < NODES.length - 1; i++) svg += `<path class="gseg" data-i="${i}" d="${segD(i)}" fill="none" stroke="#F2B544" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke" style="opacity:${i < Math.min(done, F() - 1) ? 1 : 0}"/>`;
+  for (let i = F() - 1; i < NODES.length - 1; i++) svg += `<path class="pseg" data-i="${i}" d="${segD(i)}" fill="none" stroke="#C9B8FF" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke" style="opacity:${S.pro ? 1 : 0}"/>`;
   $('#m-svg').innerHTML = svg;
   $('#m-nodes').innerHTML = NODES.map(([x, y], i) => {
     const st = nstate(i), st3 = S.stars[S.lang + i] || 0, t = L.titles[i].replace(/^(Boss|Project): /, ''), p = pct(x, y);
-    const stars = st === 'done' ? `<div class="stars">${[1, 2, 3].map(k => `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">${STAR} fill="${k <= st3 ? (i >= FREE ? '#C9B8FF' : '#F2B544') : '#2A3245'}"/></svg>`).join('')}</div>` : '';
-    return `<div class="node ${st} ${i >= FREE ? 'pro' : ''} ${i === sel ? 'sel' : ''}" data-i="${i}" style="left:${p.left};top:${p.top}"><button class="nbtn" aria-label="${nodeKick(i)}: ${t}">${nodeInner(i, st)}</button><div class="nlab"><b>${nodeKick(i)}</b><span>${t}</span>${stars}</div></div>`;
+    const stars = st === 'done' ? `<div class="stars">${[1, 2, 3].map(k => `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">${STAR} fill="${k <= st3 ? (i >= F() ? '#C9B8FF' : '#F2B544') : '#2A3245'}"/></svg>`).join('')}</div>` : '';
+    return `<div class="node ${st} ${i >= F() ? 'pro' : ''} ${i === sel ? 'sel' : ''}" data-i="${i}" style="left:${p.left};top:${p.top}"><button class="nbtn" aria-label="${nodeKick(i)}: ${t}">${nodeInner(i, st)}</button><div class="nlab"><b>${nodeKick(i)}</b><span>${t}</span>${stars}</div></div>`;
   }).join('') + (S.pro ? '' : '<div class="gate" id="m-gate">' + ICON.crown.replace('width="28" height="28"', 'width="16" height="16"') + 'PRO</div>');
-  if (!S.pro) { const s3 = $(`#m-svg .gseg[data-i="${FREE - 1}"]`), p = s3.getPointAtLength(s3.getTotalLength() / 2), g = $('#m-gate'); Object.assign(g.style, pct(p.x, p.y)); }
+  if (!S.pro) { const s3 = $(`#m-svg .gseg[data-i="${F() - 1}"]`), p = s3.getPointAtLength(s3.getTotalLength() / 2), g = $('#m-gate'); Object.assign(g.style, pct(p.x, p.y)); }
   $$('#m-nodes .node').forEach(n => n.querySelector('.nbtn').onclick = () => { sel = +n.dataset.i; $$('#m-nodes .node').forEach(m => m.classList.toggle('sel', m === n)); renderPanel(); });
-  placeAvatar(S.pro ? Math.min(done, NODES.length - 1) : Math.min(done, FREE - 1));
+  placeAvatar(S.pro ? Math.min(done, NODES.length - 1) : Math.min(done, F() - 1));
   renderPanel();
 }
 
@@ -66,7 +67,7 @@ export function placeAvatar(i) {
 }
 
 export function renderPanel() {
-  const L = LANGS[S.lang], i = sel, st = nstate(i), lv = L.levels[i], isP = lv && lv.t === 'project', pro = i >= FREE;
+  const L = LANGS[S.lang], i = sel, st = nstate(i), lv = L.levels[i], isP = lv && lv.t === 'project', pro = i >= F();
   const kick = { done: 'CRACKED', cur: pro ? 'PRO · READY' : 'READY', lock: 'LOCKED', plock: 'PRO', soon: 'PRO · COMING SOON' }[st];
   const desc = lv ? (isP ? md(lv.brief) : md(lv.concept).replace(/<[^>]+>/g, '').split('. ')[0] + '.') : 'In development — ships to Pro members soon.';
   const pills = isP ? '<span class="pill">4 milestones</span><span class="pill" style="color:var(--violet)">AI code review</span>' : `<span class="pill">${lv ? lv.ch.length + ' challenges' : '—'}</span>`;

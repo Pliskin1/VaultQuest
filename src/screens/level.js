@@ -6,17 +6,18 @@ import { FX } from '../core/fx.js';
 import { esc } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
-import { S, save, lvlOf } from '../core/state.js';
+import { S, save, lvlOf, rk, reward } from '../core/state.js';
+import { newRun, rollbackRun } from '../learn/progress.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
-import { LANGS, FREE } from '../content/languages.js';
+import { LANGS, freeOf } from '../content/languages.js';
 import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { runJsChallenge } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
 
-let xpAtStart = 0;
+let run = newRun(); // rewards paid during this attempt; a reset takes back exactly these
 export const G = { li: 0, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
 const lvl = () => LANGS[S.lang].levels[G.li], chal = () => lvl().ch[G.ci];
 const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c0 7-11 14-11 14z"';
@@ -26,7 +27,8 @@ const aiChal = c => ({ type: c.t, q: plain(c.q), code: c.code });
 
 export function startLevel(i, retry = false) {
   Mentor.use('lv');
-  if (retry) { S.xp = xpAtStart; save(); } else xpAtStart = S.xp;
+  if (retry) { rollbackRun(S, run); save(); }
+  run = newRun();
   Object.assign(G, { li: i, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false });
   const L = LANGS[S.lang];
   $('#lv-kick').textContent = `VAULT 0${i + 1} · ${L.name.toUpperCase()}`; $('#lv-name').textContent = L.titles[i];
@@ -40,7 +42,7 @@ const renderHearts = () => { $('#lv-hearts').innerHTML = [0, 1, 2].map(k => `<di
 
 function updHint() {
   const n = G.hintIdx, b = $('#btn-hint');
-  b.textContent = n >= 3 ? 'No hints left' : n === 0 ? 'Hint · free' : S.pro ? `Hint ${n + 1}/3 · free` : `Hint ${n + 1}/3 · −10 XP`;
+  b.textContent = n >= 3 ? 'No hints left' : n === 0 ? 'Hint · free' : `Hint ${n + 1}/3 · free`;
 }
 
 async function renderCh(animate = true) {
@@ -113,7 +115,7 @@ async function runFix() {
 
 async function correct(el) {
   G.lock = true; const p = ctr(el); G.combo++;
-  const gain = 50 + (G.combo - 1) * 10; S.xp += gain; updHud(); save();
+  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, run); updHud(); save(); // 0 on replay
   FX.spark(p.x, p.y, 46, null, .9); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); floatText('+' + gain + ' XP', p.x, p.y - 30);
   anim($('#card'), [{ boxShadow: '0 0 0 0 rgba(79,216,196,0)' }, { boxShadow: '0 0 0 3px rgba(79,216,196,.7), 0 0 60px -10px rgba(79,216,196,.6)' }, { boxShadow: '0 0 0 0 rgba(79,216,196,0)' }], { duration: 900, fill: 'none' });
   if (G.combo >= 2) { $('#lv-combo').textContent = 'COMBO x' + G.combo; const m = ctr($('.l-main')); floatText('COMBO x' + G.combo, m.x, m.y - 200, 'slam'); }
@@ -133,9 +135,13 @@ async function wrong(el, why, soft) {
   anim(el, [{ transform: 'translateX(0)' }, { transform: 'translateX(-12px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(-7px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 450, fill: 'none' });
   shake($('#app'));
   anim($('#vign'), [{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 800, fill: 'none' });
+  // Only the answer that takes the last heart resets the vault (replies to earlier answers may still be
+  // typing), and nothing can be answered until it does — so a reset never undoes XP from the next attempt.
+  const lastHeart = !soft && G.hearts === 1;
   if (!soft) loseHeart();
+  if (lastHeart) G.lock = true;
   await Mentor.say(why, { kind: 'fix' });
-  if (G.hearts <= 0) { await Mentor.say('Out of hearts — the vault resets. Take a breath, you\'ve got this.', { kind: 'fix' }); await wait(1200); startLevel(G.li, true); }
+  if (lastHeart) { await Mentor.say('Out of hearts — the vault resets. Take a breath, you\'ve got this.', { kind: 'fix' }); await wait(1200); startLevel(G.li, true); }
 }
 
 function loseHeart() {
@@ -150,17 +156,18 @@ function loseHeart() {
 
 async function levelDone() {
   const i = G.li, stars = G.mistakes <= 1 ? 3 : G.mistakes <= 3 ? 2 : 1;
-  const wasDone = i < FREE ? i < S.done[S.lang] : !!S.stars[S.lang + i];
-  const prevXp = S.xp, bonus = 150 + i * 50 + stars * 30;
+  const free = freeOf(S.lang), wasDone = i < free ? i < S.done[S.lang] : !!S.stars[S.lang + i];
+  const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), 150 + i * 50 + stars * 30, run); // once per vault; better stars on replay pay nothing
+  run = newRun(); // the vault is cracked: nothing from this attempt can be taken back any more
   S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
-  if (!wasDone && i < FREE) S.done[S.lang] = i + 1;
-  S.xp = prevXp + bonus; save();
+  if (!wasDone && i < free) S.done[S.lang] = i + 1;
+  save();
   await playVaultCinematic({ kick: `VAULT 0${i + 1} CRACKED`, title: 'UNLOCKED', stars, bonus, prevXp, lvBefore: lvlOf(prevXp), mistakes: G.mistakes, first: i === 0 });
   setSel(i); await go('s-map'); renderMap();
-  if (!wasDone && i + 1 < FREE && rewindForTravel(i)) { await wait(500); await travel(i); }
+  if (!wasDone && i + 1 < free && rewindForTravel(i)) { await wait(500); await travel(i); }
   if (G.mistakes === 0) award('clean');
   if (G.hints === 0) award('hintfree');
-  if (S.done[S.lang] >= FREE) award('legend');
+  if (S.done[S.lang] >= free) award('legend');
   save();
 }
 
@@ -184,8 +191,7 @@ export function mount() {
   };
   $('#btn-hint').onclick = () => {
     const c = chal(); if (G.hintIdx >= c.hints.length) return;
-    if (G.hintIdx > 0 && !S.pro) { S.xp = Math.max(0, S.xp - 10); updHud(); save(); const p = ctr($('#btn-hint')); floatText('−10 XP', p.x, p.y - 20); }
-    const n = ++G.hintIdx; G.hints++; updHint();
+    const n = ++G.hintIdx; G.hints++; updHint(); // hints are always free
     Mentor.ask('hint', { lang: S.lang, challenge: aiChal(c), hintLevel: n }, c.hints[n - 1], { kind: 'hint', label: `HINT ${n}/3` });
   };
   $('#btn-explain').onclick = () => Mentor.ask('explain', { lang: S.lang, concept: lvl().concept, challenge: aiChal(chal()) }, lvl().concept, { label: 'CONCEPT' });

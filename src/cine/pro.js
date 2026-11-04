@@ -6,7 +6,7 @@ import { FX } from '../core/fx.js';
 import { S, save } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
 import { award } from '../ui/toast.js';
-import { FREE } from '../content/languages.js';
+import { freeOf } from '../content/languages.js';
 import { NODES, nstate, nodeInner, getSel, moveAlong, renderPanel } from '../screens/map.js';
 
 export async function playProCinematic() {
@@ -62,7 +62,7 @@ export async function proChain() {
     await anim(g, [{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(2.2)', opacity: 0 }], { duration: 450 }); g.remove();
   }
   S.pro = true; save(); updHud();
-  for (let i = FREE; i < NODES.length; i++) {
+  for (let i = freeOf(S.lang); i < NODES.length; i++) {
     const seg = $(`#m-svg .pseg[data-i="${i - 1}"]`), len = seg.getTotalLength();
     seg.style.opacity = 1; seg.style.strokeDasharray = len; seg.style.strokeDashoffset = len;
     await anim(seg, [{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 380, easing: EASE.inout });
@@ -72,6 +72,6 @@ export async function proChain() {
     anim(b, [{ transform: 'scale(.5)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 600, easing: EASE.back, fill: 'none' }); await wait(110);
   }
   $('#m-count').textContent = 'Pro unlocked · advanced vaults & projects';
-  if (S.done[S.lang] >= FREE) await moveAlong($(`#m-svg .pseg[data-i="${FREE - 1}"]`), 1200);
+  if (S.done[S.lang] >= freeOf(S.lang)) await moveAlong($(`#m-svg .pseg[data-i="${freeOf(S.lang) - 1}"]`), 1200);
   renderPanel();
 }

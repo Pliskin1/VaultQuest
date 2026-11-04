@@ -5,7 +5,7 @@ import { wait } from '../core/clock.js';
 import { FX } from '../core/fx.js';
 import { esc } from '../core/md.js';
 import { go } from '../core/router.js';
-import { S, login, profiles, validHandle, lvlOf } from '../core/state.js';
+import { S, login, profiles, validHandle, isReserved, lvlOf } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
 import { openMap } from './map.js';
 
@@ -38,7 +38,7 @@ function reject(msg) {
 async function unlock(raw) {
   if (busy) return;
   const name = raw.trim();
-  if (!validHandle(name)) return reject(name ? 'ACCESS DENIED · 2–16 chars: letters, numbers, - or _' : 'ACCESS DENIED · enter a handle');
+  if (!validHandle(name)) return reject(!name ? 'ACCESS DENIED · enter a handle' : isReserved(name) ? 'ACCESS DENIED · that handle is reserved' : 'ACCESS DENIED · 2–16 chars: letters, numbers, - or _');
   busy = true; $('#lg-err').textContent = '';
   const dial = $('#lg-dial'), c = ctr(dial);
   anim(dial, [{ transform: 'rotate(0) scale(1)' }, { transform: 'rotate(-40deg) scale(1.05)', offset: .2 }, { transform: 'rotate(720deg) scale(1.15)' }], { duration: 1100, easing: EASE.inout });
