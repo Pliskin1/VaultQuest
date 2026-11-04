@@ -110,13 +110,15 @@ export function reviewPayload({ lang, lv, judged, run, code, a, final = false })
 
 // Scripted (no-AI) Socratic feedback: what failed, in plain words, and one guiding question — never code
 // that solves it. `again`: this check also failed on the previous run (the question gets more specific).
-export function scriptedFeedback({ lv, judged, run, errorAsk, again = false }) {
-  if (run.timeout) return errorAsk.timeout;
+// plan: the part of the student's Blueprint this mistake contradicts (learn/blueprint.js linkPlan) — its
+// question replaces the generic one.
+export function scriptedFeedback({ lv, judged, run, errorAsk, again = false, plan = null }) {
+  if (run.timeout) return plan ? `${errorAsk.timeout.split(/(?<=\.)\s/)[0]} ${plan.question}` : errorAsk.timeout;
   if (run.error) return errorAsk.error(run.error);
   const c = judged.focusFailed[0] ?? judged.failed[0];
   if (!c) return null;
   const spec = lv.checks.find(x => x.id === c.id);
-  const ask = (again && spec?.ask2) || spec?.ask || 'What did you expect to see here, and what does your code actually do?';
+  const ask = plan?.question || (again && spec?.ask2) || spec?.ask || 'What did you expect to see here, and what does your code actually do?';
   const seen = c.expected != null ? ` Expected ${c.expected}, got ${c.actual ?? 'nothing'}.` : '';
   return `**${lv.ms[c.ms].n}** — ${c.msg}.${seen} ${ask}`;
 }

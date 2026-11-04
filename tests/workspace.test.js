@@ -180,3 +180,13 @@ test('scripted mentor questions and hints never contain a full solution line', (
     for (const t of texts) { assert.ok(!SOLUTION[lang].test(t), t); assert.ok(t.trim().endsWith('?'), `not a question: ${t}`); }
   }
 });
+
+test('plan-aware feedback: the Blueprint question replaces the generic one; timeouts keep their first sentence', () => {
+  for (const lang of ['js', 'py']) {
+    const lv = lvOf(lang), a = fresh(lang), run = upTo(lang, 1), judged = judgeRun(a.workspace, run, 4);
+    const plan = { question: 'Your Blueprint says: “I keep them.” Does your code?' };
+    assert.match(scriptedFeedback({ lv, judged, run, errorAsk: lv.errorAsk, plan }), /Your Blueprint says: “I keep them\.” Does your code\?$/);
+    const t = scriptedFeedback({ lv, judged, run: { ...run, timeout: true }, errorAsk: lv.errorAsk, plan });
+    assert.ok(t.startsWith(lv.errorAsk.timeout.split('. ')[0]) && t.endsWith('Does your code?'), t);
+  }
+});

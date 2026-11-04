@@ -128,6 +128,46 @@
   </div>
 </section>
 
+<section id="s-blueprint" class="screen">
+  <header class="lhud">
+    <button class="iconbtn" id="bp-back" aria-label="Back to map"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 9H4M8 5L4 9l4 4" stroke="#A3ABBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="ltitle"><b style="color:var(--violet)" id="bp-kick">PRO PROJECT · JAVASCRIPT</b><span id="bp-name">To-Do App · Blueprint</span></div>
+    <div class="segs" id="bp-segs" aria-hidden="true"></div>
+    <span class="bp-stage" id="bp-stage">STEP 1 OF 2 · BLUEPRINT</span>
+    <div class="sp"></div>
+    <span class="chip" style="color:var(--violet);border-color:#2E2650">PRO</span>
+    <div class="xpw"><span class="lvlb hud-lvl">LVL 1</span><div class="bar"><i class="hud-bar"></i></div></div>
+  </header>
+  <div class="bp-body">
+    <aside class="bp-left">
+      <div class="kicker">The brief</div><p id="bp-brief"></p>
+      <div class="kicker" style="margin-top:4px">Your plan</div>
+      <ol id="bp-list"></ol>
+      <div class="bp-clear" id="bp-clear">0 / 5 clear</div>
+      <button class="btn pro" id="bp-start" disabled>START BUILDING</button>
+      <span class="bp-gate" id="bp-gate">Every section needs to be clear first.</span>
+    </aside>
+    <main class="bp-main"><div class="card bp-card" id="bp-card">
+      <div class="kicker" id="bp-sk">SECTION 1 OF 5</div>
+      <h3 id="bp-title">Features</h3>
+      <p class="bp-purpose" id="bp-purpose"></p>
+      <div class="bp-q" id="bp-q"></div>
+      <label class="sr" for="bp-ed">Your answer</label>
+      <textarea id="bp-ed" class="bp-ed" spellcheck="true" maxlength="1500" placeholder="Write it your way — there's no single right design."></textarea>
+      <div class="bp-meta"><span id="bp-status" class="bp-st"></span><span id="bp-chars">0 / 1500</span></div>
+      <div class="bp-open" id="bp-open" aria-live="polite"></div>
+      <div class="bp-acts"><button class="btn" id="bp-ask" disabled>ASK MENTOR ABOUT THIS</button><button class="btn ghost" id="bp-keep" style="display:none">KEEP MY ANSWER</button><span class="sp"></span><button class="btn ghost bp-nav" id="bp-prev" aria-label="Previous section">←</button><button class="btn ghost bp-nav" id="bp-next" aria-label="Next section">→</button></div>
+    </div></main>
+    <aside class="bp-right">
+      <div class="pj-mentor" id="bp-mentor">
+        <div class="m-head"><div class="orb"></div><div><div class="m-name">VAULT AI · BLUEPRINT</div><div class="m-stat" id="bp-stat">Your mentor · online</div></div></div>
+        <div class="msgs" id="bp-msgs" aria-live="polite"></div>
+        <form class="m-form" id="bp-form"><label for="bp-in" class="sr">Answer the mentor</label><input id="bp-in" autocomplete="off" placeholder="Answer the mentor's question…"><button class="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
+      </div>
+    </aside>
+  </div>
+</section>
+
 <section id="s-project" class="screen">
   <header class="lhud">
     <button class="iconbtn" id="pj-back" aria-label="Back to map"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 9H4M8 5L4 9l4 4" stroke="#A3ABBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
@@ -141,8 +181,8 @@
   <div class="pj-body">
     <aside class="pj-left"><div class="kicker">The brief</div><p id="pj-brief"></p><div class="kicker" style="margin-top:4px">Milestones</div><ol id="pj-ms"></ol></aside>
     <div class="pj-mid">
-      <div class="pj-tabs" role="tablist" aria-label="Project files"><button class="on" id="pj-file" role="tab" aria-selected="true" data-tab="code">app.js</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="index.html">index.html</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="style.css">style.css</button><span class="pj-ro" id="pj-ro">READ-ONLY</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
-      <div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
+      <div class="pj-tabs" role="tablist" aria-label="Project files"><button class="on" id="pj-file" role="tab" aria-selected="true" data-tab="code">app.js</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="index.html">index.html</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="style.css">style.css</button><button class="pj-bptab" role="tab" aria-selected="false" data-tab="blueprint" id="pj-bptab">MY BLUEPRINT</button><span class="pj-ro" id="pj-ro">READ-ONLY</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
+      <div class="pj-bpv" id="pj-bpv" style="display:none" role="tabpanel" aria-label="My Blueprint"></div><div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
       <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><button class="btn ghost pj-hint" id="pj-hint">Hint · free</button><span class="pj-count" id="pj-count">automated checks</span></div>
       <div class="console pj-cons" id="pj-cons"></div>
     </div>

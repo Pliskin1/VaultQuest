@@ -22,7 +22,7 @@ async function post(url, body) {
 
 export const Mentor = {
   q: Promise.resolve(),
-  use(k) { const p = k === 'pj'; this.box = $(p ? '#pj-msgs' : '#msgs'); this.root = $(p ? '#pj-mentor' : '#mentor'); this.st = $(p ? '#pj-stat' : '#m-stat'); },
+  use(k) { const p = k === 'pj' || k === 'bp' ? k : null; this.box = $(p ? `#${p}-msgs` : '#msgs'); this.root = $(p ? `#${p}-mentor` : '#mentor'); this.st = $(p ? `#${p}-stat` : '#m-stat'); },
   // text may be a string or a Promise of a string — or of { text, label, kind } when the label depends on the
   // reply (e.g. whether it came from the AI or the scripted fallback). Typing dots show while it resolves.
   gen: 0,

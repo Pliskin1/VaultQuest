@@ -38,7 +38,9 @@ export async function review(b) {
   const failing = Array.isArray(b.failing) ? b.failing.slice(0, 6).map(f => `milestone ${Number(f?.milestone) || '?'}: ${s(f?.message, 200)}${f?.expected ? ` — expected ${s(f.expected, 120)}, got ${s(f.actual, 120) || 'nothing'}` : ''}`).join('\n') : '';
   const m = b.milestone && typeof b.milestone === 'object' ? `milestone in focus: ${Number(b.milestone.n) || '?'} "${s(b.milestone.name, 60)}" — ${s(b.milestone.goal, 160)}` : null;
   const user = [`project: ${s(b.project, 80)} (${s(b.lang, 4)})`, `milestones: ${(Array.isArray(b.milestones) ? b.milestones : []).slice(0, 8).map(x => s(x, 80)).join(' | ')}`, m, `final=${!!b.final}`, `runs so far: ${Number(b.runs) || 0}`,
-    b.error && `error: ${s(b.error, 300)}`, failing ? `failing checks:\n${failing}` : 'all checks pass', `code:\n${s(b.code)}`].filter(Boolean).join('\n');
+    b.error && `error: ${s(b.error, 300)}`, failing ? `failing checks:\n${failing}` : 'all checks pass',
+    b.plan && typeof b.plan === 'object' ? `learner's Blueprint:\n${Object.entries(b.plan).slice(0, 5).map(([k, v]) => `${s(k, 20)}: ${s(v, 300)}`).join('\n')}` : null,
+    b.planHint && `planHint: ${s(b.planHint, 300)}`, `code:\n${s(b.code)}`].filter(Boolean).join('\n');
   const text = await complete(REVIEWER, user, 350);
   const sc = text.match(/Final review:\s*(\d{1,3})\s*\/\s*100/i);
   return { text, score: sc ? Math.min(100, +sc[1]) : null };

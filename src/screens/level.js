@@ -360,7 +360,7 @@ async function levelDone() {
   if (G.hints === 0) award('hintfree');
   if (S.done[S.lang] >= free) award('legend');
   save();
-  if (boss && choice === 'next') return S.pro ? startProject(project) : openPro();
+  if (boss && choice === 'next') return startProject(project); // FREE students go through the mock checkout first
   setSel(i); await go('s-map'); renderMap();
   if (!wasDone && i + 1 < free && rewindForTravel(i)) { await wait(500); await travel(i); }
 }

@@ -28,6 +28,9 @@ import { playShipCinematic } from '../cine/ship.js';
 import { openMap } from './map.js';
 import { openProfile } from './profile.js';
 import { openRecovery } from './recovery.js';
+import { openBlueprint } from './blueprint.js';
+import { openPro } from './pro.js';
+import { mayBuild, waive, linkPlan, planForReview } from '../learn/blueprint.js';
 
 // i: level index · a: the attempt (hearts, Recovery, workspace state) · code: app.js / game.py (the editor
 // can show the read-only tabs instead) · judged: the last run's verdict · gained: XP this session.
@@ -50,7 +53,17 @@ export function pjRefresh() {
   $('#pj-gut').innerHTML = Array.from({ length: ta.value.split('\n').length }, (_, k) => k + 1).join('<br>');
 }
 
-// ── saving ──
+// ── loading and saving ──
+// The saved attempt for project level i in the current language (hearts, workspace, Blueprint), or a new one.
+export function loadProject(i) {
+  const lv = LANGS[S.lang].levels[i], cur = S.curriculum[S.lang], ids = lv.blueprint.sections.map(x => x.id);
+  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: 1, workspace: lv.ms.length, blueprint: ids });
+  return { saved, a: saved || newAttempt(S.lang, i, cur, { workspace: lv.ms.length, blueprint: ids }) };
+}
+export function saveProject(a) { if (a && !a.over) { S.attempts[attemptKey(a.curriculum, a.vault)] = toSave(a); save(); } }
+// Shipped before (in this language, any curriculum — also the old text-only portfolio entries).
+const shippedBefore = (lv, lang) => (S.projects || []).some(p => (typeof p === 'string' ? p : p.title) === lv.title && (typeof p === 'string' ? 'js' : p.lang) === lang);
+
 function persist() {
   const a = PJ.a;
   if (!a || a.over) return;
@@ -146,11 +159,21 @@ function setTab(t) {
   if (PJ.tab === 'code' && t !== 'code') PJ.code = ta.value;
   PJ.tab = t;
   $$('.pj-tabs [data-tab]').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+  const bp = t === 'blueprint';
+  $('#pj-bpv').style.display = bp ? '' : 'none'; $('#pj-edw').style.display = bp ? 'none' : '';
   $('.pj-tabs').classList.toggle('ro', t !== 'code');
+  if (bp) { renderPlan(); return; }
   ta.readOnly = t !== 'code';
   ta.value = t === 'code' ? PJ.code : PJ.lv.files?.[t] ?? '';
   $('#pj-edw').scrollTop = 0;
   pjRefresh();
+}
+
+// MY BLUEPRINT: the student's own five sections, read-only, while they code.
+function renderPlan() {
+  const bp = PJ.a.blueprint, spec = PJ.lv.blueprint;
+  $('#pj-bpv').innerHTML = !bp.started ? '<p class="bp-note">This project was shipped before Blueprints existed, so there is no saved plan for it.</p>'
+    : spec.sections.map(sec => { const x = bp.sections[sec.id]; return `<section><h4>${esc(sec.title)} <span class="${x.status === 'kept' ? 'kept' : ''}">${x.status === 'kept' ? 'KEPT AS WRITTEN' : 'CLEAR'}</span></h4><p>${esc(x.accepted ?? x.draft)}</p>${x.answers.length ? `<p class="bp-ans"><b>Your answers to the mentor:</b> ${x.answers.map(esc).join(' · ')}</p>` : ''}</section>`; }).join('');
 }
 
 // Mentor messages are saved with the attempt (unless `log` is false: greetings, status notes).
@@ -169,11 +192,18 @@ const labelled = (p, label, kind) => p.then(r => ({ text: r.text, label: r.ai ? 
 // ── open ──
 // Opens the project. A saved attempt resumes exactly (code, milestones, hearts, conversation); a locked one
 // goes straight to Syntax Recovery.
-export function startProject(i, { afterRecovery = false } = {}) {
-  flushDraft(); stopRuns(); endAttempt(PJ.a); Mentor.cancel(); Mentor.use('pj');
-  const L = LANGS[S.lang], lv = L.levels[i], cur = S.curriculum[S.lang], n = lv.ms.length;
-  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: 1, workspace: n });
-  const a = saved || newAttempt(S.lang, i, cur, { workspace: n });
+// The single way into a PRO project: PRO first (mock checkout), then the Blueprint, then the workspace.
+// shipped: opened from the portfolio — a project shipped before Blueprints existed opens without one.
+export function startProject(i, { afterRecovery = false, shipped = false } = {}) {
+  flushDraft(); stopRuns(); endAttempt(PJ.a); Mentor.cancel();
+  const L = LANGS[S.lang], lv = L.levels[i], n = lv.ms.length, historical = shipped && shippedBefore(lv, S.lang);
+  if (!S.pro && !historical) return openPro({ next: () => startProject(i) });
+  const { a } = loadProject(i);
+  if (!mayBuild(a.blueprint)) {
+    if (!historical && !a.workspace.shipped) return openBlueprint(i, a);
+    waive(a.blueprint); saveProject(a);
+  }
+  Mentor.use('pj');
   Object.assign(PJ, { i, lv, a, tab: 'code', code: a.view.drafts[0] ?? lv.starter, judged: null, gained: 0, logs: [] });
   const py = isPy(), w = ws();
   $('#pj-kick').textContent = `PRO PROJECT · ${L.name.toUpperCase()}`;
@@ -186,12 +216,13 @@ export function startProject(i, { afterRecovery = false } = {}) {
   if (py) { renderTerminal(w); pvErr(''); preloadPython(); } else showPreview(PJ.code);
   $('#pj-msgs').innerHTML = ''; Mentor.restore(w.chat); updHud();
   if (inRecovery(a)) return enterRecovery(); // refreshing or reopening never skips Recovery
-  const now = w.cleared.indexOf(false), h = hearts(), file = `**${lv.file}**`;
+  const now = w.cleared.indexOf(false), h = hearts(), file = `**${lv.file}**`, first = !w.runs && !w.chat.length && !w.results.length;
+  const plan = a.blueprint.started ? ' Your plan is one click away under **MY BLUEPRINT**.' : '';
   const welcome = afterRecovery ? `**Syntax Recovery complete** · 3 hearts restored. You're back on **${lv.ms[Math.max(0, now)].n}** — your code is exactly as you left it.`
     : w.shipped ? `This is your shipped **${lv.title}**. ${py ? 'Run it to play' : 'Try it in the preview'} — you can keep improving it (it won't pay XP twice).`
-    : saved && now === -1 ? `Welcome back. Every milestone is cleared — run the checks once more on your current code, then **SUBMIT**.`
-    : saved ? `Welcome back to **${lv.title}**. You're on milestone ${now + 1}: **${lv.ms[now].n}**, with ${h} heart${h === 1 ? '' : 's'}. Your code${w.chat.length ? ' and our conversation are' : ' is'} saved.`
-    : `Project time. You write ${file}: ${n} milestones on the left, ${lv.checks.length} automated checks. I review every run. A run that makes no progress costs a heart; running the same code again is free.`;
+    : !first && now === -1 ? `Welcome back. Every milestone is cleared — run the checks once more on your current code, then **SUBMIT**.`
+    : !first ? `Welcome back to **${lv.title}**. You're on milestone ${now + 1}: **${lv.ms[now].n}**, with ${h} heart${h === 1 ? '' : 's'}. Your code${w.chat.length ? ' and our conversation are' : ' is'} saved.${plan}`
+    : `Project time. You write ${file}: ${n} milestones on the left, ${lv.checks.length} automated checks. I review every run. A run that makes no progress costs a heart; running the same code again is free.${plan}`;
   go('s-project').then(() => { if (a === PJ.a && !a.over) say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : { label: 'MENTOR' }, false); });
 }
 
@@ -248,14 +279,16 @@ async function run() {
     return say(`All ${lv.ms.length} milestones pass — ${lv.checks.length}/${lv.checks.length} checks. ${isPy() ? 'Check your game in the terminal' : 'Try your app in the preview'}, then submit it for the full code review.`, { kind: 'good', label: 'CODE REVIEW' });
   }
   const again = c => prev.some(r => r.id === c?.id && !r.pass);
-  const socratic = scriptedFeedback({ lv, judged, run: res, errorAsk: lv.errorAsk, again: again(judged.focusFailed[0]) });
+  // When the mistake contradicts the student's own plan, the question points back at that part of it.
+  const link = linkPlan(a.blueprint, lv.blueprint, [...(res.timeout ? ['loop-timeout'] : []), ...judged.focusFailed.flatMap(c => c.tags ?? [])]);
+  const socratic = scriptedFeedback({ lv, judged, run: res, errorAsk: lv.errorAsk, again: again(judged.focusFailed[0]), plan: link });
   let fallback = socratic, kind = 'fix';
   if (judged.newly.length) {
     const k = judged.newly[judged.newly.length - 1], next = judged.current;
     fallback = `**${lv.ms[k].n}** ✓ ${lv.ms[k].alt ?? ''}${next >= 0 ? ` Next: **${lv.ms[next].n}**. ${lv.ms[next].hints?.[0] ?? ''}` : ''}`;
     kind = 'good';
   } else if (judged.better) fallback = `More checks pass than before — **no heart lost**. ${socratic}`;
-  const review = Mentor.review(reviewPayload({ lang: a.lang, lv, judged, run: res, code, a }), fallback);
+  const review = Mentor.review({ ...reviewPayload({ lang: a.lang, lv, judged, run: res, code, a }), plan: planForReview(a.blueprint, lv.blueprint), planHint: link?.question ?? null }, fallback);
   await say(labelled(review, 'CODE REVIEW', kind), { kind, label: 'CODE REVIEW' });
   if (out.exhausted) outOfHearts(tok);
 }
@@ -285,7 +318,7 @@ async function submit() {
   if (s.disabled || !a || a.over || !canSubmit(a, PJ.code)) return;
   s.disabled = true;
   const fb = lv.final || FALLBACK_FINAL, fbScore = +(fb.match(/(\d+)\/100/) || [0, 90])[1];
-  const r = Mentor.review(reviewPayload({ lang: a.lang, lv, code: PJ.code, a, final: true }), fb, fbScore);
+  const r = Mentor.review({ ...reviewPayload({ lang: a.lang, lv, code: PJ.code, a, final: true }), plan: planForReview(a.blueprint, lv.blueprint) }, fb, fbScore);
   await say(labelled(r, 'FINAL REVIEW', 'good'), { kind: 'good', label: 'FINAL REVIEW' });
   const score = (await r).score || fbScore;
   await wait(1100);

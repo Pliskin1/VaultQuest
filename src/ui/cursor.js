@@ -88,6 +88,15 @@ const M1 = 'function render() {\n  list.innerHTML = "";\n  tasks.forEach(task =>
 const BUG = '\n$("#add").onclick = () => {\n  list.innerHTML = "<li>" + $("#task").value + "</li>";\n};\n';
 const FINAL = '// The HTML is ready: #task, #add, #list, #count\n// loadTasks() gives you the saved tasks: [{ title: "…", done: false }, …]\nconst tasks = loadTasks();\nconst list = $("#list");\n\nfunction render() {\n  list.innerHTML = "";\n  tasks.forEach(task => {\n    const li = document.createElement("li");\n    li.textContent = task.title;\n    if (task.done) li.classList.add("done");\n    li.onclick = () => { task.done = !task.done; render(); };\n    list.appendChild(li);\n  });\n  const left = tasks.filter(t => !t.done).length;\n  $("#count").textContent = left + " left";\n}\n\n$("#add").onclick = () => {\n  tasks.push({ title: $("#task").value, done: false });\n  $("#task").value = "";\n  render();\n};\n\nrender();\n';
 
+// The plan typed in the ?demo=pro recording (Features is deliberately incomplete: it counts done tasks).
+const PLAN = {
+  features: 'People add a task by typing it and pressing Add, tick tasks off when they are done, and see a counter of how many tasks are done.',
+  data: 'I keep an array of task objects. Each task has a title with its text and a done value that is true or false.',
+  logic: 'When Add is pressed I read the text from the input, push a new task onto the end of the array and clear the box. Clicking a task flips its done value. To count I filter the tasks that are not done; with no tasks that is 0.',
+  uiData: 'After every change I call render, which redraws the whole list from the array and updates the counter, so the page always matches the data.',
+  steps: 'First I show the tasks, then I make Add work, then marking as done, and finally the counter. After each step I run the checks and try it in the preview.'
+};
+
 async function proDemo() {
   cx = innerWidth * .6; cy = innerHeight * .7;
   const ta = $('#pj-ta'), edw = $('#pj-edw');
@@ -122,7 +131,25 @@ async function proDemo() {
   cap('PRO PATH', 'New vaults + projects in every language'); await wait(1600);
   await click($('#m-nodes .node[data-i="6"] .nbtn'), 900); await wait(800);
   cap('GUIDED PROJECTS', 'Build real mini apps, milestone by milestone'); await wait(1200);
-  await click($('#m-play'), 800); await wait(2800);
+  await click($('#m-play'), 800);
+  // Blueprint first: one section with a real follow-up question, the rest time-lapsed.
+  await waitFor(() => $('#s-blueprint').classList.contains('on')); await wait(1800);
+  cap('PLAN FIRST', 'Explain the plan in your own words — the mentor asks, it never designs it'); await wait(1200);
+  const done = id => () => /Clear/.test($('#bp-status').textContent) && $('#bp-ed').value === PLAN[id];
+  await move($('#bp-ed'), 800); await type($('#bp-ed'), PLAN.features, 14); await wait(300);
+  await click($('#bp-ask'), 700); await waitFor(() => $('#bp-open').textContent.length > 0 && !$('#bp-mentor').classList.contains('thinking')); await wait(2400);
+  await click($('#bp-in'), 700); await type($('#bp-in'), 'Only the unfinished ones — the tasks still left to do.', 40); await wait(200);
+  $('#bp-form').requestSubmit(); await waitFor(done('features')); await wait(2200);
+  cap('');
+  for (const id of ['data', 'logic', 'uiData', 'steps']) {
+    await waitFor(() => !$('#bp-mentor').classList.contains('thinking'));
+    $$('#bp-list button')[['features', 'data', 'logic', 'uiData', 'steps'].indexOf(id)].click(); await wait(500);
+    const ed = $('#bp-ed'); ed.value = PLAN[id]; ed.dispatchEvent(new Event('input')); await wait(400);
+    $('#bp-ask').click(); await waitFor(done(id)); await wait(700);
+  }
+  await waitFor(() => !$('#bp-start').disabled && !$('#bp-mentor').classList.contains('thinking')); await wait(900);
+  cap('READY TO BUILD', 'A complete plan unlocks the workspace — and stays with you there'); await wait(1400);
+  await click($('#bp-start'), 800); await waitFor(() => $('#s-project').classList.contains('on')); await wait(2400);
   await move(ta, 800, -60, 40); await wait(200); ta.focus(); await typeCode(M1, 2); await wait(300);
   await click($('#pj-run'), 700);
   cap('LIVE PREVIEW', 'Your code runs instantly, tests check each milestone'); await wait(4400);

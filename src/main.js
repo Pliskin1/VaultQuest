@@ -18,6 +18,7 @@ import './styles/project.css';
 import './styles/cine.css';
 import './styles/login.css';
 import './styles/recovery.css';
+import './styles/blueprint.css';
 import './styles/mobile.css';
 
 import { startClock } from './core/clock.js';
@@ -32,13 +33,14 @@ import * as level from './screens/level.js';
 import * as pro from './screens/pro.js';
 import * as project from './screens/project.js';
 import * as recovery from './screens/recovery.js';
+import * as blueprint from './screens/blueprint.js';
 import { openMap } from './screens/map.js';
 import { openProfile } from './screens/profile.js';
 
 FX.init();
 startClock();
 mountHud({ pro: pro.openPro, profile: screen => screen === 's-profile' ? openMap() : openProfile() });
-[title, login, lang, level, pro, project, recovery].forEach(m => m.mount());
+[title, login, lang, level, pro, project, recovery, blueprint].forEach(m => m.mount());
 Mentor.use('lv');
 updHud();
 if (DEMO) import('./ui/cursor.js').then(m => m.runDemo(DEMO_MODE));

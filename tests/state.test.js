@@ -227,3 +227,20 @@ test('a PRO project pays each milestone and shipping once, in both languages', a
     assert.equal(reward(rk(6, 'ship', lang), 300), 300); assert.equal(reward(rk(6, 'ship', lang), 300), 0);
   }
 });
+
+test('Phase 7 saves (a project attempt without a Blueprint) load with an empty Blueprint and everything else kept; Blueprint XP pays once', async () => {
+  const { newAttempt, toSave, fromSave } = await import('../src/learn/attempt.js');
+  const { LANGS } = await import('../src/content/languages.js');
+  const p7 = newAttempt('js', 6, 'js-2', { workspace: 4 });
+  p7.view = { ...p7.view, drafts: { 0: 'my old code' } }; p7.workspace = { ...p7.workspace, shipped: true, runs: 3 };
+  const raw = JSON.parse(JSON.stringify(toSave(p7)));
+  assert.equal(raw.blueprint, undefined);
+  const st = memoryStorage(as({ ...V1.proPy, done: { py: 5, js: 5 }, stars: {}, v: 4, curriculum: { py: 'py-2', js: 'js-2' }, awarded: {}, legacy: {}, attempts: { 'js-2:6': raw }, extraField: { keep: true } }));
+  const { S, rk, reward } = await boot(st);
+  assert.deepEqual(S.attempts['js-2:6'], raw); assert.deepEqual(S.extraField, { keep: true });
+  const ids = LANGS.js.levels[6].blueprint.sections.map(s => s.id);
+  const a = fromSave(S.attempts['js-2:6'], { lang: 'js', vault: 6, curriculum: 'js-2', challenges: 1, workspace: 4, blueprint: ids });
+  assert.equal(a.view.drafts[0], 'my old code'); assert.equal(a.workspace.shipped, true); assert.equal(a.workspace.runs, 3);
+  assert.equal(a.blueprint.started, false); assert.equal(a.blueprint.waived, false);
+  for (const lang of ['js', 'py']) { assert.equal(rk(6, 'bp', lang), `${lang}-1:5:bp`); assert.equal(reward(rk(6, 'bp', lang), 50), 50); assert.equal(reward(rk(6, 'bp', lang), 50), 0); }
+});

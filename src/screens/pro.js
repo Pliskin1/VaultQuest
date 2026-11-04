@@ -9,8 +9,12 @@ import { LANGS, freeOf } from '../content/languages.js';
 import { playProCinematic, proChain } from '../cine/pro.js';
 import { openMap, renderMap, setSel } from './map.js';
 
-export function openPro() {
-  if (S.pro) return openMap();
+// next: where a successful checkout continues (WORLD 1 CLEARED → checkout → the project's Blueprint). Without
+// it, the checkout ends on the map as before.
+let next = null;
+export function openPro({ next: then = null } = {}) {
+  if (S.pro) return then ? then() : openMap();
+  next = then;
   updHud();
   go('s-pro').then(() => {
     $$('.feats li').forEach((li, k) => anim(li, [{ opacity: 0, transform: 'translateX(-24px)' }, { opacity: 1, transform: 'none' }], { duration: 550, delay: k * 100, easing: EASE.out, fill: 'backwards' }));
@@ -22,7 +26,7 @@ const closeCheckout = () => $('#checkout').classList.remove('on');
 
 export function mount() {
   $$('.plan').forEach(p => p.onclick = () => $$('.plan').forEach(q => q.classList.toggle('sel', q === p)));
-  $('#pro-later').onclick = () => openMap();
+  $('#pro-later').onclick = () => { next = null; openMap(); };
   $('#pro-cta').onclick = () => {
     const y = $('.plan.sel').dataset.plan === 'y';
     $('#co-plan').textContent = y ? 'Pro Yearly · €39.99/year' : 'Pro Monthly · €4.99/month';
@@ -44,5 +48,7 @@ export function mount() {
     const proj = LANGS[S.lang].levels.findIndex((l, i) => i >= freeOf(S.lang) && l.t === 'project');
     setSel(proj > 0 ? proj : freeOf(S.lang));
     await go('s-map'); S.pro = false; renderMap(); S.pro = true; await wait(400); await proChain();
+    const then = next; next = null;
+    if (then) { await wait(600); then(); }
   };
 }

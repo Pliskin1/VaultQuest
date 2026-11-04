@@ -15,6 +15,7 @@ import { getQuestion, RECOVERY_SIZE } from './recovery.js';
 import { MAX_HEARTS } from './hearts.js';
 import { newRun } from './progress.js';
 import { reviewApproach, MAX_CHARS, MAX_ANSWERS } from './approach.js';
+import { newBlueprint, cleanBlueprint, mayBuild } from './blueprint.js';
 
 let seq = 0;
 // What the vault screen needs to resume exactly where the student was.
@@ -29,7 +30,8 @@ export const newWorkspace = ms => ({ cleared: Array(ms).fill(false), best: Array
 // run: rewards paid in this attempt (bookkeeping; XP is never taken back).
 // opts.approach: this vault must be explained before any code can be submitted.
 // opts.workspace: number of milestones — this attempt is a PRO project.
-export const newAttempt = (lang, vault, curriculum = lang + '-1', opts = {}) => ({ id: ++seq, lang, vault, curriculum, session: newSession(), run: newRun(), view: newView(), busy: false, over: false, exhausted: false, ...(opts.approach ? { approach: newApproach() } : {}), ...(opts.workspace ? { workspace: newWorkspace(opts.workspace) } : {}) });
+// opts.blueprint: the project's Blueprint section ids — nothing can be run before the plan is complete.
+export const newAttempt = (lang, vault, curriculum = lang + '-1', opts = {}) => ({ id: ++seq, lang, vault, curriculum, session: newSession(), run: newRun(), view: newView(), busy: false, over: false, exhausted: false, ...(opts.approach ? { approach: newApproach() } : {}), ...(opts.workspace ? { workspace: newWorkspace(opts.workspace) } : {}), ...(opts.blueprint ? { blueprint: newBlueprint(opts.blueprint) } : {}) });
 // Where an attempt is saved in the profile: one per curriculum and vault, so languages never mix.
 export const attemptKey = (curriculum, vault) => `${curriculum}:${vault}`;
 
@@ -46,9 +48,10 @@ export function answerKey(a, challenge, type, value) {
 export const isCurrent = (a, token) => !!(a && token && token.id === a.id && !a.over);
 
 // Starts evaluating a submission → token, or null while one is being evaluated, the attempt is over/locked,
-// or its plan hasn't been accepted yet (explain-first is enforced here, not just in the UI).
+// its plan hasn't been accepted yet (explain-first is enforced here, not just in the UI), or a PRO project's
+// Blueprint isn't complete.
 export function beginSubmission(a) {
-  if (!a || a.over || a.busy || a.session.locked || (a.approach && !a.approach.accepted)) return null;
+  if (!a || a.over || a.busy || a.session.locked || (a.approach && !a.approach.accepted) || (a.blueprint && !mayBuild(a.blueprint))) return null;
   a.busy = true;
   return { id: a.id };
 }
@@ -144,7 +147,7 @@ export function startCoding(a) {
 export const inPlanning = a => !!a?.approach && !a.approach.started;
 
 // ── Saving and restoring (inside the profile save) ──
-export const toSave = a => ({ lang: a.lang, vault: a.vault, curriculum: a.curriculum, session: a.session, run: a.run, view: a.view, ...(a.approach ? { approach: a.approach } : {}), ...(a.workspace ? { workspace: a.workspace } : {}) });
+export const toSave = a => ({ lang: a.lang, vault: a.vault, curriculum: a.curriculum, session: a.session, run: a.run, view: a.view, ...(a.approach ? { approach: a.approach } : {}), ...(a.workspace ? { workspace: a.workspace } : {}), ...(a.blueprint ? { blueprint: a.blueprint } : {}) });
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const int = (v, lo, hi, d) => (Number.isInteger(v) && v >= lo && v <= hi ? v : d);
@@ -185,7 +188,8 @@ function cleanWorkspace(w, ms) {
 // coding never counts as started without an accepted plan.
 // approach: this vault is explain-first (a missing or damaged plan starts again from an empty one).
 // workspace: number of milestones of a PRO project (damaged project state starts again, code drafts kept).
-export function fromSave(raw, { lang, vault, curriculum, challenges, approach = false, workspace = 0 }) {
+// blueprint: the project's Blueprint section ids (a damaged plan can't count as complete).
+export function fromSave(raw, { lang, vault, curriculum, challenges, approach = false, workspace = 0, blueprint = null }) {
   if (!isObj(raw) || raw.lang !== lang || raw.vault !== vault || raw.curriculum !== curriculum) return null;
   const s = isObj(raw.session) ? raw.session : {}, v = isObj(raw.view) ? raw.view : {};
   let hearts = int(s.hearts, 0, MAX_HEARTS, s.locked === true ? 0 : MAX_HEARTS);
@@ -203,6 +207,7 @@ export function fromSave(raw, { lang, vault, curriculum, challenges, approach = 
     run: { paid },
     ...(approach ? { approach: cleanApproach(raw.approach) } : {}),
     ...(workspace ? { workspace: cleanWorkspace(raw.workspace, workspace) } : {}),
+    ...(blueprint ? { blueprint: cleanBlueprint(raw.blueprint, blueprint) } : {}),
     view: { ci: int(v.ci, 0, challenges, 0), combo: int(v.combo, 0, 1e6, 0), mistakes: int(v.mistakes, 0, 1e6, 0), hints: int(v.hints, 0, 1e6, 0), chMistake: v.chMistake === true, hintIdx: int(v.hintIdx, 0, 3, 0), drafts }
   };
 }
