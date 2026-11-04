@@ -23,6 +23,15 @@ button,input,textarea{font-variant-ligatures:none;font-feature-settings:"liga" 0
 .btn.outline:active{transform:translateY(0) scale(.97)}
 @media (prefers-reduced-motion:reduce){.btn.outline,.btn.outline .ic-rot{transition:none}.btn.outline:hover{transform:none}}
 .btn:disabled{opacity:.4;cursor:default}
+/* themed scrollbar: invisible track, thin steel pill, gold on hover/drag. Chrome ignores ::-webkit-scrollbar
+   once scrollbar-width/color are set, so those (no hover colour) are only for browsers without it (Firefox). */
+.scroll::-webkit-scrollbar{width:12px;height:12px}
+.scroll::-webkit-scrollbar-track,.scroll::-webkit-scrollbar-corner{background:transparent}
+.scroll::-webkit-scrollbar-button{display:none}
+.scroll::-webkit-scrollbar-thumb{min-height:48px;min-width:48px;border:3px solid transparent;border-radius:99px;background:var(--ln2) padding-box}
+.scroll::-webkit-scrollbar-thumb:hover{background:rgba(242,181,68,.6) padding-box}
+.scroll::-webkit-scrollbar-thumb:active{background:var(--gold) padding-box}
+@supports not selector(::-webkit-scrollbar){.scroll{scrollbar-width:thin;scrollbar-color:var(--ln2) transparent}}
 .iconbtn{width:44px;height:44px;border-radius:10px;border:1px solid var(--ln);background:transparent;display:grid;place-items:center}
 
 /* ---------- title ---------- */

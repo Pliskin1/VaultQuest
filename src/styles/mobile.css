@@ -29,6 +29,12 @@
   #s-profile .p-body{grid-template-columns:1fr;padding:16px}
   .p-top,.pf{flex-wrap:wrap}.p-stats{margin-left:0;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
   .p-stat{min-width:0}.ach{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .b-wrap{padding:16px}
+  .b-head h2{font-size:28px}
+  .b-grid{grid-template-columns:1fr}
+  .b-side{order:-1}
+  .pd-av{width:50px;height:50px;font-size:18px}.pd1 .pd-av{width:60px;height:60px;font-size:20px}
+  .pd-nm span{font-size:14px}.pd-ped{font-size:30px}
   #s-pro .pro-body{grid-template-columns:1fr;gap:24px;padding:20px 16px}
   .pro-left h2{font-size:32px}
   .pj-body{flex-direction:column;flex:none}

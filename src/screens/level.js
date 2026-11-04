@@ -15,6 +15,7 @@ import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { runJsChallenge } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
+import { fetchBoard } from '../ui/board.js';
 
 let xpAtStart = 0;
 export const G = { li: 0, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
@@ -166,7 +167,7 @@ async function levelDone() {
   const prevXp = S.xp, bonus = 150 + i * 50 + stars * 30;
   S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
   if (!wasDone && i < FREE) S.done[S.lang] = i + 1;
-  S.xp = prevXp + bonus; save();
+  S.xp = prevXp + bonus; save(); fetchBoard();
   await playVaultCinematic({ kick: `VAULT 0${i + 1} CRACKED`, title: 'UNLOCKED', stars, bonus, prevXp, lvBefore: lvlOf(prevXp), mistakes: G.mistakes, first: i === 0 });
   setSel(i); await go('s-map'); renderMap();
   if (!wasDone && i + 1 < FREE && rewindForTravel(i)) { await wait(500); await travel(i); }

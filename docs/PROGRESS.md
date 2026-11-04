@@ -5,4 +5,4 @@
 - Session 2: local profiles login (`screens/login.js`, per-handle saves, streak), Python Pro project "Guess the Number", mobile layout, fix challenges must pass output AND structure checks, accurate ship XP, no XP farming on retry. Verified end-to-end in headless Chromium (free flow, Pro flow, Python project, both demo modes, mobile) — no page errors.
 - Bugs found by browser testing and fixed: `.m-map svg` rule blew up all map icons (prototype bug), floor overflow shifted login screen on focus.
 - Known limits: profiles are local (no password, per device). AI untested against a real key (needs `.env`).
-- 2026-11-04 · Reset button on blank/fix challenges (restores the blank field, or the buggy code + console).
+- 2026-11-04 · Reset button on blank/fix challenges. Leaderboard: profile button with rank, `s-board` screen (podium, rankings, your position, all-time/weekly tabs), `POST /api/leaderboard` with JSON-file store + made-up rivals, offline fallback from local profiles. Ranking shared by client and server (`src/core/rank.js`).
