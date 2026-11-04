@@ -134,19 +134,20 @@
     <div class="ltitle"><b style="color:var(--violet)" id="pj-kick">PRO PROJECT · JAVASCRIPT</b><span id="pj-name">To-Do App</span></div>
     <div class="segs" id="pj-segs"></div>
     <div class="sp"></div>
+    <div class="hearts" id="pj-hearts" role="img" aria-label="3 hearts left"></div>
     <span class="chip" style="color:var(--violet);border-color:#2E2650">PRO</span>
     <div class="xpw"><span class="lvlb hud-lvl">LVL 1</span><div class="bar"><i class="hud-bar"></i></div></div>
   </header>
   <div class="pj-body">
     <aside class="pj-left"><div class="kicker">The brief</div><p id="pj-brief"></p><div class="kicker" style="margin-top:4px">Milestones</div><ol id="pj-ms"></ol></aside>
     <div class="pj-mid">
-      <div class="pj-tabs"><span class="on" id="pj-file">app.js</span><span class="pj-xtab">index.html</span><span class="pj-xtab">style.css</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
+      <div class="pj-tabs" role="tablist" aria-label="Project files"><button class="on" id="pj-file" role="tab" aria-selected="true" data-tab="code">app.js</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="index.html">index.html</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="style.css">style.css</button><span class="pj-ro" id="pj-ro">READ-ONLY</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
       <div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
-      <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--mut2)">4 automated checks</span></div>
+      <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><button class="btn ghost pj-hint" id="pj-hint">Hint · free</button><span class="pj-count" id="pj-count">automated checks</span></div>
       <div class="console pj-cons" id="pj-cons"></div>
     </div>
     <aside class="pj-right">
-      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url" id="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div></div>
+      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url" id="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div><div class="pv-err" id="pv-err" role="status" aria-live="polite"></div></div>
       <div class="pj-mentor" id="pj-mentor">
         <div class="m-head"><div class="orb"></div><div><div class="m-name">VAULT AI · CODE REVIEW</div><div class="m-stat" id="pj-stat">Your mentor · online</div></div></div>
         <div class="msgs" id="pj-msgs" aria-live="polite"></div>
@@ -237,7 +238,6 @@
   </div>
   <div class="srow" style="top:628px"><button class="btn ghost" id="s-share" style="opacity:0">SHARE LIVE LINK</button><button class="btn" id="s-next" style="opacity:0">ADD TO PORTFOLIO <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
 </div>
-<div id="pj-sandbox" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:340px"></div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas id="fx"></canvas>

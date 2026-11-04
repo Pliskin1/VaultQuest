@@ -51,3 +51,28 @@ for (const lang of ['py', 'js']) {
     }
   });
 }
+
+// ── PRO projects ──
+import { readFileSync } from 'node:fs';
+// Every tag a JS project check can report (read from its source), and every tag a Python check's tags()
+// gives for typical wrong values.
+const jsProjectTags = () => {
+  const src = readFileSync(new URL('../src/content/projects/todo.js', import.meta.url), 'utf8');
+  const lists = [...src.matchAll(/tags: \[([^\]]*)\]/g), ...src.matchAll(/countTag\([^)]*\) \{([^\n]*)\}/g)].map(m => m[1]);
+  return [...new Set(lists.flatMap(l => [...l.matchAll(/'([a-z]+(?:-[a-z]+)+)'/g)].map(m => m[1])))];
+};
+const pyProjectTags = () => [...new Set(LANGS.py.levels[6].checks.flatMap(c => [null, 'too low', 'Too low', 'Too high', 'Correct!', 0, 1, 3, 4, 99, [1]].flatMap(v => c.tags(v, 4))))];
+
+for (const [lang, tagsOf] of [['js', jsProjectTags], ['py', pyProjectTags]]) {
+  const L = LANGS[lang], lv = L.levels.find(l => l.t === 'project'), bank = RECOVERY_BANKS[L.curriculum];
+  test(`${lang}: every mistake the PRO project can report has a Recovery question; the project has its own refreshers`, () => {
+    const tags = tagsOf();
+    assert.ok(tags.length >= 6, tags.join());
+    for (const t of [...tags, 'syntax-error', 'loop-timeout']) assert.ok(bank.questions.some(q => q.tags.includes(t)), `${L.curriculum}: no question for "${t}"`);
+    assert.ok(bank.questions.filter(q => q.vault === L.levels.indexOf(lv)).length >= 3);
+  });
+  test(`${lang}: the PRO project is written in ${L.name} only — brief, milestones, hints, questions`, () => {
+    const texts = [lv.brief, lv.starter, ...lv.ms.flatMap(m => [m.d, ...m.hints, m.alt]), ...lv.checks.flatMap(c => [c.ask, c.ask2])];
+    for (const t of texts) assert.ok(!FOREIGN[lang].test(t), `${t} → ${t.match(FOREIGN[lang])?.[0]}`);
+  });
+}

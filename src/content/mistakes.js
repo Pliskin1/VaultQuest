@@ -21,6 +21,7 @@ export const ERRORS = {
     [/Assignment to constant variable/, 'const-reassign'],
     [/ReferenceError: \S+ is not defined/, 'undefined-variable'],
     [/Cannot read properties of undefined/, 'undefined-value'],
+    [/Cannot (read|set) properties of null/, 'null-element'],
     [/^Timeout|ran longer than|infinite loop/im, 'loop-timeout']
   ]
 };

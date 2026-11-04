@@ -192,3 +192,38 @@ test('if the backup before the v3 → v4 upgrade fails, the original save is nev
   S.xp += 1; save();
   assert.equal(st.getItem('vaultquest:jsone'), text); // …but the original stays untouched
 });
+
+test('saved PRO projects (both languages, one mid-Recovery) load unchanged and resume exactly; no version bump needed', async () => {
+  const { newAttempt, toSave, fromSave, beginSubmission, startRecovery } = await import('../src/learn/attempt.js');
+  const { judgeRun, settleRun, logChat } = await import('../src/learn/workspace.js');
+  const { LANGS } = await import('../src/content/languages.js');
+  const saves = {};
+  for (const lang of ['js', 'py']) {
+    const a = newAttempt(lang, 6, lang + '-2', { workspace: 4 }), lv = LANGS[lang].levels[6];
+    a.view = { ...a.view, drafts: { 0: lang + ' code' } };
+    const fail = { checks: lv.checks.map(c => ({ id: c.id, ms: c.ms, pass: c.ms === 0, msg: 'x', tags: [] })), error: null, timeout: false };
+    // py: the first run clears milestone 1 (free), three more use up the hearts
+    for (let k = 0; k < (lang === 'py' ? 4 : 1); k++) { const t = beginSubmission(a), j = judgeRun(a.workspace, fail, 4); settleRun(a, t, { code: 'c' + k, run: fail, judged: j }); }
+    if (lang === 'py') startRecovery(a);
+    logChat(a, { w: 'm', text: 'hello', label: 'MENTOR' });
+    saves[lang + '-2:6'] = JSON.parse(JSON.stringify(toSave(a)));
+  }
+  const v4 = { ...V1.proPy, done: { py: 5, js: 5 }, stars: {}, v: 4, curriculum: { py: 'py-2', js: 'js-2' }, awarded: {}, legacy: {}, attempts: saves };
+  const st = memoryStorage(as(v4));
+  const { S } = await boot(st);
+  assert.deepEqual(S.attempts, saves);
+  assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
+  const js = fromSave(S.attempts['js-2:6'], { lang: 'js', vault: 6, curriculum: 'js-2', challenges: 1, workspace: 4 });
+  const py = fromSave(S.attempts['py-2:6'], { lang: 'py', vault: 6, curriculum: 'py-2', challenges: 1, workspace: 4 });
+  assert.deepEqual(js.workspace.cleared, [true, false, false, false]); assert.equal(js.view.drafts[0], 'js code'); assert.equal(js.workspace.chat[0].text, 'hello');
+  assert.equal(py.session.locked, true); assert.equal(py.session.hearts, 0); assert.equal(py.session.recovery.bank, 'py-2'); assert.equal(py.view.drafts[0], 'py code');
+});
+
+test('a PRO project pays each milestone and shipping once, in both languages', async () => {
+  const st = memoryStorage(as({ ...V1.proPy, done: { py: 5, js: 5 }, stars: {}, v: 4, curriculum: { py: 'py-2', js: 'js-2' }, awarded: {}, legacy: {}, attempts: {} }));
+  const { rk, reward } = await boot(st);
+  for (const lang of ['js', 'py']) {
+    for (let k = 0; k < 4; k++) { assert.equal(reward(rk(6, 'm' + k, lang), 50), 50); assert.equal(reward(rk(6, 'm' + k, lang), 50), 0); }
+    assert.equal(reward(rk(6, 'ship', lang), 300), 300); assert.equal(reward(rk(6, 'ship', lang), 300), 0);
+  }
+});

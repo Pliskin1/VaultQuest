@@ -22,9 +22,14 @@ export const newView = () => ({ ci: 0, combo: 0, mistakes: 0, hints: 0, chMistak
 // Explain-first plan (Mini Boss): the student's text and follow-up answers, whether the mentor accepted it,
 // how often it was reviewed, the question asked last, and whether coding has started.
 export const newApproach = () => ({ text: '', answers: [], accepted: false, reviews: 0, last: null, started: false });
+// PRO Workspace (learn/workspace.js), per milestone: cleared once passed, best number of checks passed, free
+// hints used. Plus the last run's check results/error/output, the mentor conversation, and the fingerprint of
+// code that passed everything (SUBMIT needs exactly that code).
+export const newWorkspace = ms => ({ cleared: Array(ms).fill(false), best: Array(ms).fill(0), hints: Array(ms).fill(0), runs: 0, results: [], error: null, timeout: false, output: '', chat: [], lastKey: null, passKey: null, shipped: false });
 // run: rewards paid in this attempt (bookkeeping; XP is never taken back).
 // opts.approach: this vault must be explained before any code can be submitted.
-export const newAttempt = (lang, vault, curriculum = lang + '-1', opts = {}) => ({ id: ++seq, lang, vault, curriculum, session: newSession(), run: newRun(), view: newView(), busy: false, over: false, exhausted: false, ...(opts.approach ? { approach: newApproach() } : {}) });
+// opts.workspace: number of milestones — this attempt is a PRO project.
+export const newAttempt = (lang, vault, curriculum = lang + '-1', opts = {}) => ({ id: ++seq, lang, vault, curriculum, session: newSession(), run: newRun(), view: newView(), busy: false, over: false, exhausted: false, ...(opts.approach ? { approach: newApproach() } : {}), ...(opts.workspace ? { workspace: newWorkspace(opts.workspace) } : {}) });
 // Where an attempt is saved in the profile: one per curriculum and vault, so languages never mix.
 export const attemptKey = (curriculum, vault) => `${curriculum}:${vault}`;
 
@@ -139,7 +144,7 @@ export function startCoding(a) {
 export const inPlanning = a => !!a?.approach && !a.approach.started;
 
 // ── Saving and restoring (inside the profile save) ──
-export const toSave = a => ({ lang: a.lang, vault: a.vault, curriculum: a.curriculum, session: a.session, run: a.run, view: a.view, ...(a.approach ? { approach: a.approach } : {}) });
+export const toSave = a => ({ lang: a.lang, vault: a.vault, curriculum: a.curriculum, session: a.session, run: a.run, view: a.view, ...(a.approach ? { approach: a.approach } : {}), ...(a.workspace ? { workspace: a.workspace } : {}) });
 
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const int = (v, lo, hi, d) => (Number.isInteger(v) && v >= lo && v <= hi ? v : d);
@@ -160,12 +165,27 @@ function cleanApproach(p) {
     accepted, reviews: int(p.reviews, 0, 1e6, 0), last: typeof p.last === 'string' ? p.last : null, started: accepted && p.started === true };
 }
 
+const bools = (v, n) => Array.from({ length: n }, (_, k) => Array.isArray(v) && v[k] === true);
+const ints = (v, n, hi) => Array.from({ length: n }, (_, k) => int(Array.isArray(v) ? v[k] : 0, 0, hi, 0));
+const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+function cleanWorkspace(w, ms) {
+  if (!isObj(w)) return newWorkspace(ms);
+  const results = (Array.isArray(w.results) ? w.results : []).filter(isObj).slice(0, 40)
+    .map(r => ({ id: str(r.id, 40), ms: int(r.ms, 0, ms - 1, 0), pass: r.pass === true, msg: str(r.msg, 300), ...(typeof r.exp === 'string' ? { exp: r.exp.slice(0, 120), act: str(r.act, 120) } : {}) })).filter(r => r.id);
+  const chat = (Array.isArray(w.chat) ? w.chat : []).filter(c => isObj(c) && typeof c.text === 'string').slice(-40)
+    .map(c => ({ w: c.w === 'u' ? 'u' : 'm', text: c.text.slice(0, 1500), ...(typeof c.label === 'string' ? { label: c.label.slice(0, 40) } : {}), ...(typeof c.kind === 'string' ? { kind: c.kind.slice(0, 10) } : {}) }));
+  const e = isObj(w.error) ? { name: str(w.error.name, 40) || 'Error', message: str(w.error.message, 300), line: int(w.error.line, 1, 1e6, null), kind: w.error.kind === 'syntax' ? 'syntax' : 'runtime' } : null;
+  return { cleared: bools(w.cleared, ms), best: ints(w.best, ms, 100), hints: ints(w.hints, ms, 3), runs: int(w.runs, 0, 1e6, 0), results, error: e, timeout: w.timeout === true,
+    output: str(w.output, 4000), chat, lastKey: typeof w.lastKey === 'string' ? w.lastKey : null, passKey: typeof w.passKey === 'string' ? w.passKey : null, shipped: w.shipped === true };
+}
+
 // Restores a saved attempt for exactly this language, curriculum and vault → attempt, or null (nothing
 // usable saved). Damaged fields are repaired conservatively: a locked attempt stays locked, hearts never
 // exceed what was earned back, a recovery that can't be read is picked again from the same mistakes, and
 // coding never counts as started without an accepted plan.
 // approach: this vault is explain-first (a missing or damaged plan starts again from an empty one).
-export function fromSave(raw, { lang, vault, curriculum, challenges, approach = false }) {
+// workspace: number of milestones of a PRO project (damaged project state starts again, code drafts kept).
+export function fromSave(raw, { lang, vault, curriculum, challenges, approach = false, workspace = 0 }) {
   if (!isObj(raw) || raw.lang !== lang || raw.vault !== vault || raw.curriculum !== curriculum) return null;
   const s = isObj(raw.session) ? raw.session : {}, v = isObj(raw.view) ? raw.view : {};
   let hearts = int(s.hearts, 0, MAX_HEARTS, s.locked === true ? 0 : MAX_HEARTS);
@@ -182,6 +202,7 @@ export function fromSave(raw, { lang, vault, curriculum, challenges, approach = 
     session: { hearts, locked, failedFingerprints: strings(s.failedFingerprints), attempts, recovery },
     run: { paid },
     ...(approach ? { approach: cleanApproach(raw.approach) } : {}),
+    ...(workspace ? { workspace: cleanWorkspace(raw.workspace, workspace) } : {}),
     view: { ci: int(v.ci, 0, challenges, 0), combo: int(v.combo, 0, 1e6, 0), mistakes: int(v.mistakes, 0, 1e6, 0), hints: int(v.hints, 0, 1e6, 0), chMistake: v.chMistake === true, hintIdx: int(v.hintIdx, 0, 3, 0), drafts }
   };
 }

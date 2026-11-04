@@ -21,7 +21,7 @@ export async function runPython(code, timeout = 3000) {
     const id = ++seq;
     const to = setTimeout(() => {
       worker.terminate(); worker = null; ready = null; // reload a fresh interpreter next time
-      res({ stdout: '', stderr: 'TimeoutError: your program ran longer than 3 seconds (infinite loop?)' });
+      res({ stdout: '', stderr: `TimeoutError: your program ran longer than ${timeout / 1000} seconds (infinite loop?)` });
     }, timeout);
     worker.onmessage = e => { if (e.data.type === 'result' && e.data.id === id) { clearTimeout(to); res(e.data); } };
     worker.postMessage({ id, code });

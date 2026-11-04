@@ -7,7 +7,7 @@ import { FX } from '../core/fx.js';
 import { setScreen } from '../core/router.js';
 import { S } from '../core/state.js';
 import { renderMap, setSel } from '../screens/map.js';
-import { pjRefresh } from '../screens/project.js';
+import { pjRefresh, previewAct } from '../screens/project.js';
 import { preloadPython } from '../run/py-runner.js';
 
 const cur = $('#cursor');
@@ -84,9 +84,9 @@ async function freeDemo() {
   await wait(3800); window.__DONE = true;
 }
 
-const M1 = 'function render() {\n  list.innerHTML = "";\n  tasks.forEach(t => {\n    const li = document.createElement("li");\n    li.textContent = t;\n    list.appendChild(li);\n  });\n}\nrender();\n';
+const M1 = 'function render() {\n  list.innerHTML = "";\n  tasks.forEach(task => {\n    const li = document.createElement("li");\n    li.textContent = task.title;\n    list.appendChild(li);\n  });\n}\nrender();\n';
 const BUG = '\n$("#add").onclick = () => {\n  list.innerHTML = "<li>" + $("#task").value + "</li>";\n};\n';
-const FINAL = '// The HTML is ready: #task, #add, #list, #count\nconst tasks = ["Learn JavaScript", "Crack a vault"];\nconst list = $("#list");\n\nfunction render() {\n  list.innerHTML = "";\n  tasks.forEach(t => {\n    const li = document.createElement("li");\n    li.textContent = t;\n    li.onclick = () => { li.classList.toggle("done"); count(); };\n    list.appendChild(li);\n  });\n  count();\n}\n\nfunction count() {\n  const left = tasks.length - list.querySelectorAll(".done").length;\n  $("#count").textContent = left + " left";\n}\n\n$("#add").onclick = () => {\n  tasks.push($("#task").value);\n  $("#task").value = "";\n  render();\n};\n\nrender();\n';
+const FINAL = '// The HTML is ready: #task, #add, #list, #count\n// loadTasks() gives you the saved tasks: [{ title: "…", done: false }, …]\nconst tasks = loadTasks();\nconst list = $("#list");\n\nfunction render() {\n  list.innerHTML = "";\n  tasks.forEach(task => {\n    const li = document.createElement("li");\n    li.textContent = task.title;\n    if (task.done) li.classList.add("done");\n    li.onclick = () => { task.done = !task.done; render(); };\n    list.appendChild(li);\n  });\n  const left = tasks.filter(t => !t.done).length;\n  $("#count").textContent = left + " left";\n}\n\n$("#add").onclick = () => {\n  tasks.push({ title: $("#task").value, done: false });\n  $("#task").value = "";\n  render();\n};\n\nrender();\n';
 
 async function proDemo() {
   cx = innerWidth * .6; cy = innerHeight * .7;
@@ -131,8 +131,12 @@ async function proDemo() {
   cap(''); const tl = $('#pj-tl'); anim(tl, [{ opacity: 0 }, { opacity: 1 }], { duration: 200 }); await morph(FINAL, 10); await wait(200); anim(tl, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
   await click($('#pj-run'), 700); await wait(3600);
   cap('IT REALLY WORKS', 'A real app — built by you');
-  const pin = $('#pv-app #task'); await click(pin, 800); for (const ch of 'Ship VaultQuest') { pin.value += ch; await wait(55); } await wait(200);
-  await click($('#pv-app #add'), 600); await wait(700); await click($$('#pv-app li')[0], 700); await wait(1100);
+  // The app runs in a sandboxed frame: the cursor moves to where the frame reports its elements, and the
+  // frame itself performs the typing and clicks (run/sandbox/preview.js).
+  const inPreview = async (op, sel, extra = {}, dur = 700) => { const r = await previewAct({ op: 'rect', sel, ...extra }); if (r?.rect) await move({ x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 }, dur); await wait(140); return previewAct({ op, sel, ...extra }); };
+  await inPreview('rect', '#task', {}, 800); let typed = '';
+  for (const ch of 'Ship VaultQuest') { typed += ch; await previewAct({ op: 'type', sel: '#task', text: typed }); await wait(55); } await wait(200);
+  await inPreview('click', '#add', {}, 600); await wait(700); await inPreview('click', '#list li', { i: 0 }, 700); await wait(1100);
   cap(''); await click($('#pj-submit'), 900);
   await waitFor(() => visible($('#s-next')));
   cap('SHIPPED', 'Every project lands in your portfolio'); await wait(2200); cap('');

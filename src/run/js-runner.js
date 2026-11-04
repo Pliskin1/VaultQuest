@@ -1,17 +1,5 @@
-// JS execution. execApp: project code against the to-do DOM (main thread, needs the DOM).
-// runJsChallenge: fix-the-bug code in a throwaway Worker with a 1s kill switch, console.log captured.
-const APP_HTML = '<div class="pv-todo"><h3>My tasks</h3><div class="pv-row"><input id="task" placeholder="New task…" aria-label="New task"><button id="add">Add</button></div><ul id="list"></ul><p id="count"></p></div>';
-
-// Inject an iteration cap into braced loops so a runaway loop throws instead of freezing the tab.
-const LOOP = /\b(for|while)\s*\(((?:[^()]|\([^()]*\))*)\)\s*\{/g;
-const guardLoops = code => code.replace(LOOP, '$1($2){if(++__lg>5e6)throw new Error("Loop ran too long (infinite loop?)");').replace(/\bdo\s*\{/g, 'do{if(++__lg>5e6)throw new Error("Loop ran too long (infinite loop?)");');
-
-export function execApp(code, root) {
-  root.innerHTML = APP_HTML;
-  const q = s => root.querySelector(s);
-  try { new Function('$', 'let __lg=0;' + guardLoops(code))(q); return null; } catch (e) { return e; }
-}
-
+// JS execution for the vaults. runJsChallenge: fix-the-bug code in a throwaway Worker with a 1s kill switch,
+// console.log captured. (PRO project code runs in sandboxed frames instead: run/project-js.js.)
 const WORKER_SRC = `onmessage=e=>{const out=[];const f=v=>typeof v==='string'?v:(()=>{try{return JSON.stringify(v)}catch(_){return String(v)}})();
 console.log=console.info=console.warn=console.error=(...a)=>out.push(a.map(f).join(' '));
 let err='';try{new Function(e.data)()}catch(x){err=x&&x.name?x.name+': '+x.message:String(x)}

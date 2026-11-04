@@ -341,6 +341,71 @@ const JS_BOSS_QS = [
     explain: 'A fixed number is only right by accident. The count has to be worked out from the tasks it is given.' }
 ];
 
+// ── PRO projects (vault 6): the To-Do App (JS) and Guess the Number (Python) ──
+const JS_PROJECT_QS = [
+  { id: 'js-render-loop', tags: ['not-rendered', 'render-mismatch'], vault: 6, type: 'mcq', concept: 'One <li> per task',
+    prompt: 'Which loop body puts one <li> per task into the list?', code: 'for (const task of tasks) {\n  ______\n}',
+    options: ['list.textContent = task.title;', 'const li = document.createElement("li"); li.textContent = task.title; list.appendChild(li);', 'list.innerHTML = "<li>" + task.title + "</li>";', 'tasks.push(task);'], answer: 1,
+    hint: 'Two of these replace what is already in the list each time round. Which one adds a new element instead?',
+    explain: 'A new element per task, appended to the list, keeps every earlier `<li>`. Setting `textContent` or `innerHTML` replaces everything inside.' },
+  { id: 'js-render-data', tags: ['render-hardcoded'], vault: 6, type: 'mcq', concept: 'Show the data, not a copy of it',
+    prompt: 'loadTasks() returns different tasks each time. Which version always shows the right ones?', code: 'const tasks = loadTasks();',
+    options: ['list.innerHTML = "<li>Learn JavaScript</li><li>Crack a vault</li>";', 'tasks.forEach(t => { const li = document.createElement("li"); li.textContent = t.title; list.appendChild(li); });', 'list.innerHTML = "<li>" + tasks.length + "</li>";', 'console.log(tasks);'], answer: 1,
+    hint: 'Which option reads the titles from `tasks` instead of having them typed into the code?',
+    explain: 'Text written into the code only matches one set of tasks. Reading `task.title` from the data shows whatever `loadTasks()` returned.' },
+  { id: 'js-add-keep', tags: ['add-replaces', 'add-missing'], vault: 6, type: 'mcq', concept: 'Adding without wiping the list',
+    prompt: 'After clicking Add, only the new task is left on the page. Why?', code: '$("#add").onclick = () => {\n  list.innerHTML = "<li>" + $("#task").value + "</li>";\n};',
+    options: ['onclick runs twice', '= on innerHTML replaces everything that was inside the list', 'The input is empty', '$ can only find one element'], answer: 1,
+    hint: 'What does assigning to `innerHTML` do to the elements that were already there?',
+    explain: 'Assigning `innerHTML` replaces the list\'s whole content. Add the task to `tasks` and redraw from the data — or append one new element.' },
+  { id: 'js-clear-input', tags: ['input-not-cleared'], vault: 6, type: 'fill', concept: 'Clearing an input',
+    prompt: 'Fill the blank so the input box is empty again after a task is added.', code: 'const input = $("#task");\ninput.___ = "";', blank: '___', answers: ['value'],
+    hint: 'Which property of an `<input>` holds the text the user typed?',
+    explain: 'An input\'s text lives in `.value`; setting it to `""` empties the box.' },
+  { id: 'js-toggle-class', tags: ['toggle-missing', 'toggle-stuck', 'toggle-wrong'], vault: 6, type: 'mcq', concept: 'Toggling a class',
+    prompt: 'Which line adds "done" when it is missing and removes it when it is there?', code: 'li.onclick = () => {\n  ______\n};',
+    options: ['li.classList.add("done");', 'li.classList.toggle("done");', 'li.className = "done";', 'li.done = true;'], answer: 1,
+    hint: 'Two of these only ever switch it on. Which one switches both ways?',
+    explain: '`classList.toggle("done")` flips the class each click. `add` and `className =` only ever switch it on.' },
+  { id: 'js-state-render', tags: ['done-lost', 'done-not-rendered'], vault: 6, type: 'mcq', concept: 'Keeping state in the data',
+    prompt: 'The list is redrawn from tasks after every Add. How does a done mark survive the redraw?', code: 'function render() {\n  list.innerHTML = "";\n  for (const task of tasks) { /* … */ }\n}',
+    options: ['It can\'t — redrawing always loses it', 'Store done in the task object and add the "done" class when task.done is true while drawing', 'Click the task again after every Add', 'Use a second list'], answer: 1,
+    hint: 'Redrawing throws away the old `<li>` elements. What still remembers which task was done?',
+    explain: 'When `task.done` lives in the data, the drawing code can read it every time and put the class back.' },
+  { id: 'js-count-update', tags: ['count-stale', 'count-wrong', 'count-not-shown'], vault: 6, type: 'mcq', concept: 'Keeping the count up to date',
+    prompt: 'The count is right on start but wrong after a click. What is the most likely reason?', code: 'const left = tasks.filter(t => !t.done).length;\n$("#count").textContent = left + " left";',
+    options: ['filter is wrong', 'The count is only worked out once, at the start — not again after each change', '#count does not exist', 'textContent only works once'], answer: 1,
+    hint: 'When does this code run — and does it run again after a task is clicked or added?',
+    explain: 'Code at the top level runs once. Work the count out again after every change, for example inside the function that redraws the list.' }
+];
+const PY_PROJECT_QS = [
+  { id: 'py-guess-compare', tags: ['compare-direction', 'if-branch'], vault: 6, type: 'mcq', concept: 'Comparing guess and secret',
+    prompt: 'Which condition is True when the guess is too low?', code: 'def check(guess, secret):\n    if ______:\n        return "Too low"',
+    options: ['guess > secret', 'guess < secret', 'guess == secret', 'secret < guess'], answer: 1,
+    hint: 'Try it with guess 3 and secret 7. Which comparison is True?',
+    explain: 'A guess smaller than the secret is too low: `guess < secret`.' },
+  { id: 'py-guess-return', tags: ['missing-return', 'print-vs-return'], vault: 6, type: 'mcq', concept: 'Returning the answer',
+    prompt: 'check(3, 7) shows "Too low" on screen, but the test gets None. Why?', code: 'def check(guess, secret):\n    if guess < secret:\n        print("Too low")',
+    options: ['The comparison is wrong', 'print shows text but the function gives back nothing — it needs return', 'Strings need single quotes', 'check must be called twice'], answer: 1,
+    hint: 'What does a function give back when it never reaches a `return`?',
+    explain: '`print` only shows text. Without `return "Too low"` the call gives back `None`.' },
+  { id: 'py-guess-text', tags: ['string-mismatch'], vault: 6, type: 'mcq', concept: 'Exact text',
+    prompt: 'The test expects "Correct!". Which return passes?', code: 'def check(guess, secret):\n    ...\n    return ______',
+    options: ['"correct!"', '"Correct"', '"Correct!"', '"Correct! "'], answer: 2,
+    hint: 'Compare letter by letter: capitals, punctuation and spaces all count.',
+    explain: 'Strings must match exactly — capital C, the exclamation mark, and no extra space.' },
+  { id: 'py-play-stop', tags: ['counts-all-guesses', 'count-tries'], vault: 6, type: 'mcq', concept: 'Stopping at the right guess',
+    prompt: 'play(7, [5, 7, 9]) should return 2. This returns 3. Why?', code: 'def play(secret, guesses):\n    return len(guesses)',
+    options: ['len starts at 1', 'It counts every guess instead of stopping at the first correct one', 'secret is not used', 'Lists start at 1'], answer: 1,
+    hint: 'Which guess was correct — and does the function ever look at that?',
+    explain: '`len(guesses)` counts all guesses. Loop through them and return how many you used when the guess equals the secret.' },
+  { id: 'py-play-count', tags: ['off-by-one'], vault: 6, type: 'mcq', concept: 'Counting from one',
+    prompt: 'play(7, [5, 7]) should return 2. This returns 1. Why?', code: 'def play(secret, guesses):\n    for i in range(len(guesses)):\n        if guesses[i] == secret:\n            return i',
+    options: ['range is wrong', 'Positions start at 0, but the number of tries starts at 1', '== should be =', 'The loop never ends'], answer: 1,
+    hint: 'The second guess is at position 1. How many tries is that?',
+    explain: 'Positions count from 0, tries from 1 — the second guess is position `1` but try number `2`.' }
+];
+
 // Reuses a question in another bank, with that bank's vault and any extra tags it should answer for.
 const reuse = (pool, id, { vault, tags = [] } = {}) => { const q = pool.find(x => x.id === id); return { ...q, vault, tags: [...new Set([...q.tags, ...tags])] }; };
 // The To-Do questions ported from the Demo were written for exactly this curriculum (docs/PLAN.md §D, §G.2).
@@ -361,7 +426,8 @@ const PY2 = [
   reuse(PY, 'py-colon', { vault: 3 }),
   reuse(PY, 'py-range', { vault: 5 }), // Pro vault (Loops & Lists)
   reuse(PY, 'py-index', { vault: 5 }),
-  reuse(PY, 'py-convert', {})
+  reuse(PY, 'py-convert', {}),
+  ...PY_PROJECT_QS
 ];
 const JS2 = [
   ...JS_TASKS,
@@ -371,7 +437,8 @@ const JS2 = [
   reuse(JS, 'js-const-change', {}),
   reuse(JS, 'js-length', { vault: 5 }), // Pro vault (Arrays & Loops)
   reuse(JS, 'js-map', { vault: 5 }),
-  reuse(JS, 'js-bounds', { vault: 5 })
+  reuse(JS, 'js-bounds', { vault: 5 }),
+  ...JS_PROJECT_QS
 ];
 
 // bank id = curriculum id. `general`: optional fill order when a bank has no vault structure.
