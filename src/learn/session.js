@@ -1,7 +1,7 @@
 // One challenge session (a JS vault, the Mini Boss or a JS Pro project): three hearts, the attempts
 // that cost them, and Syntax Recovery progress. Pure functions — callers decide where a session lives.
 import { applySubmission, applyRecoveryAnswer, MAX_HEARTS } from './hearts.js';
-import { selectRecoveryQuestions, getQuestion, checkRecoveryAnswer, RECOVERY_SIZE } from './recovery.js';
+import { pickRecovery, getQuestion, checkRecoveryAnswer, RECOVERY_SIZE } from './recovery.js';
 
 // attempts: one entry per distinct submission { fingerprint, passed, tags, evidence, failedIds, ts }
 export const newSession = () => ({ hearts: MAX_HEARTS, locked: false, failedFingerprints: [], attempts: [], recovery: null });
@@ -18,16 +18,21 @@ export function recordSubmission(session, { fingerprint, passed, tags = [], evid
   };
 }
 
-export function beginRecovery(session) {
+// bank: the curriculum's question bank id (e.g. 'py-1'); vault: for refreshers when mistakes are unclear.
+export function beginRecovery(session, { bank, vault = 0 }) {
   if (!session.locked || session.recovery) return session;
-  return { ...session, recovery: { questionIds: selectRecoveryQuestions(session.attempts), index: 0, correctIds: [], wrong: 0 } };
+  const { questionIds, targeted } = pickRecovery(session.attempts, bank, vault);
+  return { ...session, recovery: { bank, questionIds, targeted, index: 0, correctIds: [], wrong: 0 } };
 }
 
 // Answers the current recovery question → { session, result }. Wrong answers never cost anything.
-export function answerRecovery(session, answer) {
+// With `questionId`, an answer meant for another question (a double-click landing after the next one
+// appeared) is ignored.
+export function answerRecovery(session, answer, questionId = null) {
   const r = session.recovery;
   if (!r || r.index >= RECOVERY_SIZE) return { session, result: null };
-  const question = getQuestion(r.questionIds[r.index]);
+  if (questionId !== null && questionId !== r.questionIds[r.index]) return { session, result: null };
+  const question = getQuestion(r.bank, r.questionIds[r.index]);
   const correct = checkRecoveryAnswer(question, answer);
   const next = applyRecoveryAnswer({ hearts: session.hearts, locked: session.locked }, correct);
   return {

@@ -68,13 +68,14 @@ export function placeAvatar(i) {
 
 export function renderPanel() {
   const L = LANGS[S.lang], i = sel, st = nstate(i), lv = L.levels[i], isP = lv && lv.t === 'project', pro = i >= F();
+  const saved = S.attempts?.[`${S.curriculum[S.lang]}:${i}`]; // an unfinished attempt (learn/attempt.js attemptKey)
   const kick = { done: 'CRACKED', cur: pro ? 'PRO · READY' : 'READY', lock: 'LOCKED', plock: 'PRO', soon: 'PRO · COMING SOON' }[st];
   const desc = lv ? (isP ? md(lv.brief) : md(lv.concept).replace(/<[^>]+>/g, '').split('. ')[0] + '.') : 'In development — ships to Pro members soon.';
   const pills = isP ? '<span class="pill">4 milestones</span><span class="pill" style="color:var(--violet)">AI code review</span>' : `<span class="pill">${lv ? lv.ch.length + ' challenges' : '—'}</span>`;
   const btn = st === 'plock' ? '<button class="btn pro" id="m-pro">UNLOCK WITH PRO ' + ICON.crown.replace('#C9B8FF', '#07090F').replace('width="28" height="28"', 'width="18" height="18"') + '</button>'
     : st === 'lock' ? '<span class="pill" style="border:1px dashed #3A4256;background:transparent">Finish the free vaults first</span>'
     : st === 'soon' ? '<span class="pill" style="color:var(--violet)">Coming soon</span>'
-    : `<button class="btn ${pro ? 'pro' : ''}" id="m-play">${isP ? 'START PROJECT' : st === 'done' ? 'REPLAY' : 'ENTER VAULT'} ${ARROW}</button>`;
+    : `<button class="btn ${pro ? 'pro' : ''}" id="m-play">${isP ? 'START PROJECT' : saved?.session?.locked ? 'SYNTAX RECOVERY' : saved ? 'CONTINUE VAULT' : st === 'done' ? 'REPLAY' : 'ENTER VAULT'} ${ARROW}</button>`;
   $('#m-panel').innerHTML = `<div style="flex:1"><div class="kicker" style="color:${pro ? 'var(--violet)' : st === 'lock' ? 'var(--mut2)' : 'var(--gold)'}">${nodeKick(i)} · ${kick}</div><h3>${L.titles[i]}</h3><p>${desc}</p></div>${pills}<span class="pill" style="color:var(--gold)">+${isP ? 500 : 150 + i * 50} XP</span>${btn}`;
   const p = $('#m-play'); if (p) p.onclick = () => isP ? startProject(i) : startLevel(i);
   const q = $('#m-pro'); if (q) q.onclick = () => openPro();

@@ -15,7 +15,7 @@ export const LIVE = Object.fromEntries(Object.entries(LANGS).map(([l, L]) => [l,
 
 const USERS = 'vaultquest:users', CUR = 'vaultquest:user', RESERVED = ['user', 'users'];
 const keyOf = name => 'vaultquest:' + name.toLowerCase();
-const fresh = () => ({ name: '', lang: 'py', xp: 0, done: { py: 0, js: 0 }, stars: {}, ach: [], fresh: [], streak: 1, lastDay: '', questions: 0, pro: false, projects: [], v: SAVE_VERSION, curriculum: { ...LIVE }, awarded: {}, legacy: {} });
+const fresh = () => ({ name: '', lang: 'py', xp: 0, done: { py: 0, js: 0 }, stars: {}, ach: [], fresh: [], streak: 1, lastDay: '', questions: 0, pro: false, projects: [], v: SAVE_VERSION, curriculum: { ...LIVE }, awarded: {}, legacy: {}, attempts: {} });
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full/blocked */ } };
 const text = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -39,7 +39,7 @@ function readProfile(name) {
     return {};
   }
   if (JSON.stringify(s) !== JSON.stringify(parsed)) {
-    const tag = (parsed.v ?? 1) < 2 ? 'v1' : Object.values(parsed.curriculum ?? {}).join('+') || 'v' + parsed.v;
+    const from = parsed.v ?? 1, tag = from < SAVE_VERSION ? 'v' + from : Object.values(parsed.curriculum ?? {}).join('+') || 'v' + from;
     if (!keep(`${k}.backup.${tag}`, t)) { readOnly = true; console.warn(`[VaultQuest] could not back up "${name}" before upgrading it — not saving this session.`); }
   }
   return s;

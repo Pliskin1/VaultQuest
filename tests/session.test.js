@@ -4,9 +4,11 @@ import { newSession, recordSubmission, beginRecovery, answerRecovery, finishReco
 import { getQuestion } from '../src/learn/recovery.js';
 import { fingerprint } from '../src/learn/fingerprint.js';
 
+const BANK = { bank: 'js-2' }; // these scenarios use the To-Do mistake tags ported from the Demo
+
 const submit = (s, code, passed, tags = []) => recordSubmission(s, { fingerprint: fingerprint(code), passed, tags }, 1);
-const rightAnswer = s => { const q = getQuestion(s.recovery.questionIds[s.recovery.index]); return q.type === 'mcq' ? q.answer : q.answers[0]; };
-const wrongAnswer = s => { const q = getQuestion(s.recovery.questionIds[s.recovery.index]); return q.type === 'mcq' ? (q.answer + 1) % q.options.length : '?'; };
+const rightAnswer = s => { const q = getQuestion(s.recovery.bank, s.recovery.questionIds[s.recovery.index]); return q.type === 'mcq' ? q.answer : q.answers[0]; };
+const wrongAnswer = s => { const q = getQuestion(s.recovery.bank, s.recovery.questionIds[s.recovery.index]); return q.type === 'mcq' ? (q.answer + 1) % q.options.length : '?'; };
 
 const BOSS = {
   counts: 'function countCompleted(tasks) {\n  return tasks.filter((t) => !t.done).length;\n}',
@@ -36,10 +38,10 @@ test('full cycle: lock → recovery from own mistakes → back with fingerprints
   s = last.session;
   assert.deepEqual(last.outcome, { heartLost: true, duplicate: false, hearts: 0, locked: true });
 
-  assert.equal(beginRecovery(newSession()).recovery, null); // only a locked session can recover
-  s = beginRecovery(s);
+  assert.equal(beginRecovery(newSession(), BANK).recovery, null); // only a locked session can recover
+  s = beginRecovery(s, BANK);
   assert.deepEqual(s.recovery.questionIds, ['not-operator', 'compare-not-assign', 'return-value']);
-  assert.equal(beginRecovery(s), s); // starting again keeps progress
+  assert.equal(beginRecovery(s, BANK), s); // starting again keeps progress
 
   let r = answerRecovery(s, wrongAnswer(s));
   assert.equal(r.result.correct, false);
@@ -69,7 +71,7 @@ test('full cycle: lock → recovery from own mistakes → back with fingerprints
 test('a session survives a save/reload (JSON round trip) mid-recovery', () => {
   let s = newSession();
   for (const [code, tag] of [[BOSS.counts, 'counts-unfinished'], [BOSS.assign, 'assignment-in-condition'], [BOSS.logs, 'log-vs-return']]) s = submit(s, code, false, [tag]).session;
-  s = beginRecovery(s);
+  s = beginRecovery(s, BANK);
   s = answerRecovery(s, rightAnswer(s)).session;
   const reloaded = JSON.parse(JSON.stringify(s));
   assert.deepEqual(reloaded, s);
@@ -82,7 +84,7 @@ test('session functions never mutate their input', () => {
   submit(s, BOSS.counts, false, ['x']);
   assert.deepEqual(s, before);
   const locked = { ...newSession(), hearts: 0, locked: true, attempts: [{ passed: false, tags: ['syntax-error'] }] }, lb = structuredClone(locked);
-  const rec = beginRecovery(locked);
+  const rec = beginRecovery(locked, BANK);
   answerRecovery(rec, 0); finishRecovery(rec);
   assert.deepEqual(locked, lb);
 });

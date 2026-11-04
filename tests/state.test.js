@@ -20,15 +20,15 @@ async function boot(storage, search = '') {
 }
 const as = (f, extra = {}) => ({ 'vaultquest:users': JSON.stringify([f.name]), 'vaultquest:user': JSON.stringify(f.name), ['vaultquest:' + f.name.toLowerCase()]: JSON.stringify(f), ...extra });
 
-test('an existing v1 profile loads unchanged, is backed up untouched, then saved as v2', async () => {
+test('an existing v1 profile loads unchanged, is backed up untouched, then saved as v3', async () => {
   const text = JSON.stringify(V1.jsShipped), st = memoryStorage(as(V1.jsShipped));
   const { S, save } = await boot(st);
   for (const f of ['xp', 'ach', 'pro', 'projects', 'stars', 'done', 'custom', 'questions']) assert.deepEqual(S[f], V1.jsShipped[f], f);
   assert.equal(st.getItem('vaultquest:jsshipped.backup.v1'), text);
-  assert.equal(S.v, 2); assert.deepEqual(S.curriculum, { py: 'py-1', js: 'js-1' });
+  assert.equal(S.v, 3); assert.deepEqual(S.curriculum, { py: 'py-1', js: 'js-1' }); assert.deepEqual(S.attempts, {});
   save();
   const saved = JSON.parse(st.getItem('vaultquest:jsshipped'));
-  assert.equal(saved.v, 2); assert.equal(saved.xp, 1990); assert.equal(saved.awarded['js-1:5:ship'], null);
+  assert.equal(saved.v, 3); assert.equal(saved.xp, 1990); assert.equal(saved.awarded['js-1:5:ship'], null);
 });
 
 test('later page loads: no second backup, nothing changes', async () => {
@@ -55,7 +55,7 @@ test('a corrupt save is copied aside before the profile starts fresh', async () 
   assert.equal(S.xp, 0);
   assert.equal(st.getItem('vaultquest:ana.corrupt'), '{"xp": 12, broken');
   save();
-  assert.equal(JSON.parse(st.getItem('vaultquest:ana')).v, 2);
+  assert.equal(JSON.parse(st.getItem('vaultquest:ana')).v, 3);
   assert.equal(st.getItem('vaultquest:ana.corrupt'), '{"xp": 12, broken');
 });
 
@@ -73,12 +73,12 @@ test('if a corrupt save cannot be copied, it is not overwritten either', async (
   assert.equal(st.getItem('vaultquest:ana'), '[1,2');
 });
 
-test('new profiles start as v2 with the live curricula and no rewards', async () => {
+test('new profiles start as v3 with the live curricula, no rewards and no attempts', async () => {
   const st = memoryStorage();
   const { S, login } = await boot(st);
   login('Ben');
   const saved = JSON.parse(st.getItem('vaultquest:ben'));
-  assert.deepEqual({ v: saved.v, curriculum: saved.curriculum, awarded: saved.awarded, legacy: saved.legacy, xp: saved.xp }, { v: 2, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, xp: 0 });
+  assert.deepEqual({ v: saved.v, curriculum: saved.curriculum, awarded: saved.awarded, legacy: saved.legacy, attempts: saved.attempts, xp: saved.xp }, { v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: {}, xp: 0 });
   assert.equal(S.name, 'Ben');
   assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
 });
@@ -111,4 +111,24 @@ test('demo modes never read or write profile data', async () => {
     reward('js-1:5:m0', 50); S.xp += 10; save(); login('Someone');
     assert.deepEqual(st.m, before, mode);
   }
+});
+
+test('a v2 save (Phase 2 build) is backed up untouched as .backup.v2, then upgraded to v3 without losing anything', async () => {
+  const v2 = { ...V1.jsOne, v: 2, curriculum: { py: 'py-1', js: 'js-1' }, awarded: { 'js-1:0:0': null, 'js-1:1:0': 50 }, legacy: {} }, text = JSON.stringify(v2);
+  const st = memoryStorage(as(v2));
+  const { S, save } = await boot(st);
+  assert.equal(st.getItem('vaultquest:jsone.backup.v2'), text);
+  assert.equal(S.v, 3); assert.deepEqual(S.attempts, {}); assert.deepEqual(S.awarded, v2.awarded); assert.equal(S.xp, v2.xp);
+  save();
+  for (let i = 0; i < 2; i++) (await boot(st)).save(); // later loads: no further backups
+  assert.equal([...st.m.keys()].filter(k => k.includes('.backup')).length, 1);
+});
+
+test('a saved locked attempt is still locked after a page load (Recovery cannot be skipped by refreshing)', async () => {
+  const locked = { lang: 'py', vault: 0, curriculum: 'py-1', session: { hearts: 0, locked: true, failedFingerprints: ['a', 'b', 'c'], attempts: [], recovery: null }, run: { paid: [] }, view: { ci: 2, drafts: { 2: 'print(x)' } } };
+  const v3 = { ...V1.pyPartial, v: 3, curriculum: { py: 'py-1', js: 'js-1' }, awarded: {}, legacy: {}, attempts: { 'py-1:0': locked } };
+  const st = memoryStorage(as(v3));
+  const { S } = await boot(st);
+  assert.deepEqual(S.attempts['py-1:0'], locked);
+  assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false); // nothing to upgrade
 });

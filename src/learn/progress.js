@@ -3,7 +3,7 @@
 //
 // Reward keys are `<curriculum>:<level index>:<part>`, part = challenge index | 'bonus' | 'm<k>' | 'ship'.
 // `awarded[key]` holds the XP paid, or null for rewards earned before saves were versioned.
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 // Every save without `v` was made against the first curriculum of each language, whatever is live now.
 export const V1_CURRICULA = { py: 'py-1', js: 'js-1' };
@@ -31,7 +31,9 @@ function backfill(s) {
 // Pro, projects and reward keys stay — keys are curriculum-specific, so old credit never counts as new.
 function archive(s, lang, live, now) {
   const old = s.curriculum[lang], re = starKey(lang);
-  if (!s.legacy[old]) s.legacy[old] = { lang, done: Number(s.done?.[lang]) || 0, stars: Object.fromEntries(Object.entries(s.stars ?? {}).filter(([k]) => re.test(k))), archivedAt: now };
+  const mine = Object.entries(s.attempts).filter(([k]) => k.startsWith(old + ':'));
+  if (!s.legacy[old]) s.legacy[old] = { lang, done: Number(s.done?.[lang]) || 0, stars: Object.fromEntries(Object.entries(s.stars ?? {}).filter(([k]) => re.test(k))), attempts: Object.fromEntries(mine), archivedAt: now };
+  s.attempts = Object.fromEntries(Object.entries(s.attempts).filter(([k]) => !k.startsWith(old + ':'))); // unfinished vaults of the old content
   s.done = { ...s.done, [lang]: 0 };
   s.stars = Object.fromEntries(Object.entries(s.stars ?? {}).filter(([k]) => !re.test(k)));
   s.curriculum = { ...s.curriculum, [lang]: live };
@@ -50,7 +52,8 @@ export function migrate(raw, live, now = new Date().toISOString()) {
     s.legacy = isObj(s.legacy) ? s.legacy : {};
     backfill(s);
   }
-  for (const f of ['curriculum', 'awarded', 'legacy']) if (!isObj(s[f])) s[f] = {};
+  if (s.v < 3) s.v = 3; // v3: `attempts` — unfinished vault attempts, keyed `<curriculum>:<vault>` (learn/attempt.js)
+  for (const f of ['curriculum', 'awarded', 'legacy', 'attempts']) if (!isObj(s[f])) s[f] = {};
   for (const lang of Object.keys(live)) {
     if (!s.curriculum[lang]) s.curriculum[lang] = live[lang];
     else if (s.curriculum[lang] !== live[lang]) archive(s, lang, live[lang], now);

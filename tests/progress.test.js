@@ -19,14 +19,14 @@ test('both languages: 4 FREE levels and a first curriculum id', () => {
 });
 
 // ── v1 → v2 ──
-test('v1 → v2 keeps every existing field and only adds the new ones', () => {
+test('v1 → v3 keeps every existing field and only adds the new ones', () => {
   for (const [id, f] of Object.entries(V1)) {
     const s = up(f);
-    const { v, curriculum, awarded, legacy, ...rest } = s;
+    const { v, curriculum, awarded, legacy, attempts, ...rest } = s;
     assert.deepEqual(rest, f, id); // XP, achievements, Pro, projects, stars, streak, unknown fields untouched
     assert.equal(v, SAVE_VERSION, id);
     assert.deepEqual(curriculum, { py: 'py-1', js: 'js-1' }, id);
-    assert.deepEqual(legacy, {}, id);
+    assert.deepEqual(legacy, {}, id); assert.deepEqual(attempts, {}, id);
     assert.ok(awarded && typeof awarded === 'object', id);
   }
 });
@@ -80,7 +80,7 @@ test('a v2 save missing its new fields is repaired, not crashed on', () => {
 // ── future curricula: js-1 → js-2 and py-1 → py-2 ──
 test('js-2: old JS progress is archived, the new path starts at vault 1, everything else stays', () => {
   const before = up(V1.jsShipped), after = up(before, { py: 'py-1', js: 'js-2' });
-  assert.deepEqual(after.legacy['js-1'], { lang: 'js', done: 4, stars: { js0: 3, js1: 3, js2: 2, js3: 3, js4: 2, js5: 3 }, archivedAt: NOW });
+  assert.deepEqual(after.legacy['js-1'], { lang: 'js', done: 4, stars: { js0: 3, js1: 3, js2: 2, js3: 3, js4: 2, js5: 3 }, attempts: {}, archivedAt: NOW });
   assert.equal(after.done.js, 0);
   assert.ok(!Object.keys(after.stars).some(k => k.startsWith('js'))); // old stars can't open new nodes (D4)
   assert.equal(after.curriculum.js, 'js-2'); assert.equal(after.curriculum.py, 'py-1');

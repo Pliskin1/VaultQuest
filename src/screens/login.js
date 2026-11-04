@@ -22,8 +22,9 @@ export function openLogin() {
   });
 }
 
-// After login: returning players go straight to their map, new players pick a language.
-export const enterGame = () => S.xp > 0 || S.done.py || S.done.js ? openMap() : go('s-lang').then(flipCards);
+// After login: returning players (XP, cracked vaults or an unfinished vault) go straight to their map,
+// new players pick a language.
+export const enterGame = () => S.xp > 0 || S.done.py || S.done.js || Object.keys(S.attempts ?? {}).length ? openMap() : go('s-lang').then(flipCards);
 export function flipCards() {
   $$('.lcard').forEach((c, i) => anim(c, [{ opacity: 0, transform: 'translateY(40px) rotateX(-20deg)' }, { opacity: c.classList.contains('locked') ? .55 : 1, transform: 'none' }], { duration: 700, delay: i * 90, easing: EASE.out, fill: 'none' }));
 }

@@ -1,72 +1,93 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { selectRecoveryQuestions, checkRecoveryAnswer, getQuestion, RECOVERY_SIZE } from '../src/learn/recovery.js';
-import { RECOVERY_QUESTIONS, GENERAL_ORDER } from '../src/content/recovery.js';
+import { selectRecoveryQuestions, pickRecovery, checkRecoveryAnswer, getQuestion, getBank, RECOVERY_SIZE } from '../src/learn/recovery.js';
+import { RECOVERY_BANKS } from '../src/content/recovery.js';
+import { TODO_GENERAL } from '../src/content/recovery-todo.js';
 
 const fail = (...tags) => ({ passed: false, tags });
 
-test('Mini Boss mistakes pick their own questions', () => {
-  // counts unfinished → `if (t.done = true)` → console.log instead of return (Ana's demo path)
-  const ids = selectRecoveryQuestions([fail('counts-unfinished'), fail('assignment-in-condition'), fail('log-vs-return')]);
+// ── js-2: the To-Do bank ported from the Demo (selection must match the Demo exactly) ──
+test('js-2 · Mini Boss mistakes pick their own questions', () => {
+  const ids = selectRecoveryQuestions([fail('counts-unfinished'), fail('assignment-in-condition'), fail('log-vs-return')], 'js-2');
   assert.deepEqual(ids, ['not-operator', 'compare-not-assign', 'return-value']);
 });
 
-test('PRO To-Do mistakes pick their own questions', () => {
-  const ids = selectRecoveryQuestions([fail('count-done-vs-left'), fail('assignment-in-condition'), fail('selector-missing-hash')]);
+test('js-2 · PRO To-Do mistakes pick their own questions', () => {
+  const ids = selectRecoveryQuestions([fail('count-done-vs-left'), fail('assignment-in-condition'), fail('selector-missing-hash')], 'js-2');
   assert.deepEqual(ids, ['not-operator', 'compare-not-assign', 'id-selector']);
 });
 
-test('primary tags rank ahead of side-effect tags, then by frequency', () => {
-  const ids = selectRecoveryQuestions([fail('syntax-error', 'loop-timeout'), fail('missing-comma'), fail('syntax-error')]);
+test('js-2 · primary tags rank ahead of side-effect tags, then by frequency', () => {
+  const ids = selectRecoveryQuestions([fail('syntax-error', 'loop-timeout'), fail('missing-comma'), fail('syntax-error')], 'js-2');
   assert.deepEqual(ids, ['brackets', 'object-commas', 'loop-stop']);
 });
 
-test('two tags sharing a question do not produce a duplicate', () => {
-  const ids = selectRecoveryQuestions([fail('counts-unfinished'), fail('inverted-condition')]);
-  assert.equal(new Set(ids).size, RECOVERY_SIZE);
-  assert.equal(ids[0], 'not-operator');
+test('js-2 · no mistakes: filled from its general order', () => {
+  assert.deepEqual(selectRecoveryQuestions([], 'js-2'), TODO_GENERAL.slice(0, 3));
 });
 
-test('always three distinct questions, filled from the general order', () => {
-  const ids = selectRecoveryQuestions([]);
-  assert.deepEqual(ids, GENERAL_ORDER.slice(0, 3));
-  assert.equal(selectRecoveryQuestions([fail('no-such-tag')]).length, 3);
-});
+// ── shared selection rules, both live banks ──
+for (const bank of ['py-1', 'js-1']) {
+  test(`${bank} · two tags sharing a question do not produce a duplicate`, () => {
+    const q = getBank(bank).questions.find(q => q.tags.length > 1);
+    const ids = selectRecoveryQuestions([fail(q.tags[0]), fail(q.tags[1])], bank, 0);
+    assert.equal(ids.length, RECOVERY_SIZE); assert.equal(new Set(ids).size, RECOVERY_SIZE); assert.equal(ids[0], q.id);
+  });
 
-test('passing attempts are ignored', () => {
-  assert.ok(!selectRecoveryQuestions([{ passed: true, tags: ['loop-timeout'] }]).includes('loop-stop'));
+  test(`${bank} · passing attempts are ignored; unknown tags fall back to refreshers`, () => {
+    const loop = getBank(bank).questions.find(q => q.tags.includes('infinite-loop'));
+    assert.ok(!pickRecovery([{ passed: true, tags: ['infinite-loop'] }], bank, 0).questionIds.includes(loop.id));
+    const r = pickRecovery([fail('no-such-tag')], bank, 1);
+    assert.equal(r.questionIds.length, 3); assert.deepEqual(r.targeted, []);
+  });
+
+  test(`${bank} · refreshers come from the current vault first, then earlier vaults`, () => {
+    for (let vault = 0; vault <= 4; vault++) {
+      const qs = pickRecovery([], bank, vault).questionIds.map(id => getQuestion(bank, id));
+      const here = getBank(bank).questions.filter(q => q.vault === vault).length;
+      qs.forEach((q, k) => assert.ok(k < here ? q.vault === vault : q.vault <= vault, `${bank} vault ${vault}: ${q.id}`));
+    }
+  });
+
+  test(`${bank} · targeted questions are reported, refreshers are not`, () => {
+    const q = getBank(bank).questions[0];
+    const r = pickRecovery([fail(q.tags[0])], bank, 3);
+    assert.deepEqual(r.targeted, [q.id]); assert.equal(r.questionIds[0], q.id); assert.equal(r.questionIds.length, 3);
+  });
+}
+
+test('an unknown bank selects nothing', () => {
+  assert.deepEqual(pickRecovery([fail('x')], 'zz-9', 0), { questionIds: [], targeted: [] });
+  assert.equal(getQuestion('zz-9', 'x'), null);
 });
 
 test('checks multiple-choice and fill-in answers', () => {
-  assert.equal(checkRecoveryAnswer(getQuestion('not-operator'), 1), true);
-  assert.equal(checkRecoveryAnswer(getQuestion('not-operator'), 0), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('not-operator'), '1'), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('id-selector'), ' # '), true);
-  assert.equal(checkRecoveryAnswer(getQuestion('id-selector'), '.'), false);
-  assert.equal(checkRecoveryAnswer(getQuestion('filter-length'), undefined), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), 1), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), 0), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'not-operator'), '1'), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'id-selector'), ' # '), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('js-2', 'id-selector'), '.'), false);
+  assert.equal(checkRecoveryAnswer(getQuestion('py-1', 'py-assign'), 1), true);
+  assert.equal(checkRecoveryAnswer(getQuestion('py-1', 'py-assign'), 0), false);
 });
 
-test('the bank: 17 unique, answerable questions whose hints never give the answer away', () => {
-  assert.equal(RECOVERY_QUESTIONS.length, 17);
-  assert.equal(new Set(RECOVERY_QUESTIONS.map(q => q.id)).size, 17);
-  for (const q of RECOVERY_QUESTIONS) {
-    assert.ok(q.prompt && q.hint && q.explain && q.tags.length, q.id);
-    if (q.type === 'mcq') {
-      assert.ok(q.options[q.answer], q.id);
-      assert.ok(!q.hint.includes(q.options[q.answer]), `${q.id}: hint contains the answer`);
-    } else {
-      assert.equal(q.type, 'fill', q.id);
-      assert.ok(q.code.includes(q.blank), q.id);
-      assert.ok(!q.answers.some(a => q.hint.includes('`' + a + '`')), `${q.id}: hint contains the answer`);
+test('every bank: unique, answerable questions whose hints never give the answer away', () => {
+  assert.equal(RECOVERY_BANKS['js-2'].questions.length, 17);
+  for (const [id, bank] of Object.entries(RECOVERY_BANKS)) {
+    assert.equal(new Set(bank.questions.map(q => q.id)).size, bank.questions.length, id);
+    assert.ok(bank.questions.length >= RECOVERY_SIZE, id);
+    for (const q of bank.questions) {
+      assert.ok(q.prompt && q.hint && q.explain && q.concept && q.tags.length, `${id}/${q.id}`);
+      if (q.type === 'mcq') {
+        assert.ok(q.options[q.answer], q.id);
+        assert.equal(new Set(q.options).size, q.options.length, `${q.id}: duplicate options`);
+        assert.ok(!q.hint.includes(q.options[q.answer]), `${q.id}: hint contains the answer`);
+      } else {
+        assert.equal(q.type, 'fill', q.id);
+        assert.ok(q.code.includes(q.blank), q.id);
+        assert.ok(!q.answers.some(a => q.hint.includes('`' + a + '`')), `${q.id}: hint contains the answer`);
+      }
     }
+    for (const g of bank.general ?? []) assert.ok(getQuestion(id, g), g);
   }
-  for (const id of GENERAL_ORDER) assert.ok(getQuestion(id), id);
-});
-
-test('every planned mistake tag has a recovery question (PLAN.md §G.2)', () => {
-  const tags = ['count-done-vs-left', 'counts-unfinished', 'inverted-condition', 'assignment-in-condition', 'selector-missing-hash', 'null-element',
-    'syntax-error', 'undefined-variable', 'missing-function', 'missing-left-word', 'returns-array', 'counts-all-tasks', 'loop-timeout',
-    'string-not-quoted', 'missing-comma', 'boolean-as-string', 'property-vs-value', 'logs-whole-object', 'not-a-method', 'push-length',
-    'title-as-task', 'missing-return', 'log-vs-return', 'truthy-condition', 'string-mismatch', 'off-by-one'];
-  for (const t of tags) assert.ok(RECOVERY_QUESTIONS.some(q => q.tags.includes(t)), t);
 });

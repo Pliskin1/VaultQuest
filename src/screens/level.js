@@ -1,6 +1,7 @@
 // Level screen: 3 challenges (mcq / blank / fix), hearts, combo, mentor panel.
-// Hearts, answer identity and the zero-hearts transition come from the shared engine (learn/attempt.js);
-// this file only judges answers per language (option, blank, real code run) and draws the result.
+// Hearts, answer identity, saving/resuming and Syntax Recovery come from the shared engine
+// (learn/attempt.js); this file only judges answers per language (option, blank, real code run),
+// diagnoses failures through learn/diagnose.js and draws the result.
 import { $, $$, ctr } from '../core/dom.js';
 import { anim, EASE, shake } from '../core/anim.js';
 import { wait } from '../core/clock.js';
@@ -9,18 +10,19 @@ import { esc } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, lvlOf, rk, reward } from '../core/state.js';
-import { rollbackRun } from '../learn/progress.js';
-import { newAttempt, answerKey, beginSubmission, settleSubmission, endAttempt, isCurrent, whenExhausted } from '../learn/attempt.js';
+import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
+import { diagnose } from '../learn/diagnose.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
 import { LANGS, freeOf } from '../content/languages.js';
 import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
+import { openRecovery } from './recovery.js';
 import { runJsChallenge } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
 
-let A = null; // the current attempt (shared engine state: hearts, answers tried, rewards paid)
+let A = null; // the current attempt (shared engine state: hearts, answers tried, recovery, saved view)
 export const G = { li: 0, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
 const lvl = () => LANGS[S.lang].levels[G.li], chal = () => lvl().ch[G.ci];
 const hearts = () => A ? A.session.hearts : 3;
@@ -29,19 +31,47 @@ const cmd = () => S.lang === 'py' ? 'python main.py' : 'node main.js';
 const plain = s => s.replace(/<[^>]+>/g, '');
 const aiChal = c => ({ type: c.t, q: plain(c.q), code: c.code });
 
-export function startLevel(i) {
-  endAttempt(A); Mentor.cancel(); Mentor.use('lv');
-  A = newAttempt(S.lang, i);
-  Object.assign(G, { li: i, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false });
-  const L = LANGS[S.lang];
+// Opens a vault. An unfinished attempt saved in the profile is resumed exactly — same challenge, hearts,
+// answers and code; a locked one goes straight back to Syntax Recovery. Otherwise a new attempt starts.
+export function startLevel(i, { afterRecovery = false } = {}) {
+  flushDraft(); endAttempt(A); Mentor.cancel(); Mentor.use('lv');
+  const L = LANGS[S.lang], cur = S.curriculum[S.lang], n = L.levels[i].ch.length;
+  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: n });
+  A = saved || newAttempt(S.lang, i, cur);
+  const { drafts, ...view } = A.view;
+  Object.assign(G, { li: i, ...view, lock: false });
   $('#lv-kick').textContent = `VAULT 0${i + 1} · ${L.name.toUpperCase()}`; $('#lv-name').textContent = L.titles[i];
-  $('#msgs').innerHTML = ''; $('#lv-combo').textContent = ''; renderHearts(); updHud();
-  go('s-level').then(() => Mentor.say(`Welcome to **Vault 0${i + 1}: ${L.titles[i]}**. Solve ${lvl().ch.length} challenges to crack it. Stuck? Ask me anything — I'll guide you, but I won't just hand you the answer.`));
-  renderCh(false);
+  $('#msgs').innerHTML = ''; $('#lv-combo').textContent = G.combo >= 2 ? 'COMBO x' + G.combo : ''; renderHearts(); updHud();
+  if (inRecovery(A)) return enterRecovery(); // refresh, leaving or reopening never skips Recovery
+  if (G.ci >= n) return levelDone(); // every challenge was solved before the celebration could play
+  const welcome = afterRecovery ? `**Syntax Recovery complete** · 3 hearts restored. You're back on Challenge ${G.ci + 1} — your answers and code are just as you left them.`
+    : saved ? `Welcome back to **Vault 0${i + 1}: ${L.titles[i]}**. You're on Challenge ${G.ci + 1} of ${n} with ${hearts()} heart${hearts() === 1 ? '' : 's'} — everything you did is saved.`
+    : `Welcome to **Vault 0${i + 1}: ${L.titles[i]}**. Solve ${n} challenges to crack it. Stuck? Ask me anything — I'll guide you, but I won't just hand you the answer.`;
+  go('s-level').then(() => Mentor.say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : {}));
+  renderCh(false, true);
 }
 
-// Leaving the vault ends the attempt: pending runs, replies and resets from it are ignored.
-function leaveLevel() { endAttempt(A); Mentor.cancel(); openMap(); }
+// Saves the attempt into the profile, so refreshing, leaving or switching language resumes it exactly.
+function persist(view = {}) {
+  if (!A || A.over) return;
+  A.view = { ...A.view, ci: G.ci, combo: G.combo, mistakes: G.mistakes, hints: G.hints, chMistake: G.chMistake, hintIdx: G.hintIdx, ...view };
+  S.attempts[attemptKey(A.curriculum, A.vault)] = toSave(A); save();
+}
+
+// The student's unsubmitted code / blank text, kept per challenge (saved shortly after typing stops).
+let draftTimer = null;
+const draftEl = () => $('#card #ed') || $('#card #blank');
+function keepDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(flushDraft, 300); }
+function flushDraft() {
+  clearTimeout(draftTimer); draftTimer = null;
+  const el = draftEl();
+  if (!A || A.over || G.lock || !el || inRecovery(A) || A.view.drafts[G.ci] === el.value) return;
+  persist({ drafts: { ...A.view.drafts, [G.ci]: el.value } });
+}
+
+// Leaving the vault ends the attempt object: pending runs, replies and transitions from it are ignored.
+// Its saved state stays in the profile, so coming back resumes it (hearts and Recovery included).
+function leaveLevel() { flushDraft(); endAttempt(A); Mentor.cancel(); openMap(); }
 
 const renderSegs = () => { $('#lv-segs').innerHTML = lvl().ch.map((_, k) => `<i class="${k < G.ci ? 'on' : k === G.ci ? 'now' : ''}"></i>`).join(''); };
 const renderHearts = () => { $('#lv-hearts').innerHTML = [0, 1, 2].map(k => `<div class="heart" aria-hidden="true">${k < hearts() ? `<svg viewBox="0 0 26 24">${HEART} fill="#FF9B7A"/></svg>` : `<svg viewBox="0 0 26 24">${HEART} fill="none" stroke="#3A4256" stroke-width="2"/></svg>`}</div>`).join(''); $('#lv-hearts').setAttribute('aria-label', hearts() + ' hearts left'); };
@@ -51,27 +81,29 @@ function updHint() {
   b.textContent = n >= 3 ? 'No hints left' : n === 0 ? 'Hint · free' : `Hint ${n + 1}/3 · free`;
 }
 
-async function renderCh(animate = true) {
-  const c = chal(), card = $('#card');
-  G.chMistake = false; G.hintIdx = 0; G.lock = true; renderSegs(); updHint();
+// resume: keep this challenge's saved hint level and mistake flag (reopening a saved attempt).
+async function renderCh(animate = true, resume = false) {
+  const c = chal(), card = $('#card'), draft = A.view.drafts[G.ci];
+  if (!resume) { G.chMistake = false; G.hintIdx = 0; }
+  G.lock = true; renderSegs(); updHint();
   if (animate) await anim(card, [{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'translateX(-80px)', filter: 'blur(8px)' }], { duration: 350, easing: EASE.in });
   const typ = { mcq: 'MULTIPLE CHOICE', blank: 'FILL THE BLANK', fix: 'FIX THE BUG' }[c.t];
   let h = `<div class="kicker">CHALLENGE ${G.ci + 1}/${lvl().ch.length} · ${typ}</div><h3>${c.q}</h3>`;
   if (c.t === 'mcq') h += `<pre class="codeblk">${hl(c.code, S.lang)}</pre><div class="opts">${c.opts.map((o, k) => `<button class="opt" data-k="${k}"><kbd>${'ABCD'[k]}</kbd>${esc(o[0])}</button>`).join('')}</div>`;
-  if (c.t === 'blank') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
+  if (c.t === 'blank') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false" value="${esc(draft ?? '').replace(/"/g, '&quot;')}">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
   if (c.t === 'fix') {
-    const n = c.code.split('\n').length;
-    h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(c.code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(c.code)}</textarea></div>
+    const code = draft ?? c.code, n = Math.max(code.split('\n').length, c.code.split('\n').length);
+    h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(code)}</textarea></div>
     <div class="row"><button class="btn" id="b-run"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN</button><span style="color:var(--mut2);font-size:14px">Runs your code for real</span></div>
     <div class="console" id="cons" aria-live="polite"><span class="dim">$ ${cmd()}</span></div>`;
     if (S.lang === 'py') preloadPython();
   }
   card.innerHTML = h; G.lock = false;
   if (c.t === 'mcq') $$('.opt').forEach(b => b.onclick = () => pickOpt(b));
-  if (c.t === 'blank') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; }
+  if (c.t === 'blank') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; $('#blank').oninput = keepDraft; }
   if (c.t === 'fix') {
     const ta = $('#ed');
-    ta.oninput = () => { $('#ed-hl').innerHTML = hl(ta.value, S.lang) + '\n'; };
+    ta.oninput = () => { $('#ed-hl').innerHTML = hl(ta.value, S.lang) + '\n'; keepDraft(); };
     ta.onkeydown = e => { if (e.key === 'Tab') { e.preventDefault(); const s = ta.selectionStart; ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(ta.selectionEnd); ta.selectionStart = ta.selectionEnd = s + 4; ta.oninput(); } };
     $('#b-run').onclick = runFix;
   }
@@ -82,10 +114,12 @@ async function renderCh(animate = true) {
 // Starts a submission → token, or null while the card is busy, one is being judged, or the attempt is over.
 const begin = () => G.lock ? null : beginSubmission(A);
 
-// One judged submission → shared heart rules → feedback. why() → the mentor's explanation, asked for only
-// when it's shown (not for a repeated answer).
-function settle(tok, el, type, value, passed, why) {
-  const out = settleSubmission(A, tok, { key: answerKey(A, G.ci, type, value), passed });
+// One judged submission → mistake diagnosis (language content) → shared heart rules → feedback.
+// why() → the mentor's explanation, asked for only when it's shown (not for a repeated answer).
+// error: the real runtime message for code, used as evidence for the diagnosis.
+function settle(tok, el, type, value, passed, why, error = '') {
+  const d = passed ? {} : diagnose({ curriculum: A.curriculum, lang: A.lang, vault: A.vault, challenge: G.ci, type, answer: value, error });
+  const out = settleSubmission(A, tok, { key: answerKey(A, G.ci, type, value), passed, ...d });
   if (!out) return null; // stale: the attempt it belongs to has ended
   if (passed) correct(el, tok); else wrong(el, why, out, tok);
   return out;
@@ -103,7 +137,7 @@ function checkBlank() {
   const tok = begin(); if (!tok) return;
   const ok = c.ans.includes(v);
   if (ok) { inp.classList.remove('bad'); inp.classList.add('ok'); }
-  else { inp.classList.add('bad'); inp.value = ''; wait(900).then(() => inp.classList.remove('bad')); }
+  else { inp.classList.add('bad'); inp.value = ''; A.view.drafts = { ...A.view.drafts, [G.ci]: '' }; wait(900).then(() => inp.classList.remove('bad')); }
   settle(tok, inp, 'blank', v, ok, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: v }, c.wrong[v] || c.why));
 }
 
@@ -116,7 +150,7 @@ const outputOk = (out, ok) => out === ok || out.endsWith('\n' + ok);
 async function runFix() {
   const tok = begin(); if (!tok) return;
   const c = chal(), code = $('#ed').value, cons = $('#cons'), btn = $('#b-run'), head = `<span class="dim">$ ${cmd()}</span>`;
-  btn.disabled = true;
+  btn.disabled = true; A.view.drafts = { ...A.view.drafts, [G.ci]: code };
   cons.innerHTML = head + '\n<span class="dim">running…</span>';
   let res;
   try { [res] = await Promise.all([S.lang === 'py' ? runPython(code) : runJsChallenge(code), wait(600)]); }
@@ -134,12 +168,13 @@ async function runFix() {
   cons.innerHTML = `${head}\n${out ? esc(out) + '\n' : ''}<span class="err">${esc(msg)}</span>`;
   btn.disabled = false;
   const fallback = f ? f.why : err ? 'Read the **last line** of the error — it names the problem. Which word or symbol on that line looks different from what Python/JS expects?' : `It runs, but prints \`${out.split('\n').pop() || 'nothing'}\` instead of \`${c.ok.split('\n').pop()}\`. Which line produces the output?`;
-  settle(tok, cons, 'code', code, false, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: err || `wrong output: ${out}` }, fallback));
+  settle(tok, cons, 'code', code, false, () => Mentor.fetchText('wrong', { lang: S.lang, challenge: aiChal(c), answer: code, error: err || `wrong output: ${out}` }, fallback), err);
 }
 
 async function correct(el, tok) {
   G.lock = true; const p = ctr(el); G.combo++;
-  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, A.run); updHud(); save(); // 0 on replay
+  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, A.run); updHud(); // 0 on replay
+  persist({ ci: G.ci + 1 }); // solved: a refresh during the pause continues with the next challenge
   FX.spark(p.x, p.y, 46, null, .9); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); floatText('+' + gain + ' XP', p.x, p.y - 30);
   anim($('#card'), [{ boxShadow: '0 0 0 0 rgba(79,216,196,0)' }, { boxShadow: '0 0 0 3px rgba(79,216,196,.7), 0 0 60px -10px rgba(79,216,196,.6)' }, { boxShadow: '0 0 0 0 rgba(79,216,196,0)' }], { duration: 900, fill: 'none' });
   if (G.combo >= 2) { $('#lv-combo').textContent = 'COMBO x' + G.combo; const m = ctr($('.l-main')); floatText('COMBO x' + G.combo, m.x, m.y - 200, 'slam'); }
@@ -159,24 +194,37 @@ const DUPLICATE = 'Same answer as before, so **no heart lost** — and the resul
 async function wrong(el, why, out, tok) {
   G.combo = 0; $('#lv-combo').textContent = ''; G.chMistake = true;
   anim(el, [{ transform: 'translateX(0)' }, { transform: 'translateX(-12px)' }, { transform: 'translateX(10px)' }, { transform: 'translateX(-7px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(0)' }], { duration: 450, fill: 'none' });
-  if (out.duplicate) return Mentor.say(DUPLICATE, { label: 'MENTOR' });
+  if (out.duplicate) { persist(); return Mentor.say(DUPLICATE, { label: 'MENTOR' }); }
   G.mistakes++;
   shake($('#app'));
   anim($('#vign'), [{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 0 }], { duration: 800, fill: 'none' });
   loseHeart();
-  if (out.exhausted) G.lock = true; // nothing more can be answered in this attempt
+  if (out.exhausted) G.lock = true; // nothing more can be answered until Recovery
+  persist(); // saved at once: a refresh with 0 hearts lands in Recovery
   await Mentor.say(why(), { kind: 'fix' });
   if (out.exhausted) outOfHearts(tok);
 }
 
-// Zero hearts — the single place this is handled, for every language. Until Syntax Recovery exists
-// (Phase 4) the vault restarts: only this attempt's XP is taken back, and nothing happens if the
-// player has left the vault in the meantime.
+// Zero hearts — the single place this is handled, for every language: Syntax Recovery. Nothing happens
+// if the player has left the vault in the meantime (the saved, locked attempt reopens in Recovery).
 function outOfHearts(tok) {
   return whenExhausted(() => A, tok, {
-    announce: () => Mentor.say('Out of hearts — the vault resets. Take a breath, you\'ve got this.', { kind: 'fix' }),
+    announce: () => Mentor.say('Out of hearts. Your answers, code and XP are saved — **Syntax Recovery** wins your hearts back.', { kind: 'fix' }),
     pause: () => wait(1200),
-    next: () => { rollbackRun(S, A.run); save(); updHud(); startLevel(G.li); }
+    next: enterRecovery
+  });
+}
+
+// Opens Syntax Recovery for the current (locked) attempt. Recovery never restarts the vault or takes XP:
+// it ends by returning to the same challenge with three hearts.
+function enterRecovery() {
+  const a = A, L = LANGS[a.lang];
+  startRecovery(a); persist();
+  return openRecovery({
+    attempt: a, lang: a.lang, langName: L.name, title: `Vault 0${a.vault + 1} · ${L.titles[a.vault]}`, challenge: G.ci,
+    save: () => { if (a === A) persist(); },
+    leave: () => { if (a === A) leaveLevel(); },
+    back: () => { if (a === A) startLevel(a.vault, { afterRecovery: true }); }
   });
 }
 
@@ -193,7 +241,7 @@ async function levelDone() {
   const i = G.li, stars = G.mistakes <= 1 ? 3 : G.mistakes <= 3 ? 2 : 1;
   const free = freeOf(S.lang), wasDone = i < free ? i < S.done[S.lang] : !!S.stars[S.lang + i];
   const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), 150 + i * 50 + stars * 30, A.run); // once per vault; better stars on replay pay nothing
-  endAttempt(A); // the vault is cracked: nothing from this attempt can be taken back any more
+  delete S.attempts[attemptKey(A.curriculum, i)]; endAttempt(A); // cracked: the attempt is finished
   S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
   if (!wasDone && i < free) S.done[S.lang] = i + 1;
   save();
@@ -225,10 +273,12 @@ export function mount() {
     Mentor.ask('ask', { lang: S.lang, challenge: aiChal(chal()), question: v }, localAnswer(v), { label: 'MENTOR' });
   };
   $('#btn-hint').onclick = () => {
+    if (!A || A.over || G.lock || inRecovery(A)) return; // not while the card changes or the vault is locked
     const c = chal(); if (G.hintIdx >= c.hints.length) return;
-    const n = ++G.hintIdx; G.hints++; updHint(); // hints are always free
+    const n = ++G.hintIdx; G.hints++; updHint(); persist(); // hints are always free
     Mentor.ask('hint', { lang: S.lang, challenge: aiChal(c), hintLevel: n }, c.hints[n - 1], { kind: 'hint', label: `HINT ${n}/3` });
   };
   $('#btn-explain').onclick = () => Mentor.ask('explain', { lang: S.lang, concept: lvl().concept, challenge: aiChal(chal()) }, lvl().concept, { label: 'CONCEPT' });
   $('#lv-back').onclick = leaveLevel;
+  addEventListener('pagehide', flushDraft); // keep half-typed code across a refresh
 }
