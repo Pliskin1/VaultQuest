@@ -1,5 +1,6 @@
 // Level-complete hero cinematic: vault flies in, code streams into the lock, dial spins,
-// bolts retract, doors blast open, camera flies through, results. Resolves when CONTINUE is clicked.
+// bolts retract, doors blast open, camera flies through, results. Resolves when a button is clicked:
+// 'next' (CONTINUE, or o.actions.next) or 'alt' (o.actions.alt, e.g. back to the map).
 import { $, $$, ctr } from '../core/dom.js';
 import { anim, EASE, cancelAnims } from '../core/anim.js';
 import { Clock, wait, nextFrame } from '../core/clock.js';
@@ -24,12 +25,15 @@ function buildVault() {
   $('#v-bolts').innerHTML = b; built = true;
 }
 
-// o: { kick, title, stars, bonus, prevXp, lvBefore, mistakes, first }
+// o: { kick, title, stars, bonus, prevXp, lvBefore, mistakes, first, actions?: { next, alt, pro } }
 export async function playVaultCinematic(o) {
   if (!built) buildVault();
   const cine = $('#cine'), stage = $('#c-stage'), wheel = $('#v-wheel'), res = $('#c-res');
   cancelAnims(cine, stage, wheel, $('#c-rays'), $('#c-glow'), $('#v-in'), $('#v-seam'), $('#v-hl'), $('#v-hr'), $('#c-flash'), res, $('#c-next'), $('#v-ticks'), $('#v-hub'), ...$$('#v-bolts .bolt'));
   res.style.display = 'none'; stage.style.opacity = 1;
+  const nb = $('#c-next'), alt = $('#c-alt'), arrow = nb.querySelector('svg').outerHTML;
+  nb.innerHTML = `${o.actions?.next ?? 'CONTINUE'} ${arrow}`; nb.classList.toggle('pro', !!o.actions?.pro);
+  alt.textContent = o.actions?.alt ?? ''; alt.style.display = o.actions?.alt ? '' : 'none'; alt.style.opacity = 0;
   cine.classList.add('on');
   await anim(cine, [{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'none' });
   // 1. vault flies in
@@ -73,9 +77,10 @@ export async function playVaultCinematic(o) {
   await wait(550);
   // 8. results
   res.style.display = 'flex'; $('#c-kick').textContent = o.kick; $('#c-mis').textContent = o.mistakes; $('#c-xp').textContent = '+0'; $('#c-lvup').style.opacity = 0;
-  const title = $('#c-title'); title.innerHTML = o.title.split('').map(ch => `<span>${ch}</span>`).join('');
+  // One unbreakable group per word, so a long title (WORLD 1 CLEARED) wraps between words on small screens.
+  const title = $('#c-title'); title.innerHTML = o.title.split(' ').map(w => `<span class="cw">${[...w].map(ch => `<span>${ch}</span>`).join('')}</span>`).join(' ');
   anim($('#c-kick'), [{ opacity: 0, letterSpacing: '.6em' }, { opacity: 1, letterSpacing: '.18em' }], { duration: 700, easing: EASE.out });
-  [...title.children].forEach((s, k) => anim(s, [{ opacity: 0, transform: 'translateY(60px) scale(1.8)', filter: 'blur(14px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 650, delay: k * 55, easing: EASE.back }));
+  [...title.querySelectorAll('.cw span')].forEach((s, k) => anim(s, [{ opacity: 0, transform: 'translateY(60px) scale(1.8)', filter: 'blur(14px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 650, delay: k * 55, easing: EASE.back }));
   $('#c-stars').innerHTML = [0, 1, 2].map(k => `<svg viewBox="0 0 24 24" style="opacity:0" aria-hidden="true">${STAR} fill="${k < o.stars ? '#F2B544' : '#1E2433'}" stroke="${k < o.stars ? '#FFD27A' : '#2A3245'}" stroke-width=".6"/></svg>`).join('');
   $('#c-stars').setAttribute('aria-label', `${o.stars} of 3 stars`);
   $$('.c-stats .c-stat').forEach((s, k) => anim(s, [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: 900 + k * 120, easing: EASE.out }));
@@ -98,10 +103,10 @@ export async function playVaultCinematic(o) {
   if (L1 > L0) { const u = $('#c-lvup'); anim(u, [{ opacity: 0, transform: 'scale(2.4)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 450, easing: EASE.back }); const p = ctr(u); FX.spark(p.x, p.y, 40, '#4FD8C4', .7); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); }
   updHud(); if (o.first) award('first');
   await wait(600);
-  const nb = $('#c-next');
-  anim(nb, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, easing: EASE.out });
+  [nb, alt].forEach((b, k) => anim(b, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: k * 120, easing: EASE.out }));
   FX.ember(innerWidth / 2, innerHeight * .75, 40); nb.focus();
-  await new Promise(r => nb.onclick = r);
+  const choice = await new Promise(r => { nb.onclick = () => r('next'); alt.onclick = () => r('alt'); });
   await anim(cine, [{ opacity: 1 }, { opacity: 0 }], { duration: 450 });
   cine.classList.remove('on'); cine.getAnimations().forEach(a => a.cancel());
+  return choice;
 }

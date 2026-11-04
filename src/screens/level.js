@@ -10,7 +10,8 @@ import { esc, md } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, lvlOf, rk, reward } from '../core/state.js';
-import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
+import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave, explainApproach, answerApproach, startCoding, inPlanning } from '../learn/attempt.js';
+import { MAX_CHARS } from '../learn/approach.js';
 import { diagnose } from '../learn/diagnose.js';
 import { judge, fillCode } from '../learn/judge.js';
 import { updHud } from '../ui/hud.js';
@@ -20,6 +21,8 @@ import { LANGS, freeOf } from '../content/languages.js';
 import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { openRecovery } from './recovery.js';
+import { openPro } from './pro.js';
+import { startProject } from './project.js';
 import { runJsChallenge, observeJs } from '../run/js-runner.js';
 import { runPython, preloadPython, observePython } from '../run/py-runner.js';
 
@@ -31,22 +34,27 @@ const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c
 const cmd = () => S.lang === 'py' ? 'python main.py' : 'node main.js';
 const plain = s => s.replace(/<[^>]+>/g, '');
 const aiChal = c => ({ type: c.t, q: plain(c.q), code: c.code });
+// "Vault 03 · Make Things Work" / "Mini Boss · Count Completed Tasks"
+const vaultName = (lang, i) => LANGS[lang].levels[i].boss ? `Mini Boss · ${LANGS[lang].titles[i].replace(/^Mini Boss: /, '')}` : `Vault 0${i + 1} · ${LANGS[lang].titles[i]}`;
 
 // Opens a vault. An unfinished attempt saved in the profile is resumed exactly — same challenge, hearts,
 // answers and code; a locked one goes straight back to Syntax Recovery. Otherwise a new attempt starts.
 export function startLevel(i, { afterRecovery = false } = {}) {
   flushDraft(); endAttempt(A); Mentor.cancel(); Mentor.use('lv');
   const L = LANGS[S.lang], cur = S.curriculum[S.lang], n = L.levels[i].ch.length;
-  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: n });
-  A = saved || newAttempt(S.lang, i, cur);
+  const approach = L.levels[i].ch.some(c => c.approach); // explain-first vault (Mini Boss)
+  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: n, approach });
+  A = saved || newAttempt(S.lang, i, cur, { approach });
   const { drafts, ...view } = A.view;
   Object.assign(G, { li: i, ...view, lock: false });
-  $('#lv-kick').textContent = `VAULT 0${i + 1} · ${L.name.toUpperCase()}`; $('#lv-name').textContent = L.titles[i];
+  $('#lv-kick').textContent = `${L.levels[i].boss ? 'MINI BOSS' : `VAULT 0${i + 1}`} · ${L.name.toUpperCase()}`; $('#lv-name').textContent = L.titles[i].replace(/^Mini Boss: /, '');
   $('#msgs').innerHTML = ''; $('#lv-combo').textContent = G.combo >= 2 ? 'COMBO x' + G.combo : ''; renderHearts(); updHud();
   if (inRecovery(A)) return enterRecovery(); // refresh, leaving or reopening never skips Recovery
   if (G.ci >= n) return levelDone(); // every challenge was solved before the celebration could play
   const welcome = afterRecovery ? `**Syntax Recovery complete** · 3 hearts restored. You're back on Challenge ${G.ci + 1} — your answers and code are just as you left them.`
+    : saved && L.levels[i].boss ? `Welcome back to the **Mini Boss**. ${!A.approach?.accepted ? 'Your plan so far is saved — keep explaining it.' : !A.approach.started ? 'Your plan is accepted — press **Start coding** when you\'re ready.' : `You have ${hearts()} heart${hearts() === 1 ? '' : 's'}, and your plan and code are saved.`}`
     : saved ? `Welcome back to **Vault 0${i + 1}: ${L.titles[i]}**. You're on Challenge ${G.ci + 1} of ${n} with ${hearts()} heart${hearts() === 1 ? '' : 's'} — everything you did is saved.`
+    : L.levels[i].boss ? `Welcome to the **Mini Boss: ${L.titles[i].replace(/^Mini Boss: /, '')}**. Explain your plan first — I'll ask about anything that's missing. The code editor unlocks once your plan is complete.`
     : `Welcome to **Vault 0${i + 1}: ${L.titles[i]}**. Solve ${n} challenges to crack it. Stuck? Ask me anything — I'll guide you, but I won't just hand you the answer.`;
   go('s-level').then(() => Mentor.say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : {}));
   renderCh(false, true);
@@ -65,6 +73,8 @@ const draftEl = () => $('#card #ed') || $('#card #blank');
 function keepDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(flushDraft, 300); }
 function flushDraft() {
   clearTimeout(draftTimer); draftTimer = null;
+  const plan = $('#card #ap');
+  if (plan && A && !A.over && A.approach && !A.approach.accepted && A.approach.text !== plan.value) { A.approach = { ...A.approach, text: plan.value.slice(0, MAX_CHARS) }; return persist(); }
   const el = draftEl();
   if (!A || A.over || G.lock || !el || inRecovery(A) || A.view.drafts[G.ci] === el.value) return;
   persist({ drafts: { ...A.view.drafts, [G.ci]: el.value } });
@@ -79,20 +89,23 @@ const renderHearts = () => { $('#lv-hearts').innerHTML = [0, 1, 2].map(k => `<di
 
 function updHint() {
   const n = G.hintIdx, b = $('#btn-hint');
+  b.style.display = inPlanning(A) ? 'none' : ''; // no hints while planning (docs/PLAN.md §H)
   b.textContent = n >= 3 ? 'No hints left' : n === 0 ? 'Hint · free' : `Hint ${n + 1}/3 · free`;
 }
 
 // resume: keep this challenge's saved hint level and mistake flag (reopening a saved attempt).
 async function renderCh(animate = true, resume = false) {
+  if (chal().approach && inPlanning(A)) return renderPlan(animate);
   const c = chal(), card = $('#card'), draft = A.view.drafts[G.ci];
   if (!resume) { G.chMistake = false; G.hintIdx = 0; }
   G.lock = true; renderSegs(); updHint();
   if (animate) await anim(card, [{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'translateX(-80px)', filter: 'blur(8px)' }], { duration: 350, easing: EASE.in });
   const typ = { mcq: 'MULTIPLE CHOICE', blank: 'FILL THE BLANK', fill: 'FILL THE BLANK', fix: 'FIX THE BUG', code: c.kind === 'fix' ? 'FIX THE BUG' : 'WRITE THE CODE' }[c.t];
   const q = /<[a-z]/i.test(c.q) ? c.q : md(c.q); // Pro vault prompts are HTML; World 1 prompts use `code` / **bold**
-  let h = `<div class="kicker">CHALLENGE ${G.ci + 1}/${lvl().ch.length} · ${typ}</div><h3>${q}</h3>`;
+  let h = `<div class="kicker">${lvl().boss ? 'MINI BOSS' : `CHALLENGE ${G.ci + 1}/${lvl().ch.length}`} · ${typ}</div><h3>${q}</h3>`;
   if (c.t === 'mcq') h += `<pre class="codeblk">${hl(c.code, S.lang)}</pre><div class="opts">${c.opts.map((o, k) => `<button class="opt" data-k="${k}"><kbd>${'ABCD'[k]}</kbd>${esc(o[0])}</button>`).join('')}</div>`;
   if (c.t === 'blank' || c.t === 'fill') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false" value="${esc(draft ?? '').replace(/"/g, '&quot;')}">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button><span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
+  if (c.approach) h += `<details class="ap-plan"><summary>YOUR PLAN · accepted</summary><p>${esc(A.approach.text)}</p>${A.approach.answers.map(x => `<p class="ap-ans">${esc(x)}</p>`).join('')}</details>`;
   if (c.t === 'fix' || c.t === 'code') {
     const code = draft ?? c.code, n = Math.max(code.split('\n').length, c.code.split('\n').length);
     h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(code)}</textarea></div>
@@ -111,6 +124,47 @@ async function renderCh(animate = true, resume = false) {
   }
   if (animate) await anim(card, [{ opacity: 0, transform: 'translateX(80px)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 450, easing: EASE.out });
   card.getAnimations().forEach(a => a.cancel());
+}
+
+// ── MINI BOSS · PLAN FIRST: the editor stays hidden — and the engine refuses submissions — until the mentor has
+// accepted the plan. Explaining is always free: no hearts, no XP. ──
+const planStatus = p => p.accepted ? '✓ Plan accepted — coding is unlocked.' : p.reviews ? 'Answer the mentor’s question in the chat, or improve your plan and explain it again.' : 'Your mentor reads your plan and asks about anything that’s missing. Coding unlocks once your plan is complete.';
+async function renderPlan(animate) {
+  const c = chal(), card = $('#card'), p = A.approach;
+  G.lock = true; renderSegs(); updHint();
+  if (animate) await anim(card, [{ opacity: 1, transform: 'none', filter: 'blur(0)' }, { opacity: 0, transform: 'translateX(-80px)', filter: 'blur(8px)' }], { duration: 350, easing: EASE.in });
+  card.innerHTML = `<div class="kicker" style="color:var(--coral)">MINI BOSS · PLAN FIRST</div><h3>${md(c.q)}</h3>
+    <p class="ap-sub">${esc(c.approach.prompt)}</p><pre class="codeblk">${hl(c.approach.sample, S.lang)}</pre>
+    <div class="ap-box"><textarea id="ap" maxlength="${MAX_CHARS}" aria-label="Your plan" placeholder="In your own words: what will your function go through, what will it check, and what will it give back?">${esc(p.text)}</textarea>
+    <div class="ap-meta"><span id="ap-count"></span><span>Explaining is always free — no hearts</span></div></div>
+    <div class="row"><button class="btn" id="ap-explain">EXPLAIN TO THE MENTOR</button><button class="btn pro" id="ap-start">START CODING</button></div>
+    <div class="ap-status" id="ap-status"></div>`;
+  const ta = $('#ap'), count = () => { const w = (ta.value.match(/[\p{L}\p{N}_']+/gu) || []).length; $('#ap-count').textContent = `${w} word${w === 1 ? '' : 's'} · ${ta.value.length}/${MAX_CHARS}`; };
+  ta.oninput = () => { count(); keepDraft(); }; count();
+  $('#ap-explain').onclick = explainPlan; $('#ap-start').onclick = beginCoding;
+  showPlanState();
+  G.lock = false;
+  if (animate) await anim(card, [{ opacity: 0, transform: 'translateX(80px)', filter: 'blur(8px)' }, { opacity: 1, transform: 'none', filter: 'blur(0)' }], { duration: 450, easing: EASE.out });
+  card.getAnimations().forEach(a => a.cancel());
+}
+function showPlanState() {
+  const p = A.approach, st = $('#ap-status'); if (!st) return;
+  st.textContent = planStatus(p); st.classList.toggle('ok', p.accepted);
+  $('#ap-start').disabled = !p.accepted; $('#ap-explain').disabled = p.accepted; $('#ap').readOnly = p.accepted;
+}
+// The mentor's review of the plan: one question at a time, or acceptance.
+function planReply(r) {
+  persist(); showPlanState();
+  Mentor.say(r.question, r.accepted ? { kind: 'good', label: 'PLAN ACCEPTED' } : { label: 'QUESTION FOR YOU' });
+}
+function explainPlan() {
+  if (!A?.approach || A.over || G.lock || A.approach.accepted) return;
+  const r = explainApproach(A, $('#ap').value.trim(), chal().approach.rules);
+  if (r) planReply(r);
+}
+function beginCoding() {
+  if (G.lock || !startCoding(A)) return; // refused unless the plan was accepted
+  persist(); renderCh(true);
 }
 
 // Starts a submission → token, or null while the card is busy, one is being judged, or the attempt is over.
@@ -224,7 +278,7 @@ async function runFix() {
 
 async function correct(el, tok) {
   G.lock = true; const p = ctr(el); G.combo++;
-  const gain = reward(rk(G.li, G.ci), 50 + (G.combo - 1) * 10, A.run); updHud(); // 0 on replay
+  const gain = reward(rk(G.li, G.ci), chal().xp ?? 50 + (G.combo - 1) * 10, A.run); updHud(); // 0 on replay
   persist({ ci: G.ci + 1 }); // solved: a refresh during the pause continues with the next challenge
   FX.spark(p.x, p.y, 46, null, .9); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); floatText('+' + gain + ' XP', p.x, p.y - 30);
   anim($('#card'), [{ boxShadow: '0 0 0 0 rgba(79,216,196,0)' }, { boxShadow: '0 0 0 3px rgba(79,216,196,.7), 0 0 60px -10px rgba(79,216,196,.6)' }, { boxShadow: '0 0 0 0 rgba(79,216,196,0)' }], { duration: 900, fill: 'none' });
@@ -260,7 +314,7 @@ async function wrong(el, why, out, tok) {
 // if the player has left the vault in the meantime (the saved, locked attempt reopens in Recovery).
 function outOfHearts(tok) {
   return whenExhausted(() => A, tok, {
-    announce: () => Mentor.say('Out of hearts. Your answers, code and XP are saved — **Syntax Recovery** wins your hearts back.', { kind: 'fix' }),
+    announce: () => Mentor.say(`Out of hearts. Your ${A.approach ? 'plan, ' : ''}answers, code and XP are saved — **Syntax Recovery** wins your hearts back.`, { kind: 'fix' }),
     pause: () => wait(1200),
     next: enterRecovery
   });
@@ -272,7 +326,7 @@ function enterRecovery() {
   const a = A, L = LANGS[a.lang];
   startRecovery(a); persist();
   return openRecovery({
-    attempt: a, lang: a.lang, langName: L.name, title: `Vault 0${a.vault + 1} · ${L.titles[a.vault]}`, challenge: G.ci,
+    attempt: a, lang: a.lang, langName: L.name, title: vaultName(a.lang, a.vault), challenge: G.ci, place: L.levels[a.vault].boss ? 'the Mini Boss' : null,
     save: () => { if (a === A) persist(); },
     leave: () => { if (a === A) leaveLevel(); },
     back: () => { if (a === A) startLevel(a.vault, { afterRecovery: true }); }
@@ -289,20 +343,26 @@ function loseHeart() {
 }
 
 async function levelDone() {
-  const i = G.li, stars = G.mistakes <= 1 ? 3 : G.mistakes <= 3 ? 2 : 1;
+  const i = G.li, stars = G.mistakes <= 1 ? 3 : G.mistakes <= 3 ? 2 : 1, boss = !!lvl().boss;
   const free = freeOf(S.lang), wasDone = i < free ? i < S.done[S.lang] : !!S.stars[S.lang + i];
-  const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), 150 + i * 50 + stars * 30, A.run); // once per vault; better stars on replay pay nothing
+  const prevXp = S.xp, bonus = reward(rk(i, 'bonus'), lvl().bonusXp ?? 150 + i * 50 + stars * 30, A.run); // once per vault; better stars on replay pay nothing
   delete S.attempts[attemptKey(A.curriculum, i)]; endAttempt(A); // cracked: the attempt is finished
   S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
   if (!wasDone && i < free) S.done[S.lang] = i + 1;
   save();
-  await playVaultCinematic({ kick: `VAULT 0${i + 1} CRACKED`, title: 'UNLOCKED', stars, bonus, prevXp, lvBefore: lvlOf(prevXp), mistakes: G.mistakes, first: i === 0 });
-  setSel(i); await go('s-map'); renderMap();
-  if (!wasDone && i + 1 < free && rewindForTravel(i)) { await wait(500); await travel(i); }
+  // WORLD 1 CLEARED (the Mini Boss is the last FREE node): the next step is PRO — the upgrade for FREE
+  // students, the project for PRO students — or back to the map.
+  const project = LANGS[S.lang].levels.findIndex((l, k) => k >= free && l.t === 'project');
+  const choice = await playVaultCinematic({ kick: boss ? 'MINI BOSS DEFEATED · WORLD 1' : `VAULT 0${i + 1} CRACKED`, title: boss ? 'WORLD 1 CLEARED' : 'UNLOCKED', stars, bonus, prevXp, lvBefore: lvlOf(prevXp), mistakes: G.mistakes, first: i === 0,
+    actions: boss ? { next: S.pro ? `START ${LANGS[S.lang].titles[project].replace(/^Project: /, '').toUpperCase()}` : 'UNLOCK PRO', pro: true, alt: 'BACK TO THE MAP' } : null });
+  if (boss) award('boss');
   if (G.mistakes === 0) award('clean');
   if (G.hints === 0) award('hintfree');
   if (S.done[S.lang] >= free) award('legend');
   save();
+  if (boss && choice === 'next') return S.pro ? startProject(project) : openPro();
+  setSel(i); await go('s-map'); renderMap();
+  if (!wasDone && i + 1 < free && rewindForTravel(i)) { await wait(500); await travel(i); }
 }
 
 // Keyword fallback for free-text questions (prototype Mentor.answer).
@@ -321,10 +381,11 @@ export function mount() {
   $('#m-form').onsubmit = e => {
     e.preventDefault(); const i = $('#m-in'), v = i.value.trim(); if (!v) return;
     i.value = ''; Mentor.user(v); S.questions++; award('curious'); save();
+    if (A && !A.over && A.approach && !A.approach.accepted) { const r = answerApproach(A, v, chal().approach.rules); if (r) return planReply(r); } // answers count toward the plan
     Mentor.ask('ask', { lang: S.lang, challenge: aiChal(chal()), question: v }, localAnswer(v), { label: 'MENTOR' });
   };
   $('#btn-hint').onclick = () => {
-    if (!A || A.over || G.lock || inRecovery(A)) return; // not while the card changes or the vault is locked
+    if (!A || A.over || G.lock || inRecovery(A) || inPlanning(A)) return; // not while the card changes, the vault is locked, or while planning
     const c = chal(); if (G.hintIdx >= c.hints.length) return;
     const n = ++G.hintIdx; G.hints++; updHint(); persist(); // hints are always free
     Mentor.ask('hint', { lang: S.lang, challenge: aiChal(c), hintLevel: n }, c.hints[n - 1], { kind: 'hint', label: `HINT ${n}/3` });

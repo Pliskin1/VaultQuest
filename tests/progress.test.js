@@ -13,8 +13,8 @@ const sorted = a => [...a].sort();
 const reload = s => up(JSON.parse(JSON.stringify(s))); // what a page reload does with a save
 
 // ── content configuration ──
-test('both languages: 4 FREE vaults and the World 1 curricula are live', () => {
-  assert.equal(freeOf('py'), 4); assert.equal(freeOf('js'), 4);
+test('both languages: 5 FREE nodes (4 vaults + the Mini Boss) and the World 1 curricula are live', () => {
+  assert.equal(freeOf('py'), 5); assert.equal(freeOf('js'), 5);
   assert.deepEqual({ py: LANGS.py.curriculum, js: LANGS.js.curriculum }, LIVE_W1);
 });
 

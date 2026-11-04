@@ -300,15 +300,57 @@ const JS_TASKS = [
     explain: 'An empty function has no `return`, so the call gives back `undefined`.' }
 ];
 
+// ── Mini Boss (vault 4 in World 1): counting completed tasks ──
+const PY_BOSS_QS = [
+  { id: 'py-count-loop', tags: ['count-done', 'counts-all-tasks', 'counts-unfinished'], vault: 4, type: 'mcq', concept: 'Counting only finished tasks',
+    prompt: 'Which line counts only the finished tasks?', code: 'tasks = [{"title": "Read", "done": True}, {"title": "Code", "done": False}]',
+    options: ['count = len(tasks)', 'count = sum(1 for t in tasks if t["done"])', 'count = sum(1 for t in tasks if not t["done"])', 'count = tasks["done"]'], answer: 1,
+    hint: 'Count one for a task only when the task is finished — not for every task, and not for the unfinished ones.',
+    explain: 'It adds 1 for each task whose `"done"` is True. Starting from nothing, an empty list gives 0.' },
+  { id: 'py-mutate', tags: ['mutates-input'], vault: 4, type: 'mcq', concept: 'Counting without changing the list',
+    prompt: 'Which line counts the finished tasks and leaves the list exactly as it was?', code: 'tasks = [{"title": "Read", "done": True}]',
+    options: ['tasks.clear()', 'n = len([t for t in tasks if t["done"]])', 'tasks.sort(key=len)', 'tasks.pop()'], answer: 1,
+    hint: 'Counting only needs to look at the tasks. Which line doesn’t remove, reorder or change any of them?',
+    explain: 'Building a new list of the finished ones and taking its length leaves `tasks` untouched.' },
+  { id: 'py-hardcode', tags: ['hardcoded-answer'], vault: 4, type: 'mcq', concept: 'Answers must come from the data',
+    prompt: 'count_completed always returns 2. When is that wrong?', code: 'def count_completed(tasks):\n    return 2',
+    options: ['Never — 2 is the right answer', 'Whenever the list doesn’t have exactly 2 finished tasks', 'Only for an empty list', 'Only when the titles change'], answer: 1,
+    hint: 'The function never looks at `tasks`. What happens with a different list?',
+    explain: 'A fixed number is only right by accident. The count has to be worked out from the tasks it is given.' },
+  { id: 'py-number', tags: ['returns-array', 'count-done'], vault: 4, type: 'mcq', concept: 'Returning a count',
+    prompt: 'This returns the finished tasks themselves. What should it return instead?', code: 'def count_completed(tasks):\n    return [t for t in tasks if t["done"]]',
+    options: ['The list of finished tasks', 'How many tasks are finished — a number', 'True or False', 'Nothing'], answer: 1,
+    hint: 'The function’s name says what it gives back. Is that a list, or a number?',
+    explain: '“Count” means a number. `len(...)` of that list would give it.' }
+];
+const JS_BOSS_QS = [
+  { id: 'js-count-loop', tags: ['count-done', 'counts-all-tasks'], vault: 4, type: 'mcq', concept: 'Counting only finished tasks',
+    prompt: 'Which loop body counts only the finished tasks?', code: 'let count = 0;\nfor (const t of tasks) {\n  ______\n}',
+    options: ['count++;', 'if (t.done) count++;', 'if (!t.done) count++;', 'count = t.done;'], answer: 1,
+    hint: 'Count one for a task only when the task is finished — not for every task, and not for the unfinished ones.',
+    explain: '`if (t.done) count++;` adds one for each finished task. Starting from 0, an empty array gives 0.' },
+  { id: 'js-mutate', tags: ['mutates-input'], vault: 4, type: 'mcq', concept: 'Counting without changing the array',
+    prompt: 'Which line counts the finished tasks and leaves the array exactly as it was?', code: 'const tasks = [{ title: "Read", done: true }];',
+    options: ['tasks.length = 0;', 'const n = tasks.filter(t => t.done).length;', 'tasks.sort();', 'tasks.pop();'], answer: 1,
+    hint: 'Counting only needs to look at the tasks. Which line doesn’t remove, reorder or change any of them?',
+    explain: '`filter` builds a new array and leaves `tasks` untouched; its `length` is the count.' },
+  { id: 'js-hardcode', tags: ['hardcoded-answer'], vault: 4, type: 'mcq', concept: 'Answers must come from the data',
+    prompt: 'countCompleted always returns 2. When is that wrong?', code: 'function countCompleted(tasks) {\n  return 2;\n}',
+    options: ['Never — 2 is the right answer', 'Whenever the array doesn’t have exactly 2 finished tasks', 'Only for an empty array', 'Only when the titles change'], answer: 1,
+    hint: 'The function never looks at `tasks`. What happens with a different array?',
+    explain: 'A fixed number is only right by accident. The count has to be worked out from the tasks it is given.' }
+];
+
 // Reuses a question in another bank, with that bank's vault and any extra tags it should answer for.
 const reuse = (pool, id, { vault, tags = [] } = {}) => { const q = pool.find(x => x.id === id); return { ...q, vault, tags: [...new Set([...q.tags, ...tags])] }; };
 // The To-Do questions ported from the Demo were written for exactly this curriculum (docs/PLAN.md §D, §G.2).
 const TODO_VAULT = { 'quote-strings': [0, ['object-syntax']], 'object-commas': [0, ['object-syntax']], 'boolean-literal': [0, ['boolean-literal']], 'dot-access': [0, ['dot-access']], brackets: [0], 'case-sensitive': [0],
-  'array-push': [1, ['array-push']], 'loop-bounds': [1, ['loop-titles']], 'loop-stop': [1], 'return-value': [2, ['return-value']],
+  'array-push': [1, ['array-push']], 'loop-bounds': [1, ['loop-titles']], 'loop-stop': [1], 'return-value': [2, ['return-value']], 'filter-length': [4],
   'if-branch': [3, ['if-branch']], 'compare-not-assign': [3, ['compare']], 'not-operator': [3], 'exact-strings': [3, ['status-label']] };
 
 const PY2 = [
   ...PY_TASKS,
+  ...PY_BOSS_QS,
   reuse(PY, 'py-append', { vault: 1, tags: ['not-a-method', 'push-length'] }),
   reuse(PY, 'py-indent', { vault: 1 }),
   reuse(PY, 'py-loop-stop', { vault: 1, tags: ['loop-timeout'] }),
@@ -317,18 +359,19 @@ const PY2 = [
   reuse(PY, 'py-case', { vault: 0 }),
   reuse(PY, 'py-syntax', { vault: 0 }),
   reuse(PY, 'py-colon', { vault: 3 }),
-  reuse(PY, 'py-range', { vault: 4 }),
-  reuse(PY, 'py-index', { vault: 4 }),
+  reuse(PY, 'py-range', { vault: 5 }), // Pro vault (Loops & Lists)
+  reuse(PY, 'py-index', { vault: 5 }),
   reuse(PY, 'py-convert', {})
 ];
 const JS2 = [
   ...JS_TASKS,
+  ...JS_BOSS_QS,
   ...TODO_QUESTIONS.map(q => (q.id in TODO_VAULT ? { ...q, vault: TODO_VAULT[q.id][0], tags: [...q.tags, ...(TODO_VAULT[q.id][1] ?? [])] } : q)),
   reuse(JS, 'js-undefined', { vault: 2, tags: ['undefined-value'] }),
   reuse(JS, 'js-const-change', {}),
-  reuse(JS, 'js-length', { vault: 4 }),
-  reuse(JS, 'js-map', { vault: 4 }),
-  reuse(JS, 'js-bounds', { vault: 4 })
+  reuse(JS, 'js-length', { vault: 5 }), // Pro vault (Arrays & Loops)
+  reuse(JS, 'js-map', { vault: 5 }),
+  reuse(JS, 'js-bounds', { vault: 5 })
 ];
 
 // bank id = curriculum id. `general`: optional fill order when a bank has no vault structure.

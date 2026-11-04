@@ -81,8 +81,15 @@ const CASES = {
 
 for (const lang of ['js', 'py']) {
   const L = LANGS[lang];
-  test(`${lang}: World 1 is four FREE vaults of exactly three complete challenges`, () => {
-    assert.equal(L.free, 4);
+  test(`${lang}: World 1 is four FREE vaults of exactly three complete challenges, then the Mini Boss`, () => {
+    assert.equal(L.free, 5);
+    const boss = L.levels[4];
+    assert.equal(boss.boss, true); assert.equal(boss.ch.length, 1); assert.equal(boss.bonusXp, 150);
+    assert.equal(L.titles[4], 'Mini Boss: Count Completed Tasks');
+    const bc = boss.ch[0];
+    assert.equal(bc.t, 'code'); assert.equal(bc.xp, 100); assert.equal(bc.hints.length, 3);
+    assert.ok(bc.approach.prompt && bc.approach.sample && bc.approach.rules.length >= 5);
+    assert.equal(bc.checks.length, 6); // 2 of 5 · none · all · empty · other titles (no hard-coding) · list unchanged
     for (let v = 0; v < 4; v++) {
       const vault = L.levels[v];
       assert.ok(vault.concept && L.titles[v], `vault ${v}`);
@@ -120,6 +127,58 @@ for (const lang of ['js', 'py']) {
     const loop = L.levels[1].ch[2];
     const j = judge(loop, lang === 'js' ? { timedOut: true } : runPy('while True:\n    pass', loop.observe), { code: '' });
     assert.equal(j.passed, false); assert.deepEqual(j.tags, ['loop-timeout']);
+  });
+}
+
+
+// ── The Mini Boss: count completed tasks — real execution in both languages ──
+const BOSS = {
+  js: { pass: ['function countCompleted(tasks) {\n  return tasks.filter(t => t.done).length;\n}',
+      'function countCompleted(tasks) {\n  let n = 0;\n  for (const task of tasks) {\n    if (task.done === true) n++;\n  }\n  return n;\n}',
+      'const countCompleted = tasks => tasks.reduce((n, t) => n + (t.done ? 1 : 0), 0);',
+      'function countCompleted(tasks) {\n  let count = 0;\n  for (let i = 0; i < tasks.length; i++) if (tasks[i].done) count += 1;\n  return count;\n}',
+      'function countCompleted(tasks) { let c = 0; tasks.forEach(t => { if (t.done) c++; }); return c; }'],
+    fail: [['function countCompleted(tasks) {\n  return tasks.filter(t => !t.done).length;\n}', 'counts-unfinished'],
+      ['function countCompleted(tasks) {\n  let n = 0;\n  for (const t of tasks) { if (t.done = true) n++; }\n  return n;\n}', 'assignment-in-condition'],
+      ['function countCompleted(tasks) {\n  console.log(tasks.filter(t => t.done).length);\n}', 'log-vs-return'],
+      ['function countCompleted(tasks) {\n  return tasks.length;\n}', 'counts-all-tasks'],
+      ['function countCompleted(tasks) {\n  return 2;\n}', 'hardcoded-answer'],
+      ['function countCompleted(tasks) {\n  return tasks.filter(t => t.done);\n}', 'returns-array'],
+      ['function countCompleted(tasks) {\n  let n = 0;\n  while (tasks.length) { if (tasks.pop().done) n++; }\n  return n;\n}', 'mutates-input'],
+      ['function countCompleted(tasks) {\n\n}\n', 'not-started'],
+      ['function countCompleted(tasks) {\n  let n = 0;\n  for (const t of tasks) if (t.done) n++;\n}', 'missing-return'],
+      ['function countcompleted(tasks) { return 0; }', 'missing-function']] },
+  py: { pass: ['def count_completed(tasks):\n    return sum(1 for t in tasks if t["done"])',
+      'def count_completed(tasks):\n    return len([t for t in tasks if t["done"]])',
+      'def count_completed(tasks):\n    count = 0\n    for task in tasks:\n        if task["done"] == True:\n            count += 1\n    return count',
+      'def count_completed(tasks):\n    return sum(t["done"] for t in tasks)',
+      'def count_completed(tasks):\n    return len(list(filter(lambda t: t["done"], tasks)))'],
+    fail: [['def count_completed(tasks):\n    return sum(1 for t in tasks if not t["done"])', 'counts-unfinished'],
+      ['def count_completed(tasks):\n    n = 0\n    for t in tasks:\n        if t["done"] = True:\n            n += 1\n    return n', 'assignment-in-condition'],
+      ['def count_completed(tasks):\n    print(sum(1 for t in tasks if t["done"]))', 'log-vs-return'],
+      ['def count_completed(tasks):\n    return len(tasks)', 'counts-all-tasks'],
+      ['def count_completed(tasks):\n    return 2', 'hardcoded-answer'],
+      ['def count_completed(tasks):\n    return [t for t in tasks if t["done"]]', 'returns-array'],
+      ['def count_completed(tasks):\n    n = 0\n    while tasks:\n        if tasks.pop()["done"]:\n            n += 1\n    return n', 'mutates-input'],
+      ['def count_completed(tasks):\n    pass\n', 'not-started'],
+      ['def count_completed(tasks):\n    n = 0\n    for t in tasks:\n        if t["done"]:\n            n += 1', 'missing-return'],
+      ['def countcompleted(tasks):\n    return 0', 'name-error']] }
+};
+for (const lang of ['js', 'py']) {
+  const c = LANGS[lang].levels[4].ch[0];
+  test(`${lang} Mini Boss: loops, filter, reduce/sum and comprehensions pass; every known mistake fails with its diagnosis`, { skip: lang === 'py' && !PY && 'python3 not available' }, () => {
+    for (const a of BOSS[lang].pass) { const r = attempt(lang, c, a); assert.equal(r.passed, true, `should pass: ${a}\n${JSON.stringify(r.j.results)} ${r.j.error}`); }
+    for (const [a, tag] of BOSS[lang].fail) {
+      const r = attempt(lang, c, a);
+      assert.equal(r.passed, false, `should fail: ${a}`);
+      assert.equal(r.tags[0], tag, `${a} → main mistake should be "${tag}", got ${JSON.stringify(r.tags)}`);
+    }
+  });
+  test(`${lang} Mini Boss: a hard-coded answer that happens to fit the first list is still caught`, { skip: lang === 'py' && !PY && 'python3 not available' }, () => {
+    const code = lang === 'js' ? 'function countCompleted(tasks) {\n  if (tasks.length === 5) return 2;\n  return tasks.length ? 3 : 0;\n}' : 'def count_completed(tasks):\n    if len(tasks) == 5:\n        return 2\n    return 3 if tasks else 0';
+    const r = attempt(lang, c, code);
+    assert.equal(r.passed, false); // fails "no finished tasks gives 0"
+    assert.ok(r.j.results.some(x => x.id === 'none' && !x.pass));
   });
 }
 

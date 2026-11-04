@@ -5,18 +5,20 @@
 // (learn/progress.js). A level with `rewards` keeps that reward identity across curricula (unchanged content
 // must not pay twice).
 // FREE vaults (content/py-world1.js, content/js-world1.js): types mcq | fill | code, judged by behaviour
-// (learn/judge.js) — see the format note at the top of js-world1.js.
+// (learn/judge.js) — see the format note at the top of js-world1.js. The fifth FREE node is the Mini Boss
+// (content/boss.js): explain first, then code. World 1 is cleared when every FREE node is done.
 // Pro vault (older format): mcq.opts [label, isCorrect, whyWrong?] · blank.ans accepted answers, blank.wrong
 //  {answer: explanation} · fix.checks [{bad|need: RegExp, out, why}] judged on real output + those checks.
 //  `tag` = the concept tested, `answerTags` = finer tags for known wrong blanks (learn/diagnose.js).
 // project.tests: (code, sandboxRoot, execApp) => null | failureMessage. Text uses `code` and **bold** only.
 import { PY_WORLD1 } from './py-world1.js';
 import { JS_WORLD1 } from './js-world1.js';
+import { JS_BOSS, PY_BOSS } from './boss.js';
 
 export const freeOf = lang => LANGS[lang].free;
 export const LANGS={
- py:{name:'Python',world:'The Foundations',free:4,curriculum:'py-2',titles:['Create Your First Task','Organize Your Tasks','Make Things Work','Check Task Status','Loops & Lists','Project: Guess the Number','Project: Expense Tracker','Boss: Weather CLI'],
-  levels:[...PY_WORLD1,
+ py:{name:'Python',world:'The Foundations',free:5,curriculum:'py-2',titles:['Create Your First Task','Organize Your Tasks','Make Things Work','Check Task Status','Mini Boss: Count Completed Tasks','Loops & Lists','Project: Guess the Number','Boss: Weather CLI'],
+  levels:[...PY_WORLD1, PY_BOSS,
   {rewards:'py-1:4',concept:'Loops repeat work: `for item in items:` walks a list, `range(n)` counts. Lists grow with `.append()` and start at index 0.',
    ch:[
     {t:'mcq',tag:'range-start',q:'How many lines does this print?',code:'for i in range(3):\n    print(i)',opts:[['3 lines: 0, 1, 2',1],['3 lines: 1, 2, 3',0,'`range(3)` starts at **0**, so it gives 0, 1, 2.'],['4 lines',0,'`range(3)` stops **before** 3.'],['1 line',0,'The print is inside the loop, so it runs every time.']],hints:['Where does range start?','range(3) gives three numbers.','0, 1, 2.']},
@@ -32,8 +34,8 @@ export const LANGS={
    review(code,k){if(k===3&&/return\s+len\(\s*guesses\s*\)/.test(code))return'`len(guesses)` counts **every** guess in the list — but the game should stop at the first correct one. Loop through the guesses and return how many you used when `check` says `"Correct!"`.';
      return['Compare `guess` with `secret`: when the guess is smaller, return `"Too low"`.','Add the opposite case: a guess bigger than the secret returns `"Too high"`.','When neither is true the guess is right — return `"Correct!"` (exact text, with the `!`).','Loop over `guesses` with a counter; when `check(g, secret)` is `"Correct!"`, return the counter.'][k]}}
   ]},
- js:{name:'JavaScript',world:'Web Basics',free:4,curriculum:'js-2',titles:['Create Your First Task','Organize Your Tasks','Make Things Work','Check Task Status','Arrays & Loops','Project: To-Do App','Project: Pomodoro Timer','Boss: Weather App'],
-  levels:[...JS_WORLD1,
+ js:{name:'JavaScript',world:'Web Basics',free:5,curriculum:'js-2',titles:['Create Your First Task','Organize Your Tasks','Make Things Work','Check Task Status','Mini Boss: Count Completed Tasks','Arrays & Loops','Project: To-Do App','Boss: Weather App'],
+  levels:[...JS_WORLD1, JS_BOSS,
   {rewards:'js-1:4',concept:'Arrays hold lists: `arr.length`, `arr.map()`, `arr.filter()`. Loop with `for (let i = 0; i < arr.length; i++)` — indexes run from 0 to length − 1.',
    ch:[
     {t:'mcq',tag:'array-length',q:'What gets logged?',code:'const nums = [4, 8, 15];\nconsole.log(nums.length);',opts:[['3',1],['2',0,'`length` counts items, not the last index.'],['15',0,'That\'s the last value, not the count.'],['undefined',0,'Arrays always have a length.']],hints:['Count the items.','Three of them.','3.']},

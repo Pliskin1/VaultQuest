@@ -12,9 +12,10 @@ import { getQuestion, RECOVERY_SIZE } from '../learn/recovery.js';
 import { MAX_HEARTS } from '../learn/hearts.js';
 
 const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c0 7-11 14-11 14z"';
-// ctx: { attempt, lang, langName, title, challenge (index), save(), leave(), back() }
+// ctx: { attempt, lang, langName, title, challenge (index), place? ('the Mini Boss'), save(), leave(), back() }
 let R = null;
 const live = () => R && !R.attempt.over;
+const where = () => R.place ?? `Challenge ${R.challenge + 1}`;
 
 export function openRecovery(ctx) {
   R = { ...ctx, busy: false };
@@ -41,7 +42,7 @@ function renderWhy() {
   const list = l => l.map(q => `<li>${esc(q.concept)}</li>`).join('');
   $('#rc-why').innerHTML = `<div class="kicker" style="color:var(--coral)">OUT OF HEARTS</div>
     <h3>Nothing is lost.</h3>
-    <p>You used your three hearts on <b>Challenge ${R.challenge + 1}</b>. Your answers, code and XP are saved — answer three short questions to win your hearts back, then you continue right where you stopped.</p>
+    <p>You used your three hearts on <b>${esc(where())}</b>. Your answers, code and XP are saved — answer three short questions to win your hearts back, then you continue right where you stopped.</p>
     ${own.length ? `<div class="kicker">FROM YOUR MISTAKES</div><ul>${list(own)}</ul>` : ''}
     ${more.length ? `<div class="kicker">${own.length ? 'PLUS A REFRESHER' : 'REFRESHERS ON THIS VAULT'}</div><ul>${list(more)}</ul>` : ''}
     <div class="rc-rule"><b>No penalty.</b> A wrong answer here costs nothing. Each correct answer gives back one heart.</div>`;
@@ -55,7 +56,7 @@ async function render(animate = true) {
     card.innerHTML = `<div class="kicker" style="color:var(--cyan)">HEARTS RESTORED · ${RECOVERY_SIZE}/${RECOVERY_SIZE}</div>
       <h3>You’re ready to go back.</h3><div class="rc-big">${heartsHtml(MAX_HEARTS)}</div>
       <p class="rc-sub">${r.wrong ? `${r.wrong} wrong answer${r.wrong > 1 ? 's' : ''} along the way · no penalty.` : 'Every answer right the first time.'} Your code and answers are exactly as you left them.</p>
-      <div class="row"><button class="btn" id="rc-return">BACK TO CHALLENGE ${R.challenge + 1}</button></div>`;
+      <div class="row"><button class="btn" id="rc-return">BACK TO ${esc(where().toUpperCase())}</button></div>`;
     $('#rc-return').onclick = backToChallenge;
   } else {
     const q = currentQuestion(R.attempt);

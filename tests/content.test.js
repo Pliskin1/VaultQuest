@@ -14,7 +14,7 @@ const FOREIGN = {
 };
 const challengeTags = c => [c.tag, ...(c.opts ?? []).map(o => o[3]), ...Object.values(c.answerTags ?? {}), ...(c.mistakes ?? []).map(m => m.tag)].filter(Boolean);
 // Everything a student sees for a FREE challenge (wrong options excluded).
-const shown = c => [c.q, c.code, ...(c.hints ?? []), ...(c.mistakes ?? []).map(m => m.why), ...(c.opts ?? []).filter(o => o[1]).map(o => o[0]), ...(c.opts ?? []).filter(o => !o[1]).map(o => o[2])].join('\n');
+const shown = c => [c.q, c.code, ...(c.approach ? [c.approach.prompt, c.approach.sample, ...c.approach.rules.map(r => r.question)] : []), ...(c.hints ?? []), ...(c.mistakes ?? []).map(m => m.why), ...(c.opts ?? []).filter(o => o[1]).map(o => o[0]), ...(c.opts ?? []).filter(o => !o[1]).map(o => o[2])].join('\n');
 
 for (const lang of ['py', 'js']) {
   const L = LANGS[lang], cur = L.curriculum, bank = RECOVERY_BANKS[cur];

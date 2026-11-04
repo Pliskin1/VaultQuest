@@ -3,7 +3,7 @@
 //
 // Reward keys are `<curriculum>:<level index>:<part>`, part = challenge index | 'bonus' | 'm<k>' | 'ship'.
 // `awarded[key]` holds the XP paid, or null for rewards earned before saves were versioned.
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 // Every save without `v` was made against the first curriculum of each language, whatever is live now.
 export const V1_CURRICULA = { py: 'py-1', js: 'js-1' };
@@ -23,6 +23,25 @@ function backfill(s) {
       const parts = shape === 'project' ? [...Array.from({ length: V1_MILESTONES }, (_, k) => 'm' + k), 'ship'] : [...Array.from({ length: shape }, (_, k) => k), 'bonus'];
       for (const p of parts) { const k = rewardKey(cur, i, p); if (!(k in s.awarded)) s.awarded[k] = null; }
     });
+  }
+}
+
+// v4: World 1 gained its Mini Boss as level 4, so on the World 1 curricula the Pro vault and the project moved
+// from levels 4 and 5 to 5 and 6. Their stars and unfinished attempts move with them (reward keys don't need
+// to: those levels keep their own reward identity, content/languages.js `rewards`).
+const BOSS_ADDED_AT = { 'py-2': 4, 'js-2': 4 };
+function shiftForBoss(s) {
+  for (const lang of Object.keys(V1_CURRICULA)) {
+    const cur = s.curriculum[lang], from = BOSS_ADDED_AT[cur];
+    if (from === undefined) continue;
+    const stars = { ...s.stars };
+    for (let i = 7; i >= from; i--) if (lang + i in stars) { stars[lang + (i + 1)] = stars[lang + i]; delete stars[lang + i]; }
+    s.stars = stars;
+    s.attempts = Object.fromEntries(Object.entries(s.attempts).map(([k, a]) => {
+      const i = Number(k.slice(cur.length + 1));
+      if (!k.startsWith(cur + ':') || !(i >= from)) return [k, a];
+      return [`${cur}:${i + 1}`, isObj(a) ? { ...a, vault: i + 1 } : a];
+    }));
   }
 }
 
@@ -54,6 +73,8 @@ export function migrate(raw, live, now = new Date().toISOString()) {
   }
   if (s.v < 3) s.v = 3; // v3: `attempts` — unfinished vault attempts, keyed `<curriculum>:<vault>` (learn/attempt.js)
   for (const f of ['curriculum', 'awarded', 'legacy', 'attempts']) if (!isObj(s[f])) s[f] = {};
+  if (!isObj(s.stars)) s.stars = {};
+  if (s.v < 4) { shiftForBoss(s); s.v = 4; }
   for (const lang of Object.keys(live)) {
     if (!s.curriculum[lang]) s.curriculum[lang] = live[lang];
     else if (s.curriculum[lang] !== live[lang]) archive(s, lang, live[lang], now);

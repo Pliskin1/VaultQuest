@@ -9,5 +9,6 @@ export const ACH={
  hintfree:{n:'Lone Wolf',d:'Finish a vault without hints',r:'EPIC',col:'#C9B8FF',ic:'M28 16l3.5 7.5 8 1-6 5.5 1.6 8L28 34l-7.1 4 1.6-8-6-5.5 8-1z'},
  pro:{n:'Pro Member',d:'Unlock VaultQuest Pro',r:'LEGENDARY',col:'#C9B8FF',ic:'M16 36l3-14 9 8 9-8 3 14z'},
  builder:{n:'Pro Builder',d:'Ship your first project',r:'EPIC',col:'#F2B544',ic:'M17 37h22M21 37V25l7-7 7 7v12M25 31h6'},
- legend:{n:'Vault Legend',d:'Crack every vault in World 1',r:'LEGENDARY',col:'#F2B544',ic:'M21 17h14v6a7 7 0 0 1-14 0zM28 30v6M23 39h10'}
+ legend:{n:'Vault Legend',d:'Crack every vault in World 1',r:'LEGENDARY',col:'#F2B544',ic:'M21 17h14v6a7 7 0 0 1-14 0zM28 30v6M23 39h10'},
+ boss:{n:'Boss Slayer',d:'Defeat a Mini Boss',r:'EPIC',col:'#FF9B7A',ic:'M20 36l16-16M33 20h3v3M20 30l6 6M18 38l3-3'}
 };

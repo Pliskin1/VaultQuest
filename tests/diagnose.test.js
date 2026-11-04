@@ -26,7 +26,7 @@ test('py: real Python errors become evidence', () => {
   assert.deepEqual(d('py', 2, 2, 'code', 'x', "KeyError: 'Title'").tags, ['key-error', 'add-task']);
   assert.deepEqual(d('py', 1, 2, 'code', 'x', 'IndexError: list index out of range').tags, ['index-range', 'loop-titles']);
   assert.deepEqual(d('py', 1, 2, 'code', 'x', 'Timeout: the code kept running and was stopped (an endless loop?)').tags, ['loop-timeout', 'loop-titles']);
-  assert.deepEqual(d('py', 4, 1, 'blank', 'push').tags, ['list-append']); // Pro vault: known wrong blank
+  assert.deepEqual(d('py', 5, 1, 'blank', 'push').tags, ['list-append']); // Pro vault: known wrong blank
 });
 
 test('js: wrong options and real Worker errors become evidence', () => {
@@ -34,8 +34,8 @@ test('js: wrong options and real Worker errors become evidence', () => {
   assert.deepEqual(d('js', 0, 2, 'code', 'x', 'SyntaxError: Unexpected identifier \'a\'').tags, ['syntax-error', 'object-syntax']);
   assert.deepEqual(d('js', 2, 2, 'code', 'x', 'addTask is not defined as a function').tags, ['missing-function', 'add-task']);
   assert.deepEqual(d('js', 1, 2, 'code', 'x', "TypeError: Cannot read properties of undefined (reading 'title')").tags, ['undefined-value', 'loop-titles']);
-  assert.deepEqual(d('js', 4, 1, 'blank', 'forEach').tags, ['map-vs-foreach', 'array-map']); // Pro vault
-  assert.deepEqual(d('js', 4, 2, 'code', 'x', 'Error: your code ran longer than 1 second (infinite loop?)').tags, ['loop-timeout', 'off-by-one']);
+  assert.deepEqual(d('js', 5, 1, 'blank', 'forEach').tags, ['map-vs-foreach', 'array-map']); // Pro vault
+  assert.deepEqual(d('js', 5, 2, 'code', 'x', 'Error: your code ran longer than 1 second (infinite loop?)').tags, ['loop-timeout', 'off-by-one']);
 });
 
 test('no evidence, no invented diagnosis', () => {

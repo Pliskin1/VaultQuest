@@ -97,7 +97,7 @@ async function proDemo() {
     while (ta.value.length > p) { ta.value = ta.value.slice(0, Math.max(p, ta.value.length - cpf * 2)); pjRefresh(); edw.scrollTop = edw.scrollHeight; await nextFrame(); }
     for (let i = p; i < fin.length; i += cpf) { ta.value = fin.slice(0, i + cpf); pjRefresh(); edw.scrollTop = edw.scrollHeight; await nextFrame(); }
   };
-  Object.assign(S, { lang: 'js', xp: 1240, done: { py: 4, js: 4 }, stars: { js0: 3, js1: 3, js2: 2, js3: 3, py0: 3, py1: 3, py2: 3, py3: 2 }, ach: ['first', 'curious', 'bounce', 'clean', 'debug', 'combo'], fresh: [], streak: 6, questions: 9, pro: false, projects: [] });
+  Object.assign(S, { lang: 'js', xp: 1240, done: { py: 5, js: 5 }, stars: { js0: 3, js1: 3, js2: 2, js3: 3, js4: 3, py0: 3, py1: 3, py2: 3, py3: 2, py4: 3 }, ach: ['first', 'curious', 'bounce', 'clean', 'debug', 'combo'], fresh: [], streak: 6, questions: 9, pro: false, projects: [] });
   await document.fonts.ready;
   const card = (sub, k) => `<div class="emblem" style="width:150px;height:150px">${emblem()}</div><div style="display:flex;align-items:center;gap:18px"><div class="logo" style="font-size:78px">VAULT<span>QUEST</span></div><span style="padding:6px 14px;border-radius:10px;background:var(--violet);color:#07090F;font-family:var(--disp);font-weight:700;font-size:34px;letter-spacing:.12em">PRO</span></div><div style="font-size:22px;color:var(--mut)">${sub}</div><div class="kicker" style="margin-top:16px;color:var(--violet)">${k}</div>`;
   const e = $('#endcard');
@@ -108,7 +108,7 @@ async function proDemo() {
   FX.bgOn = false; setSel(3); renderMap(); setScreen('s-map');
   await anim(e, [{ opacity: 1 }, { opacity: 0 }], { duration: 700 }); e.style.display = 'none'; e.getAnimations().forEach(a => a.cancel());
   cap('FREE PLAN', 'Every language starts with free basic vaults'); await wait(2600);
-  await click($('#m-nodes .node[data-i="5"] .nbtn'), 1100); await wait(500);
+  await click($('#m-nodes .node[data-i="6"] .nbtn'), 1100); await wait(500);
   cap('GO FURTHER', 'Advanced vaults and real projects live in Pro'); await wait(2400);
   await click($('#m-pro'), 900); await wait(1300);
   cap('VAULTQUEST PRO', 'Advanced levels, guided projects, AI code review'); await wait(3400);
@@ -120,7 +120,7 @@ async function proDemo() {
   cap(''); await click($('#p-next'), 900);
   await waitFor(() => $('#m-count').textContent.startsWith('Pro unlocked')); await wait(1600);
   cap('PRO PATH', 'New vaults + projects in every language'); await wait(1600);
-  await click($('#m-nodes .node[data-i="5"] .nbtn'), 900); await wait(800);
+  await click($('#m-nodes .node[data-i="6"] .nbtn'), 900); await wait(800);
   cap('GUIDED PROJECTS', 'Build real mini apps, milestone by milestone'); await wait(1200);
   await click($('#m-play'), 800); await wait(2800);
   await move(ta, 800, -60, 40); await wait(200); ta.focus(); await typeCode(M1, 2); await wait(300);

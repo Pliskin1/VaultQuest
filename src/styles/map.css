@@ -27,3 +27,8 @@
 .m-panel{max-width:1180px;width:calc(100% - 64px);margin:0 auto 24px;display:flex;align-items:center;gap:24px;padding:22px 26px;background:var(--s1);border:1px solid var(--ln);border-radius:18px}
 .m-panel h3{margin:4px 0 0;font-family:var(--disp);font-size:26px}
 .m-panel p{margin:6px 0 0;color:var(--mut);font-size:15px}
+/* Mini Boss: same node, coral accent */
+.node.boss .nlab b{color:var(--coral)}
+.node.boss.lock .nlab b{color:#9A7A72}
+.node.boss .nbtn{box-shadow:0 0 0 3px rgba(255,155,122,.25)}
+.node.boss.cur .nbtn{border-color:var(--coral);color:var(--coral);box-shadow:0 0 50px -6px rgba(255,155,122,.65)}
