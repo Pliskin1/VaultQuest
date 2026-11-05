@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mentor, review, hasKey } from './ai.js';
 import { mentorFallback, reviewFallback } from './fallback.js';
+import { mountReviews } from './reviews.js';
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -39,6 +40,7 @@ function route(path, run, fallback) {
 
 route('/api/mentor', async b => ({ text: await mentor(b) }), mentorFallback);
 route('/api/review', review, reviewFallback);
+mountReviews(app);
 app.get('/api/health', (_, res) => res.json({ ok: true, ai: hasKey() }));
 
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');

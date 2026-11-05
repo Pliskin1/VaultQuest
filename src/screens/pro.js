@@ -8,10 +8,12 @@ import { updHud } from '../ui/hud.js';
 import { LANGS, FREE } from '../content/languages.js';
 import { playProCinematic, proChain } from '../cine/pro.js';
 import { openMap, renderMap, setSel } from './map.js';
+import { renderTestimonials } from '../ui/review.js';
 
 export function openPro() {
   if (S.pro) return openMap();
   updHud();
+  renderTestimonials();
   go('s-pro').then(() => {
     $$('.feats li').forEach((li, k) => anim(li, [{ opacity: 0, transform: 'translateX(-24px)' }, { opacity: 1, transform: 'none' }], { duration: 550, delay: k * 100, easing: EASE.out, fill: 'backwards' }));
     anim($('.pro-right'), [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: 650, delay: 250, easing: EASE.out, fill: 'backwards' });
