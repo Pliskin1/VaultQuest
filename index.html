@@ -81,7 +81,46 @@
 
 <section id="s-profile" class="screen">
   <header class="hud" data-hud></header>
-  <div class="p-body" id="p-body"></div>
+  <div class="p-scroll scroll"><div class="p-body" id="p-body"></div></div>
+</section>
+
+<section id="s-board" class="screen">
+  <header class="hud" data-hud></header>
+  <div class="b-body scroll"><div class="b-wrap">
+    <div class="b-head">
+      <div>
+        <button class="b-back" id="b-back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to profile</button>
+        <div class="kicker" style="color:var(--gold)">LEADERBOARD</div>
+        <h2 id="b-title" tabindex="-1">Top vault crackers</h2>
+        <p class="b-sub" id="b-sub"></p>
+      </div>
+      <div class="b-tabs" id="b-tabs" role="group" aria-label="Ranking period"><button data-scope="all" class="on" aria-pressed="true">ALL TIME</button><button data-scope="week" aria-pressed="false">THIS WEEK</button></div>
+    </div>
+    <div class="b-grid">
+      <div class="b-main">
+        <div class="panel"><div class="kicker">TOP 3</div><div class="podium" id="b-podium"></div></div>
+        <div class="panel b-rank">
+          <div class="b-lh"><div class="kicker">RANKINGS</div><span class="b-count" id="b-count"></span></div>
+          <div class="b-scroll scroll"><div class="b-tbl">
+            <div class="b-row b-cols" aria-hidden="true"><span>RANK</span><span>PLAYER</span><span>LEVEL</span><span>VAULTS</span><span>STREAK</span><span id="b-xph" style="text-align:right">TOTAL XP</span></div>
+            <ol class="b-list" id="b-list" aria-label="Rankings"></ol>
+          </div></div>
+          <p class="b-off" id="b-off" hidden>Offline · showing players on this device</p>
+        </div>
+      </div>
+      <aside class="b-side">
+        <div class="panel b-me" id="b-me" aria-live="polite"></div>
+        <div class="panel b-climb"><div class="kicker">HOW TO CLIMB</div><ul>
+          <li>Correct answer<b>+50 XP</b></li>
+          <li>Each combo step<b>+10 XP</b></li>
+          <li>Crack a vault<b>+150 XP and up</b></li>
+          <li>Each vault star<b>+30 XP</b></li>
+          <li>Ship a Pro project<b>+300 XP</b></li>
+          <li>Extra hints<b class="neg">−10 XP</b></li>
+        </ul><p>Extra hints are free for Pro members.</p></div>
+      </aside>
+    </div>
+  </div></div>
 </section>
 
 <section id="s-pro" class="screen">

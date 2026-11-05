@@ -1,7 +1,12 @@
-#s-profile .p-body{flex:1;overflow:auto;max-width:1180px;width:100%;margin:0 auto;padding:26px 32px;display:grid;grid-template-columns:1fr 1.25fr;gap:22px;align-content:start}
+/* position:relative keeps absolutely positioned .sr labels inside the scroller (else the screen itself scrolls) */
+#s-profile .p-scroll{position:relative;flex:1;min-height:0;overflow:auto}
+#s-profile .p-body{max-width:1180px;width:100%;margin:0 auto;padding:26px 32px;display:grid;grid-template-columns:1fr 1.25fr;gap:22px;align-content:start}
 .panel{background:var(--s1);border:1px solid var(--ln);border-radius:20px;padding:24px}
 .p-top{grid-column:1/-1;display:flex;align-items:center;gap:24px}
-.p-av{position:relative;width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:var(--s3);border:3px solid var(--gold);font-family:var(--disp);font-weight:700;font-size:30px;color:var(--gold)}
+.p-id{flex:1 1 220px;min-width:0}
+.p-name{font-family:var(--disp);font-weight:700;font-size:34px;overflow-wrap:anywhere}
+@media (max-width:1100px){.p-top{flex-wrap:wrap}.p-stats{margin-left:0;width:100%}}
+.p-av{flex:none;position:relative;width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:var(--s3);border:3px solid var(--gold);font-family:var(--disp);font-weight:700;font-size:30px;color:var(--gold)}
 .p-av span{position:absolute;bottom:-9px;padding:2px 9px;border-radius:6px;background:var(--gold);color:#07090F;font-size:12px;white-space:nowrap}
 .p-stats{margin-left:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .p-stat{padding:14px 18px;border-radius:14px;background:var(--s2);border:1px solid #1E2433;min-width:130px}

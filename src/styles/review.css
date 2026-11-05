@@ -67,3 +67,7 @@
   .tst{padding:4px 16px 20px}
   .tcard{width:260px}
 }
+
+/* profile: leaderboard + rate buttons side by side */
+.p-btns{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:12px}
+.p-btns .p-lb,.p-btns .rate-btn{margin-top:0;min-height:44px}

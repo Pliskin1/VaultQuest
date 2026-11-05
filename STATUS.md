@@ -21,6 +21,7 @@ Otvori adresu koju Vite ispiše u terminalu (obično `http://localhost:5173`). A
 | `npm run dev` | Frontend + API, za rad |
 | `npm run build` | Pravi produkcijski build u `dist/` |
 | `npm start` | Build, pa frontend i API na jednom portu (za deploy) |
+| `npm test` | Automatski testovi za leaderboard (rangiranje, sedmični XP, server, offline rezim) |
 
 **Demo snimci za pitch:** dodaj `?demo=1` na adresu za besplatni dio, odnosno `?demo=pro` za Pro dio. Pušta se sam, sa kursorom i natpisima, oko 1,5 minut. Demo ne dira sačuvani napredak.
 
@@ -45,6 +46,7 @@ Otvori adresu koju Vite ispiše u terminalu (obično `http://localhost:5173`). A
   - Korisnik vidi pravu poruku o grešci. Varanje tipa `print("Hello, Ana")` se ne prihvata.
 - **Animacija otključavanja vaulta** sa trezorom, bravama, eksplozijom, zvjezdicama i brojanjem XP-a.
 - **Profil:** nivo, statistike, streak po danima, portfolio, napredak po jezicima, 10 achievementa, Log out i Reset progress.
+- **Leaderboard:** dugme LEADERBOARD (sa tvojim mjestom) u profilu vodi na rang listu: podijum za top 3, mjesta 4–10, tvoja pozicija i koliko XP fali do igrača iznad, tabovi "All time" i "This week". Rezultati se čuvaju na serveru (`server/data/leaderboard.json`), a lista je dopunjena izmišljenim igračima da nikad nije prazna. Bez servera se prikazuju profili sa ovog uređaja.
 - **Telefon:** sve se slaže u kolonu, mapa se skroluje horizontalno. Glavni fokus je desktop 1280×720.
 
 ### Pro
@@ -99,9 +101,10 @@ Novi sadržaj se dodaje **samo u `src/content/languages.js`**. Format je opisan 
 - **Python se učitava sa CDN-a** (~10 MB pri prvom Python zadatku). Bez interneta Python zadaci padaju na jednostavnije provjere.
 - **Petlja bez vitičastih zagrada u JS projektu** može zamrznuti tab. Petlje sa `{ }` imaju zaštitu.
 - **Heatmap aktivnosti** u profilu je dekorativan, ne prati stvarnu aktivnost.
+- **Leaderboard vjeruje klijentu.** Bez pravih naloga svako može prijaviti bilo koje ime i XP. Na Renderu/Railwayu se `leaderboard.json` briše pri svakom redeployu, osim ako se doda disk. Izmišljeni igrači su u `src/content/leaderboard.js` (staviti `[]` za samo prave igrače).
 
 ### Ideje za roadmap (za pitch, ne za izradu)
-Pravi nalozi, leaderboard, multiplayer dueli, više jezika (Java, C++), certifikati koji se mogu verifikovati, Stripe plaćanje.
+Pravi nalozi, multiplayer dueli, više jezika (Java, C++), certifikati koji se mogu verifikovati, Stripe plaćanje.
 
 ---
 

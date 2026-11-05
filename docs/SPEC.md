@@ -31,5 +31,9 @@ Target: desktop 1280×720+. Must not break on mobile, desktop is the priority.
 ## Profiles (added)
 Local profiles instead of accounts: title → VAULT ACCESS screen (handle 2–16 chars) → per-handle save `vaultquest:<handle>`, recent profiles as chips, Log out + Reset in profile. Daily streak.
 
+## Leaderboard (added)
+Profile → `LEADERBOARD #rank` button (outline) → leaderboard screen: podium (top 3), rankings 4–10 (rank + ▲/▼ since last week, level, vaults, streak, XP; your row highlighted, pinned under `···` if outside the top 10), YOUR POSITION (rank, XP, XP to overtake the player above, PLAY NEXT VAULT), HOW TO CLIMB. Tabs ALL TIME / THIS WEEK (XP since Monday UTC, `S.wk` baseline).
+Scores are self-reported to `POST /api/leaderboard` (no accounts) on profile open, leaderboard open, vault cracked, project shipped. Made-up rivals (`content/leaderboard.js`) fill the board; offline/demo → local profiles + rivals.
+
 ## Out of scope
-Server accounts/passwords, real payments, leaderboard, multiplayer, admin, i18n.
+Server accounts/passwords, real payments, multiplayer, admin, i18n.

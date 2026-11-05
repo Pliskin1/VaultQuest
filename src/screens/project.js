@@ -17,6 +17,7 @@ import { runPython, preloadPython } from '../run/py-runner.js';
 import { playShipCinematic } from '../cine/ship.js';
 import { openMap } from './map.js';
 import { openProfile } from './profile.js';
+import { fetchBoard } from '../ui/board.js';
 
 export const PJ = { i: 0, lv: null, passed: [false, false, false, false], gained: 0 };
 const isPy = () => PJ.lv?.kind === 'py';
@@ -139,7 +140,7 @@ async function submit() {
   S.projects = (S.projects || []).filter(p => (p.title || p) !== lv.title);
   S.projects.push({ title: lv.title, lang: S.lang, score });
   if (!S.stars[S.lang + PJ.i]) { S.xp += 300; PJ.gained += 300; }
-  S.stars[S.lang + PJ.i] = 3; save();
+  S.stars[S.lang + PJ.i] = 3; save(); fetchBoard();
   s.disabled = false;
   await playShipCinematic({ score, xp: PJ.gained, title: lv.title, lang: LANGS[S.lang].name });
   updHud(); Mentor.use('lv'); openProfile();

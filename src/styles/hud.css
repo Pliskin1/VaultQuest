@@ -11,4 +11,6 @@
 .avatar-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--s3);border:2px solid var(--gold);color:var(--gold);font-family:var(--disp);font-weight:700}
 .avatar-btn.is-pro{border-color:var(--violet);color:var(--violet)}
 .avatar-btn.is-pro::after{content:"PRO";position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);padding:1px 5px;border-radius:4px;background:var(--violet);color:#07090F;font-size:9px;letter-spacing:.08em}
+.chip,.lvlb,.xpt,.streak{white-space:nowrap}
+@media (max-width:1000px){.hud .chip{display:none}}
 .gopro{border:1px solid var(--violet);background:rgba(201,184,255,.1);color:var(--violet);font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.14em;padding:0 14px;min-height:36px;border-radius:9px}
