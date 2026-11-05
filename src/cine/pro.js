@@ -6,8 +6,8 @@ import { FX } from '../core/fx.js';
 import { S, save } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
 import { award } from '../ui/toast.js';
-import { freeOf } from '../content/languages.js';
-import { NODES, nstate, nodeInner, getSel, moveAlong, renderPanel } from '../screens/map.js';
+import { LANGS, freeOf } from '../content/languages.js';
+import { NODES, nstate, nodeInner, getSel, moveAlong, renderPanel, countText } from '../screens/map.js';
 
 export async function playProCinematic() {
   const c = $('#procine'), kh = $('#kh'), key = $('#key'), res = $('#p-res');
@@ -68,10 +68,10 @@ export async function proChain() {
     await anim(seg, [{ strokeDashoffset: len }, { strokeDashoffset: 0 }], { duration: 380, easing: EASE.inout });
     const n = $(`#m-nodes .node[data-i="${i}"]`), st = nstate(i), b = n.querySelector('.nbtn'), c = ctr(b);
     FX.shards(c.x, c.y, 16, '#6B5FA0'); FX.spark(c.x, c.y, 44, i % 2 ? '#C9B8FF' : '#F2B544'); FX.ring(c.x, c.y, 150, '#C9B8FF', 3);
-    n.className = `node ${st} pro ${i === getSel() ? 'sel' : ''}`; b.innerHTML = nodeInner(i, st);
+    n.className = `node ${st} pro ${LANGS[S.lang].levels[i]?.t === 'final' ? 'boss' : ''} ${i === getSel() ? 'sel' : ''}`; b.innerHTML = nodeInner(i, st);
     anim(b, [{ transform: 'scale(.5)' }, { transform: 'scale(1.25)' }, { transform: 'scale(1)' }], { duration: 600, easing: EASE.back, fill: 'none' }); await wait(110);
   }
-  $('#m-count').textContent = 'Pro unlocked · advanced vaults & projects';
+  $('#m-count').textContent = countText();
   if (S.done[S.lang] >= freeOf(S.lang)) await moveAlong($(`#m-svg .pseg[data-i="${freeOf(S.lang) - 1}"]`), 1200);
   renderPanel();
 }

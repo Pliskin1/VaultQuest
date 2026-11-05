@@ -10,6 +10,7 @@ import { LANGS, freeOf } from '../content/languages.js';
 import { startLevel } from './level.js';
 import { startProject } from './project.js';
 import { openPro } from './pro.js';
+import { canEnter, isDone, lockReason, nextStep, roles } from '../learn/unlock.js';
 
 export const NODES = [[70, 330], [215, 180], [365, 320], [515, 160], [665, 310], [810, 150], [960, 300], [1120, 140]];
 export const ICON = {
@@ -27,27 +28,37 @@ export const setSel = i => { sel = i; };
 const pct = (x, y) => ({ left: x / 12 + '%', top: y / 4.6 + '%' });
 export const segD = i => { const [a, b] = [NODES[i], NODES[i + 1]], dx = (b[0] - a[0]) * .5; return `M${a[0]} ${a[1]} C ${a[0] + dx} ${a[1]}, ${b[0] - dx} ${b[1]}, ${b[0]} ${b[1]}`; };
 
+// Node states come from the shared order of World 1 (learn/unlock.js): PRO Vault → Project → Final Boss.
 export function nstate(i) {
   const L = LANGS[S.lang], done = S.done[S.lang];
   if (i < F()) return i < done ? 'done' : i === done ? 'cur' : 'lock';
+  if (!L.levels[i]) return 'soon';
   if (!S.pro) return 'plock';
-  if (S.stars[S.lang + i]) return 'done';
-  if (done < F()) return 'lock';
-  return L.levels[i] ? 'cur' : 'soon';
+  if (isDone(S, S.lang, L, i)) return 'done';
+  return canEnter(S, S.lang, L, i) ? 'cur' : 'lock';
 }
 export const nodeInner = (i, st) => st === 'done' ? ICON.check : st === 'cur' ? `<span class="nnum">${i + 1}</span>` : (st === 'plock' || st === 'soon') ? ICON.crown : ICON.lock;
-const nodeKick = i => { const t = LANGS[S.lang].titles[i]; return t.startsWith('Mini Boss') ? 'MINI BOSS' : t.startsWith('Boss') ? 'BOSS' : t.startsWith('Project') ? 'PROJECT' : i >= F() ? 'PRO VAULT' : 'VAULT 0' + (i + 1); };
+const nodeKick = i => { const t = LANGS[S.lang].titles[i]; return t.startsWith('Mini Boss') ? 'MINI BOSS' : t.startsWith('Boss') ? 'FINAL BOSS' : t.startsWith('Project') ? 'PROJECT' : i >= F() ? 'PRO VAULT' : 'VAULT 0' + (i + 1); };
 
 export function openMap() { go('s-map'); renderMap(); }
+// Opens the map on node i (e.g. a locked step someone tried to enter: its panel says what is missing).
+export function openMapAt(i) { sel = i; openMap(); }
+
+// The line under the map title: FREE progress, or the next PRO step (shared with the PRO unlock animation).
+export function countText() {
+  const L = LANGS[S.lang], done = S.done[S.lang], R = roles(L), next = nextStep(S, S.lang, L), mastered = R.final >= 0 && isDone(S, S.lang, L, R.final);
+  const vaults = L.levels.slice(0, F()).filter(l => !l.boss).length;
+  return S.pro ? (done < F() ? 'Pro unlocked · clear World 1 to open the PRO path' : mastered ? 'Pro unlocked · World 1 mastered' : `Pro unlocked · next: ${L.titles[next].replace(/^(Boss|Project): /, '')}`)
+    : done >= F() ? 'World 1 cleared · PRO unlocks the next vaults & projects'
+    : done >= vaults ? `${vaults} of ${vaults} vaults cracked · the Mini Boss awaits` : `${done} of ${vaults} free vaults cracked · then the Mini Boss`;
+}
 
 export function renderMap() {
   const L = LANGS[S.lang], done = S.done[S.lang]; updHud();
   $('#m-kicker').textContent = L.name + ' · World 1 · Free + Pro';
   $('#s-map h2').textContent = L.world;
-  // FREE = the regular vaults plus the Mini Boss — counted separately, never as "5 vaults".
-  const vaults = L.levels.slice(0, F()).filter(l => !l.boss).length;
-  $('#m-count').textContent = S.pro ? 'Pro unlocked · advanced vaults & projects' : done >= F() ? 'World 1 cleared · PRO unlocks the next vaults & projects'
-    : done >= vaults ? `${vaults} of ${vaults} vaults cracked · the Mini Boss awaits` : `${done} of ${vaults} free vaults cracked · then the Mini Boss`;
+  const next = nextStep(S, S.lang, L);
+  $('#m-count').textContent = countText(); // FREE = the regular vaults plus the Mini Boss — counted separately, never as "5 vaults"
   let svg = '';
   for (let i = 0; i < NODES.length - 1; i++) svg += `<path d="${segD(i)}" fill="none" stroke="${i >= F() - 1 ? '#3A3160' : '#2A3245'}" stroke-width="3" stroke-dasharray="6 10" vector-effect="non-scaling-stroke"/>`;
   for (let i = 0; i < NODES.length - 1; i++) svg += `<path class="gseg" data-i="${i}" d="${segD(i)}" fill="none" stroke="#F2B544" stroke-width="4" stroke-linecap="round" vector-effect="non-scaling-stroke" style="opacity:${i < Math.min(done, F() - 1) ? 1 : 0}"/>`;
@@ -56,12 +67,12 @@ export function renderMap() {
   $('#m-nodes').innerHTML = NODES.map(([x, y], i) => {
     const st = nstate(i), st3 = S.stars[S.lang + i] || 0, t = L.titles[i].replace(/^(Mini Boss|Boss|Project): /, ''), p = pct(x, y);
     const stars = st === 'done' ? `<div class="stars">${[1, 2, 3].map(k => `<svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">${STAR} fill="${k <= st3 ? (i >= F() ? '#C9B8FF' : '#F2B544') : '#2A3245'}"/></svg>`).join('')}</div>` : '';
-    return `<div class="node ${st} ${i >= F() ? 'pro' : ''} ${L.levels[i]?.boss ? 'boss' : ''} ${i === sel ? 'sel' : ''}" data-i="${i}" style="left:${p.left};top:${p.top}"><button class="nbtn" aria-label="${nodeKick(i)}: ${t}">${nodeInner(i, st)}</button><div class="nlab"><b>${nodeKick(i)}</b><span>${t}</span>${stars}</div></div>`;
+    return `<div class="node ${st} ${i >= F() ? 'pro' : ''} ${L.levels[i]?.boss || L.levels[i]?.t === 'final' ? 'boss' : ''} ${i === sel ? 'sel' : ''}" data-i="${i}" style="left:${p.left};top:${p.top}"><button class="nbtn" aria-label="${nodeKick(i)}: ${t}">${nodeInner(i, st)}</button><div class="nlab"><b>${nodeKick(i)}</b><span>${t}</span>${stars}</div></div>`;
   }).join('') + (S.pro ? '' : '<div class="gate" id="m-gate">' + ICON.crown.replace('width="28" height="28"', 'width="16" height="16"') + 'PRO</div>');
   // The PRO gate sits on the path just past the last FREE vault's label.
   if (!S.pro) { const s3 = $(`#m-svg .gseg[data-i="${F() - 1}"]`), p = s3.getPointAtLength(s3.getTotalLength() * .62), g = $('#m-gate'); Object.assign(g.style, pct(p.x, p.y)); }
   $$('#m-nodes .node').forEach(n => n.querySelector('.nbtn').onclick = () => { sel = +n.dataset.i; $$('#m-nodes .node').forEach(m => m.classList.toggle('sel', m === n)); renderPanel(); });
-  placeAvatar(S.pro ? Math.min(done, NODES.length - 1) : Math.min(done, F() - 1));
+  placeAvatar(S.pro && done >= F() ? next : Math.min(done, F() - 1));
   renderPanel();
 }
 
@@ -71,18 +82,18 @@ export function placeAvatar(i) {
 }
 
 export function renderPanel() {
-  const L = LANGS[S.lang], i = sel, st = nstate(i), lv = L.levels[i], isP = lv && lv.t === 'project', pro = i >= F();
+  const L = LANGS[S.lang], i = sel, st = nstate(i), lv = L.levels[i], isP = lv && lv.t === 'project', fin = lv && lv.t === 'final', pro = i >= F();
   const saved = S.attempts?.[`${S.curriculum[S.lang]}:${i}`]; // an unfinished attempt (learn/attempt.js attemptKey)
   const kick = { done: 'CRACKED', cur: pro ? 'PRO · READY' : 'READY', lock: 'LOCKED', plock: 'PRO', soon: 'PRO · COMING SOON' }[st];
-  const desc = lv ? (isP ? md(lv.brief) : md(lv.concept).replace(/<[^>]+>/g, '').split('. ')[0] + '.') : 'In development — ships to Pro members soon.';
-  const pills = isP ? '<span class="pill">4 milestones</span><span class="pill" style="color:var(--violet)">AI code review</span>' : lv?.boss ? '<span class="pill" style="color:var(--coral)">Explain first · then code</span>' : `<span class="pill">${lv ? lv.ch.length + ' challenges' : '—'}</span>`;
-  const xpPill = isP ? 500 : lv?.bonusXp != null ? lv.bonusXp + lv.ch.reduce((n, c) => n + (c.xp ?? 50), 0) : 150 + i * 50;
+  const desc = lv ? (isP || fin ? md(lv.brief) : md(lv.concept).replace(/<[^>]+>/g, '').split('. ')[0] + '.') : 'In development — ships to Pro members soon.';
+  const pills = fin ? `<span class="pill" style="color:var(--coral)">Explain first · then code</span><span class="pill">4 milestones · ${lv.checks.length} checks</span>` : isP ? '<span class="pill">4 milestones</span><span class="pill" style="color:var(--violet)">AI code review</span>' : lv?.boss ? '<span class="pill" style="color:var(--coral)">Explain first · then code</span>' : `<span class="pill">${lv ? lv.ch.length + ' challenges' : '—'}</span>`;
+  const xpPill = isP ? 500 : fin ? 500 : lv?.bonusXp != null ? lv.bonusXp + lv.ch.reduce((n, c) => n + (c.xp ?? 50), 0) : 150 + i * 50;
   const btn = st === 'plock' ? '<button class="btn pro" id="m-pro">UNLOCK WITH PRO ' + ICON.crown.replace('#C9B8FF', '#07090F').replace('width="28" height="28"', 'width="18" height="18"') + '</button>'
-    : st === 'lock' ? '<span class="pill" style="border:1px dashed #3A4256;background:transparent">Finish the free vaults first</span>'
+    : st === 'lock' ? `<span class="pill m-why" style="border:1px dashed #3A4256;background:transparent">${lockReason(S, S.lang, L, i) ?? 'Finish the free vaults first'}</span>`
     : st === 'soon' ? '<span class="pill" style="color:var(--violet)">Coming soon</span>'
-    : `<button class="btn ${pro ? 'pro' : ''}" id="m-play">${isP ? 'START PROJECT' : saved?.session?.locked ? 'SYNTAX RECOVERY' : saved ? 'CONTINUE VAULT' : st === 'done' ? 'REPLAY' : lv?.boss ? 'FACE THE MINI BOSS' : 'ENTER VAULT'} ${ARROW}</button>`;
+    : `<button class="btn ${pro ? 'pro' : ''}" id="m-play">${fin ? (st === 'done' ? 'REPLAY FINAL BOSS' : saved ? 'CONTINUE FINAL BOSS' : 'START FINAL BOSS') : isP ? (st === 'done' ? 'OPEN PROJECT' : 'START PROJECT') : saved?.session?.locked ? 'SYNTAX RECOVERY' : saved ? 'CONTINUE VAULT' : st === 'done' ? 'REPLAY' : lv?.boss ? 'FACE THE MINI BOSS' : 'ENTER VAULT'} ${ARROW}</button>`;
   $('#m-panel').innerHTML = `<div class="mp-main"><div class="kicker" style="color:${pro ? 'var(--violet)' : st === 'lock' ? 'var(--mut2)' : 'var(--gold)'}">${nodeKick(i)} · ${kick}</div><h3>${L.titles[i]}</h3><p>${desc}</p></div>${pills}<span class="pill" style="color:var(--gold)">+${xpPill} XP</span>${btn}`;
-  const p = $('#m-play'); if (p) p.onclick = () => isP ? startProject(i) : startLevel(i);
+  const p = $('#m-play'); if (p) p.onclick = () => isP || fin ? startProject(i) : startLevel(i);
   const q = $('#m-pro'); if (q) q.onclick = () => openPro();
 }
 

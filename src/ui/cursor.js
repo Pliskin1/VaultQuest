@@ -125,9 +125,13 @@ async function proDemo() {
   await click($('#pro-cta'), 800); await wait(1300);
   cap(''); await click($('#co-pay'), 900);
   await waitFor(() => visible($('#p-next')));
-  cap('PRO UNLOCKED', 'Every advanced vault opens instantly'); await wait(1800);
+  cap('PRO UNLOCKED', 'The PRO path opens — one step at a time'); await wait(1800);
   cap(''); await click($('#p-next'), 900);
   await waitFor(() => $('#m-count').textContent.startsWith('Pro unlocked')); await wait(1600);
+  // The PRO path starts with PRO Vault 06; the recording shows it as the next step, then marks it cracked
+  // in a labelled time-lapse (DEMO state only — nothing is saved) so the project can open.
+  cap('PRO VAULT 06', 'The PRO path starts here — Arrays & Loops'); await move($('#m-nodes .node[data-i="5"] .nbtn'), 900); await wait(1400);
+  cap('TIME-LAPSE', 'Vault 06 cracked — the project unlocks'); S.stars.js5 = 3; renderMap(); await wait(1600);
   cap('PRO PATH', 'New vaults + projects in every language'); await wait(1600);
   await click($('#m-nodes .node[data-i="6"] .nbtn'), 900); await wait(800);
   cap('GUIDED PROJECTS', 'Build real mini apps, milestone by milestone'); await wait(1200);

@@ -406,6 +406,62 @@ const PY_PROJECT_QS = [
     explain: 'Positions count from 0, tries from 1 — the second guess is position `1` but try number `2`.' }
 ];
 
+// ── Final Boss (vault 7): the Weather App (JS) and the Weather CLI (Python) ──
+const JS_FINAL_QS = [
+  { id: 'js-wx-find', tags: ['case-sensitive', 'city-not-shown'], vault: 7, type: 'mcq', concept: 'Matching what was typed',
+    prompt: 'The user typed "  paris ". Which comparison still finds the record for "Paris"?', code: 'const typed = $("#city").value;',
+    options: ['c.city === typed', 'c.city.toLowerCase() === typed.trim().toLowerCase()', 'c.city.includes(typed)', 'typed === "Paris"'], answer: 1,
+    hint: 'Two things differ between "  paris " and "Paris". Which option deals with both?',
+    explain: 'Trimming removes the spaces and lowercasing both sides ignores capitals, so any spelling of the name matches.' },
+  { id: 'js-wx-convert', tags: ['conversion', 'unit-not-switched', 'forecast-unit'], vault: 7, type: 'mcq', concept: 'Celsius to Fahrenheit',
+    prompt: 'Which expression turns a °C number into °F?', code: 'const c = 20; // °C',
+    options: ['c + 32', 'c * 9 / 5 + 32', '(c - 32) * 5 / 9', 'c * 2'], answer: 1,
+    hint: 'Check it with 0°C, which is 32°F, and 100°C, which is 212°F.',
+    explain: 'Multiply by 9/5, then add 32: 0°C → 32°F and 100°C → 212°F.' },
+  { id: 'js-wx-unknown', tags: ['unknown-city', 'empty-input', 'stale-ui'], vault: 7, type: 'mcq', concept: 'When nothing matches',
+    prompt: 'find() found no city. What should the app do?', code: 'const rec = cities.find(c => c.city.toLowerCase() === typed);',
+    options: ['Show the previous city again', 'Write a message in #msg and clear the old weather from the screen', 'Show the first city in the list', 'Do nothing'], answer: 1,
+    hint: 'What does `rec` hold when nothing matched — and what would the user see if the old result stayed?',
+    explain: '`find` gives `undefined` when nothing matches. Tell the user, and clear the old result so nothing misleading stays on screen.' },
+  { id: 'js-wx-forecast', tags: ['forecast-count', 'forecast-content'], vault: 7, type: 'mcq', concept: 'Drawing a list from data',
+    prompt: 'After a second search the forecast shows 6 days. What is missing?', code: 'for (const d of rec.forecast) {\n  const li = document.createElement("li");\n  li.textContent = d.day;\n  $("#forecast").appendChild(li);\n}',
+    options: ['A second loop', 'Emptying #forecast before adding the new days', 'A return statement', 'More days in the data'], answer: 1,
+    hint: 'Where do the three days from the first search go when the second search runs?',
+    explain: '`appendChild` adds to what is there. Clear the list first (for example `innerHTML = ""`), then add the new days.' },
+  { id: 'js-wx-state', tags: ['unit-reset', 'temp-wrong', 'condition-wrong'], vault: 7, type: 'mcq', concept: 'Remembering a choice',
+    prompt: 'The user picked °F, then searched another city, which shows in °C again. Why?', code: 'function show(rec) {\n  $("#temp").textContent = rec.temp + "°C";\n}',
+    options: ['The data is wrong', 'Drawing ignores the chosen unit — it should read a variable that remembers it', 'The button is broken', 'Fahrenheit needs a second dataset'], answer: 1,
+    hint: 'Where is the chosen unit stored, and does `show` look at it?',
+    explain: 'Keep the unit in a variable and let the drawing code read it every time, so every search uses the chosen unit.' }
+];
+const PY_FINAL_QS = [
+  { id: 'py-wx-find', tags: ['case-sensitive', 'missing-return'], vault: 7, type: 'mcq', concept: 'Matching a name',
+    prompt: 'name is "  paris ". Which condition finds the record for "Paris"?', code: 'for c in data:\n    if ______:\n        return c',
+    options: ['c["city"] == name', 'c["city"].lower() == name.strip().lower()', 'name in c', 'c == "Paris"'], answer: 1,
+    hint: 'Two things differ between "  paris " and "Paris". Which option deals with both?',
+    explain: '`.strip()` removes the spaces and `.lower()` on both sides ignores capitals.' },
+  { id: 'py-wx-none', tags: ['unknown-city'], vault: 7, type: 'mcq', concept: 'When nothing matches',
+    prompt: 'What does this give back for a city that is not in the data?', code: 'def find_city(data, name):\n    for c in data:\n        if c["city"] == name:\n            return c',
+    options: ['An error', 'None', 'An empty dictionary', 'The last city'], answer: 1,
+    hint: 'What does a function give back when it reaches its end without a return?',
+    explain: 'With no match the loop ends and the function gives back `None` — so `report` can check `if c is None:`.' },
+  { id: 'py-wx-convert', tags: ['conversion', 'unit-not-switched', 'forecast-unit'], vault: 7, type: 'mcq', concept: 'Celsius to Fahrenheit',
+    prompt: 'Which line converts celsius to Fahrenheit?', code: 'def to_fahrenheit(celsius):\n    return ______',
+    options: ['celsius + 32', 'celsius * 9 / 5 + 32', '(celsius - 32) * 5 / 9', 'celsius * 2'], answer: 1,
+    hint: 'Check it with 0°C, which is 32°F, and 100°C, which is 212°F.',
+    explain: 'Multiply by 9/5, then add 32: 0 → 32 and 100 → 212.' },
+  { id: 'py-wx-report', tags: ['report-wrong', 'empty-input'], vault: 7, type: 'mcq', concept: 'Building the report line',
+    prompt: 'Which return gives "Paris: 18°C, Cloudy" for this record?', code: 'c = {"city": "Paris", "temp": 18, "condition": "Cloudy"}',
+    options: ['return c', 'return f"{c[\'city\']}: {c[\'temp\']}°C, {c[\'condition\']}"', 'print(c["city"])', 'return "Paris: 18°C, Cloudy"'], answer: 1,
+    hint: 'Which option builds the text from the record — so it works for every city?',
+    explain: 'An f-string fills in the values from the record, so the same line works for any city.' },
+  { id: 'py-wx-forecast', tags: ['forecast-count', 'forecast-content'], vault: 7, type: 'mcq', concept: 'One line per day',
+    prompt: 'Which builds one line for each forecast day?', code: 'days = c["forecast"]  # three dictionaries',
+    options: ['[d["day"] for d in days][0]', '[f"{d[\'day\']}: {d[\'temp\']}°C, {d[\'condition\']}" for d in days]', 'days[0]', 'len(days)'], answer: 1,
+    hint: 'You need a list with as many lines as there are days.',
+    explain: 'A list comprehension makes one string per day, in order.' }
+];
+
 // Reuses a question in another bank, with that bank's vault and any extra tags it should answer for.
 const reuse = (pool, id, { vault, tags = [] } = {}) => { const q = pool.find(x => x.id === id); return { ...q, vault, tags: [...new Set([...q.tags, ...tags])] }; };
 // The To-Do questions ported from the Demo were written for exactly this curriculum (docs/PLAN.md §D, §G.2).
@@ -427,7 +483,8 @@ const PY2 = [
   reuse(PY, 'py-range', { vault: 5 }), // Pro vault (Loops & Lists)
   reuse(PY, 'py-index', { vault: 5 }),
   reuse(PY, 'py-convert', {}),
-  ...PY_PROJECT_QS
+  ...PY_PROJECT_QS,
+  ...PY_FINAL_QS
 ];
 const JS2 = [
   ...JS_TASKS,
@@ -438,7 +495,8 @@ const JS2 = [
   reuse(JS, 'js-length', { vault: 5 }), // Pro vault (Arrays & Loops)
   reuse(JS, 'js-map', { vault: 5 }),
   reuse(JS, 'js-bounds', { vault: 5 }),
-  ...JS_PROJECT_QS
+  ...JS_PROJECT_QS,
+  ...JS_FINAL_QS
 ];
 
 // bank id = curriculum id. `general`: optional fill order when a bank has no vault structure.

@@ -19,6 +19,8 @@ import { TODO } from './projects/todo.js';
 import { GUESS } from './projects/guess.js';
 import { TODO_BLUEPRINT } from './blueprints/todo.js';
 import { GUESS_BLUEPRINT } from './blueprints/guess.js';
+import { WEATHER } from './projects/weather.js';
+import { WEATHER_CLI } from './projects/weathercli.js';
 
 export const freeOf = lang => LANGS[lang].free;
 export const LANGS={
@@ -30,7 +32,9 @@ export const LANGS={
     {t:'blank',tag:'list-append',answerTags:{add:'list-append',push:'list-append'},q:'Add 4 to the end of the list.',code:'nums = [1, 2, 3]\nnums.___(4)',ans:['append'],wrong:{'add':'Lists use `append`; `add` belongs to sets.','push':'`push` is JavaScript. Python lists use `append`.'},why:'Which list method adds to the end?',hints:['It means "attach at the end".','Starts with a.','`append`.']},
     {t:'fix',tag:'index-range',q:'This loop crashes on the last step. Fix it.',code:'items = ["a", "b", "c"]\nfor i in range(len(items) + 1):\n    print(items[i])',checks:[{need:/range\(\s*len\(items\)\s*\)/,out:'a\nb\nc\nIndexError: list index out of range',why:'Indexes go from 0 to `len - 1`. The `+ 1` asks for one item too many.'}],ok:'a\nb\nc',hints:['How many items are there?','What is the last valid index?','Remove `+ 1`.']}
    ]},
-  {t:'project',rewards:'py-1:5',kind:'py',...GUESS,blueprint:GUESS_BLUEPRINT}
+  {t:'project',rewards:'py-1:5',kind:'py',...GUESS,blueprint:GUESS_BLUEPRINT},
+  // Final Boss (index 7): explain first, then a workspace with real checks (content/projects/weathercli.js).
+  {t:'final',kind:'py',...WEATHER_CLI}
   ]},
  js:{name:'JavaScript',world:'Web Basics',free:5,curriculum:'js-2',titles:['Create Your First Task','Organize Your Tasks','Make Things Work','Check Task Status','Mini Boss: Count Completed Tasks','Arrays & Loops','Project: To-Do App','Boss: Weather App'],
   levels:[...JS_WORLD1, JS_BOSS,
@@ -40,6 +44,8 @@ export const LANGS={
     {t:'blank',tag:'array-map',answerTags:{forEach:'map-vs-foreach',filter:'map-vs-filter'},q:'Create a new array with every number doubled.',code:'const doubled = [1, 2, 3].___(n => n * 2);',ans:['map'],wrong:{'forEach':'`forEach` runs code per item but returns `undefined`. You want a new array: `map`.','filter':'`filter` keeps or drops items; it doesn\'t transform them.'},why:'Which method transforms every item into a new array?',hints:['It "maps" old values to new ones.','3 letters.','`map`.']},
     {t:'fix',tag:'off-by-one',q:'Off-by-one! Fix the loop.',code:'const items = ["a", "b", "c"];\nfor (let i = 0; i <= items.length; i++) {\n  console.log(items[i].toUpperCase());\n}',checks:[{need:/i\s*<\s*items\.length/,out:"A\nB\nC\nTypeError: Cannot read properties of undefined (reading 'toUpperCase')",why:'Indexes run 0 to `length - 1`. `i <= items.length` reaches index 3, which doesn\'t exist. Use `<`.'}],ok:'A\nB\nC',hints:['What is the last valid index?','length is 3, last index is 2.','Use `<` instead of `<=`.']}
    ]},
-  {t:'project',rewards:'js-1:5',kind:'js',...TODO,blueprint:TODO_BLUEPRINT}
+  {t:'project',rewards:'js-1:5',kind:'js',...TODO,blueprint:TODO_BLUEPRINT},
+  // Final Boss (index 7): explain first, then a workspace with real checks (content/projects/weather.js).
+  {t:'final',kind:'js',...WEATHER}
   ]}
 };

@@ -10,5 +10,6 @@ export const ACH={
  pro:{n:'Pro Member',d:'Unlock VaultQuest Pro',r:'LEGENDARY',col:'#C9B8FF',ic:'M16 36l3-14 9 8 9-8 3 14z'},
  builder:{n:'Pro Builder',d:'Ship your first project',r:'EPIC',col:'#F2B544',ic:'M17 37h22M21 37V25l7-7 7 7v12M25 31h6'},
  legend:{n:'Vault Legend',d:'Crack every vault in World 1',r:'LEGENDARY',col:'#F2B544',ic:'M21 17h14v6a7 7 0 0 1-14 0zM28 30v6M23 39h10'},
- boss:{n:'Boss Slayer',d:'Defeat a Mini Boss',r:'EPIC',col:'#FF9B7A',ic:'M20 36l16-16M33 20h3v3M20 30l6 6M18 38l3-3'}
+ boss:{n:'Boss Slayer',d:'Defeat a Mini Boss',r:'EPIC',col:'#FF9B7A',ic:'M20 36l16-16M33 20h3v3M20 30l6 6M18 38l3-3'},
+ master:{n:'World 1 Master',d:'Defeat the Final Boss of World 1',r:'LEGENDARY',col:'#C9B8FF',ic:'M16 34l4-14 8 7 8-7 4 14zM28 14v4M20 16l2 3M36 16l-2 3'}
 };

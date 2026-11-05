@@ -15,7 +15,8 @@ import { updHud } from '../ui/hud.js';
 import { floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
 import { LANGS } from '../content/languages.js';
-import { openMap } from './map.js';
+import { openMap, openMapAt } from './map.js';
+import { canEnter } from '../learn/unlock.js';
 import { openPro } from './pro.js';
 import { startProject, loadProject, saveProject } from './project.js';
 
@@ -34,7 +35,8 @@ function flushDraft() { clearTimeout(draftTimer); draftTimer = null; if (live(BP
 // Opens the Blueprint of project level i (attempt: already loaded by the workspace, or loaded here).
 export function openBlueprint(i, attempt = null) {
   flushDraft(); if (BP.a && BP.a !== attempt) endAttempt(BP.a); Mentor.cancel();
-  if (!S.pro) return openPro({ next: () => startProject(i) });
+  if (!S.pro) return openPro();
+  if (!canEnter(S, S.lang, LANGS[S.lang], i)) return openMapAt(i); // same order as the map (learn/unlock.js)
   const L = LANGS[S.lang], lv = L.levels[i];
   Object.assign(BP, { i, lv, spec: lv.blueprint, a: attempt || loadProject(i).a, busy: false });
   if (bp().started || bp().waived) return startProject(i); // nothing left to plan

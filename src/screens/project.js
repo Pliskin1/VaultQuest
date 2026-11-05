@@ -11,9 +11,12 @@ import { FX } from '../core/fx.js';
 import { esc, md } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
-import { S, save, rk, reward } from '../core/state.js';
+import { S, save, rk, reward, lvlOf } from '../core/state.js';
 import { verifyForShip, shipRecord, upsertProject, finalText } from '../learn/ship.js';
-import { newAttempt, attemptKey, beginSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
+import { newAttempt, attemptKey, beginSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave, explainApproach, answerApproach, startCoding, inPlanning } from '../learn/attempt.js';
+import { MAX_CHARS } from '../learn/approach.js';
+import { canEnter, lockReason } from '../learn/unlock.js';
+import { playVaultCinematic } from '../cine/vault.js';
 import { judgeRun, runTags, settleRun, canSubmit, nextHint, logChat, markShipped, reviewPayload, scriptedFeedback, MAX_CODE } from '../learn/workspace.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
@@ -25,7 +28,7 @@ import { preloadPython, pythonStatus } from '../run/py-runner.js';
 import { createPreview } from '../run/sandbox/preview.js';
 import { seedOf } from '../run/seed.js';
 import { playShipCinematic } from '../cine/ship.js';
-import { openMap } from './map.js';
+import { openMap, openMapAt } from './map.js';
 import { openProfile } from './profile.js';
 import { openRecovery } from './recovery.js';
 import { openBlueprint } from './blueprint.js';
@@ -54,10 +57,11 @@ export function pjRefresh() {
 
 // ── loading and saving ──
 // The saved attempt for project level i in the current language (hearts, workspace, Blueprint), or a new one.
+// A project carries a Blueprint; the Final Boss an explain-first plan instead.
 export function loadProject(i) {
-  const lv = LANGS[S.lang].levels[i], cur = S.curriculum[S.lang], ids = lv.blueprint.sections.map(x => x.id);
-  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: 1, workspace: lv.ms.length, blueprint: ids });
-  return { saved, a: saved || newAttempt(S.lang, i, cur, { workspace: lv.ms.length, blueprint: ids }) };
+  const lv = LANGS[S.lang].levels[i], cur = S.curriculum[S.lang], ids = lv.blueprint ? lv.blueprint.sections.map(x => x.id) : null, approach = !!lv.approach;
+  const saved = fromSave(S.attempts[attemptKey(cur, i)], { lang: S.lang, vault: i, curriculum: cur, challenges: 1, workspace: lv.ms.length, blueprint: ids, approach });
+  return { saved, a: saved || newAttempt(S.lang, i, cur, { workspace: lv.ms.length, ...(ids ? { blueprint: ids } : {}), approach }) };
 }
 export function saveProject(a) { if (a && !a.over) { S.attempts[attemptKey(a.curriculum, a.vault)] = toSave(a); save(); } }
 // Shipped before (in this language, any curriculum — also the old text-only portfolio entries).
@@ -73,7 +77,8 @@ let draftTimer = null;
 function keepDraft() { clearTimeout(draftTimer); draftTimer = setTimeout(flushDraft, 300); }
 function flushDraft() {
   clearTimeout(draftTimer); draftTimer = null;
-  if (PJ.a && !PJ.a.over && PJ.a.view.drafts[0] !== PJ.code) persist();
+  const savedPlan = PJ.a ? S.attempts[attemptKey(PJ.a.curriculum, PJ.a.vault)]?.approach?.text : undefined;
+  if (PJ.a && !PJ.a.over && (PJ.a.view.drafts[0] !== PJ.code || (PJ.a.approach && PJ.a.approach.text !== savedPlan))) persist();
 }
 // Stops everything still running for this workspace: pending check frames and the live preview.
 function stopRuns() { RUNNERS.js.cancel(); preview?.clear(); }
@@ -123,7 +128,7 @@ function renderConsole(run = null) {
 }
 const term = html => { const a = $('#pv-app'); a.className = 'pv-app term'; a.innerHTML = html; };
 function renderTerminal(src) {
-  const out = ['<span class="dim">$ python game.py</span>'];
+  const out = [`<span class="dim">$ python ${esc(PJ.lv.file)}</span>`];
   if (src.output) out.push(esc(src.output.replace(/\n$/, '')));
   if (src.error) out.push(`<span class="err">${esc(errLine(src.error))}</span>`);
   if (src.timeout) out.push('<span class="err">Stopped: the program ran too long (infinite loop?)</span>');
@@ -171,8 +176,40 @@ function setTab(t) {
 // MY BLUEPRINT: the student's own five sections, read-only, while they code.
 function renderPlan() {
   const bp = PJ.a.blueprint, spec = PJ.lv.blueprint;
+  if (!spec) { const ap = PJ.a.approach; $('#pj-bpv').innerHTML = `<section><h4>MY PLAN <span>${ap?.accepted ? 'ACCEPTED' : 'IN PROGRESS'}</span></h4><p>${esc(ap?.text || '—')}</p>${ap?.answers?.length ? `<p class="bp-ans"><b>Your answers to the mentor:</b> ${ap.answers.map(esc).join(' · ')}</p>` : ''}</section>`; return; }
   $('#pj-bpv').innerHTML = !bp.started ? '<p class="bp-note">This project was shipped before Blueprints existed, so there is no saved plan for it.</p>'
     : spec.sections.map(sec => { const x = bp.sections[sec.id]; return `<section><h4>${esc(sec.title)} <span class="${x.status === 'kept' ? 'kept' : ''}">${x.status === 'kept' ? 'KEPT AS WRITTEN' : 'CLEAR'}</span></h4><p>${esc(x.accepted ?? x.draft)}</p>${x.answers.length ? `<p class="bp-ans"><b>Your answers to the mentor:</b> ${x.answers.map(esc).join(' · ')}</p>` : ''}</section>`; }).join('');
+}
+
+// ── Final Boss: plan first (the Mini Boss's explain-first engine, learn/approach.js) ──
+// Until the plan is accepted and coding started, the editor is replaced by the plan card and nothing can run
+// (attempt.js beginSubmission refuses). Explaining is free.
+function renderPlanGate() {
+  const a = PJ.a, ap = PJ.lv.approach, planning = !!ap && inPlanning(a);
+  $('#pj-plan').style.display = planning ? '' : 'none';
+  if (planning) { $('#pj-edw').style.display = 'none'; $('#pj-bpv').style.display = 'none'; }
+  else if (PJ.tab !== 'blueprint') $('#pj-edw').style.display = '';
+  $('#pj-run').disabled = planning; $('#pj-hint').style.display = planning ? 'none' : $('#pj-hint').style.display;
+  $$('.pj-tabs [data-tab]').forEach(b => { b.disabled = planning; });
+  if (!planning) return;
+  $('#pj-plan-q').textContent = ap.prompt;
+  if ($('#pj-ap').value !== a.approach.text) $('#pj-ap').value = a.approach.text;
+  $('#pj-code').disabled = !a.approach.accepted;
+  $('#pj-explain').disabled = a.approach.accepted;
+  $('#pj-plan-st').textContent = a.approach.accepted ? 'Plan accepted — start coding when you are ready' : 'Explaining is free — no hearts';
+}
+const planReply = r => r.accepted ? PJ.lv.approach.accepted : r.rule === 'short' ? PJ.lv.approach.short : r.question;
+function explainPlan() {
+  const a = PJ.a; if (!a || a.over || !PJ.lv.approach || !inPlanning(a) || a.approach.accepted) return;
+  const r = explainApproach(a, $('#pj-ap').value, PJ.lv.approach.rules);
+  if (!r) return;
+  persist(); renderPlanGate();
+  say(planReply(r), { kind: r.accepted ? 'good' : 'hint', label: r.accepted ? 'PLAN ACCEPTED' : 'FINAL BOSS · PLAN' });
+}
+function startBossCoding() {
+  const a = PJ.a; if (!a || a.over || !startCoding(a)) return;
+  persist(); renderPlanGate(); setTab('code');
+  say(`Coding is unlocked. Four milestones, ${PJ.lv.checks.length} checks — and your plan is under **MY PLAN**.`, { label: 'MENTOR' }, false);
 }
 
 // Mentor messages are saved with the attempt (unless `log` is false: greetings, status notes).
@@ -195,29 +232,34 @@ const labelled = (p, label, kind) => p.then(r => ({ text: r.text, label: r.ai ? 
 // shipped: opened from the portfolio — a project shipped before Blueprints existed opens without one.
 export function startProject(i, { afterRecovery = false, shipped = false } = {}) {
   flushDraft(); stopRuns(); endAttempt(PJ.a); Mentor.cancel();
-  const L = LANGS[S.lang], lv = L.levels[i], n = lv.ms.length, historical = shipped && shippedBefore(lv, S.lang);
-  if (!S.pro && !historical) return openPro({ next: () => startProject(i) });
+  const L = LANGS[S.lang], lv = L.levels[i], n = lv.ms.length, boss = lv.t === 'final', historical = !boss && shipped && shippedBefore(lv, S.lang);
+  // The order of World 1 is enforced here too (learn/unlock.js) — not only on the map.
+  if (!historical && !canEnter(S, S.lang, L, i)) { Mentor.use('lv'); return S.pro ? openMapAt(i) : openPro(); }
   const { a } = loadProject(i);
-  if (!mayBuild(a.blueprint)) {
+  if (a.blueprint && !mayBuild(a.blueprint)) {
     if (!historical && !a.workspace.shipped) return openBlueprint(i, a);
     waive(a.blueprint); saveProject(a);
   }
   Mentor.use('pj');
   Object.assign(PJ, { i, lv, a, tab: 'code', code: a.view.drafts[0] ?? lv.starter, judged: null, gained: 0, logs: [] });
   const py = isPy(), w = ws();
-  $('#pj-kick').textContent = `PRO PROJECT · ${L.name.toUpperCase()}`;
+  $('#pj-kick').textContent = `${boss ? 'FINAL BOSS' : 'PRO PROJECT'} · ${L.name.toUpperCase()}`;
+  $('#pj-bptab').textContent = boss ? 'MY PLAN' : 'MY BLUEPRINT';
+  $('#pj-submit').textContent = boss ? 'DEFEAT THE FINAL BOSS' : 'SUBMIT PROJECT';
   $('#pj-file').textContent = lv.file;
   $$('.pj-xtab').forEach(t => { t.style.display = lv.files ? '' : 'none'; });
   $('#pv-url').textContent = lv.url;
   $('#pj-name').textContent = lv.title; $('#pj-brief').innerHTML = md(lv.brief);
   $('#pj-count').textContent = `${lv.checks.length} automated checks`;
-  setTab('code'); renderMs(); renderHearts(); renderConsole(); updSubmit(); updHint();
+  setTab('code'); renderMs(); renderHearts(); renderConsole(); updSubmit(); updHint(); renderPlanGate();
   if (py) { renderTerminal(w); pvErr(''); preloadPython(); } else showPreview(PJ.code);
   $('#pj-msgs').innerHTML = ''; Mentor.restore(w.chat); updHud();
   if (inRecovery(a)) return enterRecovery(); // refreshing or reopening never skips Recovery
   const now = w.cleared.indexOf(false), h = hearts(), file = `**${lv.file}**`, first = !w.runs && !w.chat.length && !w.results.length;
-  const plan = a.blueprint.started ? ' Your plan is one click away under **MY BLUEPRINT**.' : '';
-  const welcome = afterRecovery ? `**Syntax Recovery complete** · 3 hearts restored. You're back on **${lv.ms[Math.max(0, now)].n}** — your code is exactly as you left it.`
+  const plan = a.blueprint?.started ? ' Your plan is one click away under **MY BLUEPRINT**.' : boss && a.approach?.started ? ' Your plan is under **MY PLAN**.' : '';
+  const welcome = boss && inPlanning(a) ? `**Final Boss: ${lv.title}.** ${a.approach.text ? 'Your plan so far is saved — keep explaining it.' : 'Explain your plan first — I\'ll ask about anything missing. The editor unlocks once your plan is complete.'}`
+    : boss && w.shipped ? `You've already beaten this Final Boss. Replay it as much as you like — it won't pay XP twice.`
+    : afterRecovery ? `**Syntax Recovery complete** · 3 hearts restored. You're back on **${lv.ms[Math.max(0, now)].n}** — your code is exactly as you left it.`
     : w.shipped ? `This is your shipped **${lv.title}**. ${py ? 'Run it to play' : 'Try it in the preview'} — you can keep improving it (it won't pay XP twice).`
     : !first && now === -1 ? `Welcome back. Every milestone is cleared — run the checks once more on your current code, then **SUBMIT**.`
     : !first ? `Welcome back to **${lv.title}**. You're on milestone ${now + 1}: **${lv.ms[now].n}**, with ${h} heart${h === 1 ? '' : 's'}. Your code${w.chat.length ? ' and our conversation are' : ' is'} saved.${plan}`
@@ -282,7 +324,7 @@ async function run() {
   if (judged.allPass) {
     const s = $('#pj-submit'); anim(s, [{ opacity: 0, transform: 'scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 450, easing: EASE.back, fill: 'none' });
     const c = ctr(s); FX.spark(c.x, c.y, 30, '#C9B8FF', .6);
-    return say(`All ${lv.ms.length} milestones pass — ${lv.checks.length}/${lv.checks.length} checks. ${isPy() ? 'Check your game in the terminal' : 'Try your app in the preview'}, then submit it for the full code review.`, { kind: 'good', label: 'CODE REVIEW' });
+    return say(`All ${lv.ms.length} milestones pass — ${lv.checks.length}/${lv.checks.length} checks. ${isPy() ? 'Check the output in the terminal' : 'Try your app in the preview'}, then ${lv.t === 'final' ? 'press **DEFEAT THE FINAL BOSS** — every check runs once more before it counts' : 'submit it for the full code review'}.`, { kind: 'good', label: 'CODE REVIEW' });
   }
   const again = c => prev.some(r => r.id === c?.id && !r.pass);
   // When the mistake contradicts the student's own plan, the question points back at that part of it.
@@ -349,6 +391,7 @@ async function submit() {
   const review = await r;
   await wait(900);
   if (stale()) { PJ.shipping = false; return; } // left during the review: not shipped
+  if (lv.t === 'final') return winBoss(a, done);
   const rec = shipRecord({ lv, lang: a.lang, curriculum: a.curriculum, a, code, run: res, verify: v, review });
   S.projects = upsertProject(S.projects, rec); // re-shipping replaces this project's record — never a duplicate
   PJ.gained += reward(rk(PJ.i, 'ship'), 300); // once per project, ever
@@ -360,6 +403,21 @@ async function submit() {
   PJ.shipping = false; done();
   stopRuns(); $('#s-holder').innerHTML = ''; // no app frame keeps running behind the profile
   updHud(); Mentor.use('lv'); openProfile();
+}
+
+// The Final Boss beaten (after the same fresh verification run as shipping). Completion, XP and the
+// achievement are saved BEFORE the celebration plays, so a refresh during it loses nothing; beating it
+// again pays nothing (reward keys) and never lowers the stars.
+async function winBoss(a, done) {
+  const lv = PJ.lv, i = PJ.i, prevXp = S.xp - PJ.gained, h = a.session.hearts, stars = h >= 3 ? 3 : h === 2 ? 2 : 1;
+  const xp = reward(rk(i, 'win'), 300); PJ.gained += xp;
+  S.stars[S.lang + i] = Math.max(S.stars[S.lang + i] || 0, stars);
+  award('master');
+  markShipped(a); persist(); save();
+  endAttempt(a);
+  await playVaultCinematic({ kick: 'FINAL BOSS DEFEATED · WORLD 1', title: 'WORLD 1 MASTERED', stars, bonus: PJ.gained, prevXp, lvBefore: lvlOf(prevXp), mistakes: 3 - h, first: false, actions: { next: 'BACK TO THE MAP', pro: true } });
+  PJ.shipping = false; done();
+  stopRuns(); updHud(); Mentor.use('lv'); openMapAt(i);
 }
 
 // ── hints and questions (free) ──
@@ -414,9 +472,16 @@ export function mount() {
   $('#pj-run').onclick = run;
   $('#pj-submit').onclick = submit;
   $('#pj-hint').onclick = hint;
+  $('#pj-explain').onclick = explainPlan;
+  $('#pj-code').onclick = startBossCoding;
+  $('#pj-ap').oninput = () => { const a = PJ.a; if (a && !a.over && a.approach && !a.approach.accepted) { a.approach = { ...a.approach, text: $('#pj-ap').value.slice(0, MAX_CHARS) }; keepDraft(); } };
   $('#pj-form').onsubmit = e => {
     e.preventDefault(); const i = $('#pj-in'), v = i.value.trim(), a = PJ.a; if (!v || !a || a.over) return;
     i.value = ''; Mentor.user(v); logChat(a, { w: 'u', text: v }); S.questions++; award('curious'); persist();
+    if (PJ.lv.approach && inPlanning(a) && !a.approach.accepted) { // an answer to the mentor's question counts toward the plan
+      const r = answerApproach(a, v, PJ.lv.approach.rules); persist(); renderPlanGate();
+      return say(planReply(r), { kind: r.accepted ? 'good' : 'hint', label: r.accepted ? 'PLAN ACCEPTED' : 'FINAL BOSS · PLAN' });
+    }
     const k = focusMs(), lv = PJ.lv;
     const reply = Mentor.fetchReply('ask', { lang: a.lang, challenge: { type: 'project', q: `${lv.title} — milestone ${k + 1}: ${lv.ms[k].n}. ${lv.ms[k].d}`, code: PJ.code.slice(0, 4000) }, question: v, context: context() }, localAnswer(v));
     say(labelled(reply, 'MENTOR'), { label: 'MENTOR' });

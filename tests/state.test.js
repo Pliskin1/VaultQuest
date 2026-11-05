@@ -254,3 +254,22 @@ test('portfolio records (Phase 9) and older entries load unchanged side by side 
   assert.equal(reward(rk(6, 'ship', 'py'), 300), 0); // already shipped: re-shipping pays nothing
   assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
 });
+
+test('Final Boss update: an existing v4 profile (project shipped before Vault 6) loads unchanged — no migration — and the boss reward pays once', async () => {
+  const { fingerprint } = await import('../src/learn/fingerprint.js');
+  const { canEnter } = await import('../src/learn/unlock.js');
+  const { LANGS } = await import('../src/content/languages.js');
+  const code = 'const tasks = loadTasks();';
+  const rec = { title: 'To-Do App', lang: 'js', curriculum: 'js-2', shippedAt: 1700000000000, verified: true, checks: { passed: 16, total: 16 }, milestones: { cleared: 4, total: 4 }, hearts: 3, runs: 6, code, fp: fingerprint(code), blueprint: true };
+  const profile = { ...V1.proPy, name: 'Legacy', lang: 'js', xp: 4200, done: { py: 5, js: 5 }, stars: { js0: 3, js1: 3, js2: 3, js3: 3, js4: 3, js5: 3, js6: 3 }, ach: ['first', 'boss', 'builder', 'pro'], v: 4, curriculum: { py: 'py-2', js: 'js-2' },
+    awarded: { 'js-1:5:m0': 50, 'js-1:5:ship': 300, 'js-1:4:bonus': 290 }, legacy: {}, projects: [rec], attempts: { 'js-2:6': { lang: 'js', vault: 6, curriculum: 'js-2', session: { hearts: 3, locked: false, failedFingerprints: [], attempts: [], recovery: null }, run: { paid: [] }, view: { drafts: { 0: code } }, workspace: { shipped: true, cleared: [true, true, true, true] }, blueprint: { started: true } } } };
+  const st = memoryStorage(as(profile));
+  const { S, rk, reward } = await boot(st);
+  assert.deepEqual(JSON.parse(st.getItem('vaultquest:legacy')), profile); // not rewritten on load
+  assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
+  assert.equal(S.xp, 4200); assert.deepEqual(S.projects, [rec]); assert.deepEqual(S.ach, profile.ach);
+  assert.equal(canEnter(S, 'js', LANGS.js, 7), true); // both prerequisites already met: the Final Boss is open at once
+  assert.equal(rk(7, 'win', 'js'), 'js-2:7:win');
+  assert.equal(reward(rk(7, 'win', 'js'), 300), 300); assert.equal(reward(rk(7, 'win', 'js'), 300), 0);
+  assert.equal(reward(rk(6, 'ship', 'js'), 300), 0); // the shipped project never pays again
+});

@@ -67,3 +67,10 @@
 .pv-app.term{background:#05070B;color:#C9CEDB;font:13px/1.65 var(--mono);white-space:pre-wrap;overflow:auto}
 .pv-app.term .dim{color:var(--mut2)}.pv-app.term .ok{color:var(--cyan)}.pv-app.term .err{color:var(--coral)}
 .pf-shot .pv-app.term{min-height:150px}
+
+/* Final Boss: plan first (explain-first gate before the editor) */
+.pj-plan{flex:1;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:12px}
+.pj-plan-q{margin:0;font-size:16px;line-height:1.55}
+.pj-plan .bp-ed{min-height:150px}
+.pj-plan-acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pj-plan-st{font-family:var(--mono);font-size:12px;color:var(--mut2)}
