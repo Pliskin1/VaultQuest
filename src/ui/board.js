@@ -5,7 +5,10 @@ import { S, DEMO, profiles, weekXp } from '../core/state.js';
 import { buildBoard, weekKey } from '../core/rank.js';
 
 const TIMEOUT = 6000;
-const vaultsOf = p => ((p.done && p.done.py) || 0) + ((p.done && p.done.js) || 0);
+// Vaults cracked per language. A save upgraded to a rebuilt World 1 keeps its earlier progress in `legacy`
+// (learn/progress.js), so the better of the two counts — the same number before and after the upgrade.
+const doneIn = (p, lang) => Math.max((p.done && Number(p.done[lang])) || 0, ...Object.values(p.legacy && typeof p.legacy === 'object' ? p.legacy : {}).map(l => (l && l.lang === lang && Number(l.done)) || 0));
+const vaultsOf = p => doneIn(p, 'py') + doneIn(p, 'js');
 const mine = () => ({ name: S.name, xp: S.xp, wk: weekXp(), week: weekKey(), pro: !!S.pro, vaults: vaultsOf(S), streak: S.streak });
 
 const isBoard = b => !!b && typeof b.total === 'number' && [b.all, b.week].every(x => x && Array.isArray(x.top));

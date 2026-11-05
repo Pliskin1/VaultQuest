@@ -12,6 +12,7 @@ test('Back on a task screen does what its own back control does (which saves and
   assert.deepEqual(backAction('s-recovery'), { type: 'click', sel: '#rc-back' });
   assert.deepEqual(backAction('s-pro'), { type: 'click', sel: '#pro-later' });
   assert.deepEqual(backAction('s-profile'), { type: 'map' });
+  assert.deepEqual(backAction('s-board'), { type: 'click', sel: '#b-back' }); // leaderboard → back to the profile
 });
 
 test('Back leaves the app only from the top-level screens', () => {
@@ -21,6 +22,7 @@ test('Back leaves the app only from the top-level screens', () => {
 test('Back never interrupts a celebration or a payment in progress; it closes the checkout otherwise', () => {
   for (const o of [{ cine: true }, { ship: true }, { pro: true }, { checkout: true, paying: true }]) assert.deepEqual(backAction('s-level', o), { type: 'stay' }, JSON.stringify(o));
   assert.deepEqual(backAction('s-pro', { checkout: true }), { type: 'click', sel: '#co-x' });
+  assert.deepEqual(backAction('s-profile', { review: true }), { type: 'click', sel: '#rv-x' }); // the review dialog closes first
 });
 
 test('the error banner reacts only to VaultQuest\'s own errors', () => {
