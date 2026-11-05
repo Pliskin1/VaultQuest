@@ -9,6 +9,7 @@ import { updHud } from '../ui/hud.js';
 import { ACH } from '../content/achievements.js';
 import { LANGS } from '../content/languages.js';
 import { startProject } from './project.js';
+import { openReview, starRow } from '../ui/review.js';
 import { openLeaderboard } from './leaderboard.js';
 import { fetchBoard } from '../ui/board.js';
 
@@ -28,16 +29,19 @@ function portfolio() {
   }).join('');
 }
 
+const rateBtn = () => `<span class="stars sm" aria-hidden="true">${starRow(S.review?.stars || 0)}</span>${S.review ? 'Your review · Edit' : 'Rate VaultQuest'}`;
+
 export function openProfile() {
   updHud();
   const tot = S.done.py + S.done.js, L = lvlOf(S.xp);
-  $('#p-body').innerHTML = `<div class="panel p-top"><div class="p-av" style="${S.pro ? 'border-color:var(--violet);color:var(--violet)' : ''}">${initials()}<span style="${S.pro ? 'background:var(--violet)' : ''}">${S.pro ? 'PRO · ' : ''}LVL ${L}</span></div><div class="p-id"><div class="kicker" style="color:var(--gold)">${L > 1 ? 'VAULT CRACKER' : 'ROOKIE'}</div><div class="p-name">${esc(S.name || 'Your')}${S.name ? '’s' : ''} progress</div><div style="color:var(--mut);font-size:14px">${S.xp} XP total</div><button class="btn outline p-lb" id="p-lb">${TROPHY}LEADERBOARD<span class="p-rank" id="p-rank" hidden></span></button></div>
+  $('#p-body').innerHTML = `<div class="panel p-top"><div class="p-av" style="${S.pro ? 'border-color:var(--violet);color:var(--violet)' : ''}">${initials()}<span style="${S.pro ? 'background:var(--violet)' : ''}">${S.pro ? 'PRO · ' : ''}LVL ${L}</span></div><div class="p-id"><div class="kicker" style="color:var(--gold)">${L > 1 ? 'VAULT CRACKER' : 'ROOKIE'}</div><div class="p-name">${esc(S.name || 'Your')}${S.name ? '’s' : ''} progress</div><div style="color:var(--mut);font-size:14px">${S.xp} XP total</div><div class="p-btns"><button class="btn outline p-lb" id="p-lb">${TROPHY}LEADERBOARD<span class="p-rank" id="p-rank" hidden></span></button><button class="rate-btn" id="p-rate">${rateBtn()}</button></div></div>
     <div class="p-stats"><div class="p-stat"><strong style="color:var(--gold)">${tot}</strong><span>vaults cracked</span></div><div class="p-stat"><strong style="color:var(--coral)">${S.streak}</strong><span>day streak</span></div><div class="p-stat"><strong style="color:var(--cyan)">${S.ach.length}</strong><span>achievements</span></div><div class="p-stat"><strong style="color:var(--violet)">${S.questions}</strong><span>questions asked</span></div></div></div>${portfolio()}
    <div class="panel"><div class="kicker">PATHS</div>${pbar('Python', S.done.py, 8, '#F2B544')}${pbar('JavaScript', S.done.js, 8, '#4FD8C4')}<div class="kicker" style="margin-top:26px">ACTIVITY · LAST 12 WEEKS</div><div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:12px;max-width:300px" aria-hidden="true">${weeks()}</div><div class="p-acts"><button class="reset" id="p-reset">Reset progress</button><button class="reset" id="p-logout">Log out</button></div></div>
    <div class="panel"><div style="display:flex;justify-content:space-between"><div class="kicker">ACHIEVEMENTS</div><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">${S.ach.length} / ${Object.keys(ACH).length}</span></div>
     <div class="ach">${Object.entries(ACH).map(([id, a]) => { const got = S.ach.includes(id), nw = S.fresh.includes(id); return `<div class="badge ${got ? '' : 'off'} ${nw ? 'new' : ''}" title="${a.d}">${nw ? '<span class="nw">NEW</span>' : ''}<svg width="54" height="54" viewBox="0 0 56 56" fill="none" aria-hidden="true"><path d="M28 3l21.7 12.5v25L28 53 6.3 40.5v-25z" fill="${got ? '#151A26' : '#0E121B'}" stroke="${got ? a.col : '#3A4256'}" stroke-width="2"/><path d="${a.ic}" stroke="${got ? a.col : '#3A4256'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${a.n}${got ? '' : ' <span class="sr">(locked)</span>'}</span></div>`; }).join('')}</div></div>`;
   $$('.pf-open').forEach(b => b.onclick = () => { S.lang = b.dataset.lang; const i = LANGS[S.lang].levels.findIndex(l => l.title === b.dataset.title); if (i >= 0) startProject(i); });
   $$('.pf-share').forEach(b => b.onclick = () => { navigator.clipboard?.writeText('I just shipped a To-Do App on VaultQuest — learn to code, crack the vaults.').catch(() => {}); b.textContent = 'COPIED ✓'; });
+  $('#p-rate').onclick = () => openReview(() => { const b = $('#p-rate'); b.innerHTML = rateBtn(); anim(b, [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 400, easing: EASE.back, fill: 'none' }); });
   $('#p-lb').onclick = () => openLeaderboard();
   // Also saves this player's score to the shared board; the rank chip appears once it answers.
   fetchBoard().then(b => { const r = $('#p-rank'); if (r && b.all.me) { r.textContent = '#' + b.all.me.rank; r.hidden = false; } });

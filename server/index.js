@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mentor, review, hasKey } from './ai.js';
 import { mentorFallback, reviewFallback } from './fallback.js';
+import { mountReviews } from './reviews.js';
 import { clean, save, board, flush } from './board.js';
 
 const app = express();
@@ -46,6 +47,7 @@ function route(path, run, fallback) {
 
 route('/api/mentor', async b => ({ text: await mentor(b) }), mentorFallback);
 route('/api/review', review, reviewFallback);
+mountReviews(app);
 app.get('/api/health', (_, res) => res.json({ ok: true, ai: hasKey() }));
 
 // Saves the caller's score (valid handle + numeric xp) and returns the rankings: { total, all, week }.
