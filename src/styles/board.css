@@ -104,3 +104,23 @@
 .p-lb:hover svg{transform:rotate(-12deg) scale(1.15)}
 .p-rank{padding:3px 8px;border-radius:7px;background:var(--gold);color:#07090F;font-family:var(--mono);font-size:12px;letter-spacing:0}
 @media (prefers-reduced-motion:reduce){.p-lb svg{transition:none}.p-lb:hover svg{transform:none}}
+
+/* loading skeleton (src/ui/board-skeleton.js): the real podium / row / panel boxes, filled with shimmering bars.
+   Text bars sit in the real text boxes and are sized in em, so the line height (and layout) matches the board. */
+.sk,.sk-fill{background:linear-gradient(90deg,var(--s3) 25%,#1F2636 50%,var(--s3) 75%) 0 0/200% 100%;animation:sk-shine 1.4s linear infinite}
+.sk{display:inline-block;vertical-align:middle;height:12px;border-radius:6px}
+@keyframes sk-shine{from{background-position:100% 0}to{background-position:-100% 0}}
+.sk-pd .pd-av{border-color:var(--ln2);box-shadow:none}
+.sk-pd .pd-ped{border-top-color:var(--ln2)}
+.sk-crown{display:block;height:26px}
+.sk-pnm{width:72px;height:.8em}
+.sk-pxp{width:52px;height:.8em}
+.sk-rk{width:22px;height:16px}
+.sk-nm{min-width:48px;height:13px}
+.sk-c{width:30px;height:11px}
+.sk-xp{width:56px;height:14px}
+.sk-big{width:96px;height:56px;margin:4px 0;border-radius:10px}
+.sk-sc{width:130px;height:18px;margin:4px 0}
+.sk-ln{height:11px}
+.sk-btn{height:50px;margin-top:18px;border-radius:12px}
+@media (prefers-reduced-motion:reduce){.sk,.sk-fill{animation:none}}
