@@ -81,7 +81,7 @@ export function renderPanel() {
     : st === 'lock' ? '<span class="pill" style="border:1px dashed #3A4256;background:transparent">Finish the free vaults first</span>'
     : st === 'soon' ? '<span class="pill" style="color:var(--violet)">Coming soon</span>'
     : `<button class="btn ${pro ? 'pro' : ''}" id="m-play">${isP ? 'START PROJECT' : saved?.session?.locked ? 'SYNTAX RECOVERY' : saved ? 'CONTINUE VAULT' : st === 'done' ? 'REPLAY' : lv?.boss ? 'FACE THE MINI BOSS' : 'ENTER VAULT'} ${ARROW}</button>`;
-  $('#m-panel').innerHTML = `<div style="flex:1"><div class="kicker" style="color:${pro ? 'var(--violet)' : st === 'lock' ? 'var(--mut2)' : 'var(--gold)'}">${nodeKick(i)} · ${kick}</div><h3>${L.titles[i]}</h3><p>${desc}</p></div>${pills}<span class="pill" style="color:var(--gold)">+${xpPill} XP</span>${btn}`;
+  $('#m-panel').innerHTML = `<div class="mp-main"><div class="kicker" style="color:${pro ? 'var(--violet)' : st === 'lock' ? 'var(--mut2)' : 'var(--gold)'}">${nodeKick(i)} · ${kick}</div><h3>${L.titles[i]}</h3><p>${desc}</p></div>${pills}<span class="pill" style="color:var(--gold)">+${xpPill} XP</span>${btn}`;
   const p = $('#m-play'); if (p) p.onclick = () => isP ? startProject(i) : startLevel(i);
   const q = $('#m-pro'); if (q) q.onclick = () => openPro();
 }

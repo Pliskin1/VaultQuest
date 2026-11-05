@@ -49,7 +49,7 @@
 @media (max-width:900px){
   .bp-body{flex-direction:column;flex:none}
   .bp-left,.bp-right{width:100%;border:0}
-  .bp-main{padding:16px}
+  .bp-main{padding:16px;order:-1} /* on phones the section being written comes first, the plan overview after it */
   .bp-right .pj-mentor{height:50vh}
   .bp-stage{display:none}
 }

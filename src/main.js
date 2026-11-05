@@ -36,6 +36,10 @@ import * as recovery from './screens/recovery.js';
 import * as blueprint from './screens/blueprint.js';
 import { openMap } from './screens/map.js';
 import { openProfile } from './screens/profile.js';
+import { current } from './core/router.js';
+import { $ } from './core/dom.js';
+import { mountHistory } from './core/history.js';
+import { mountErrors } from './core/errors.js';
 
 FX.init();
 startClock();
@@ -43,4 +47,6 @@ mountHud({ pro: pro.openPro, profile: screen => screen === 's-profile' ? openMap
 [title, login, lang, level, pro, project, recovery, blueprint].forEach(m => m.mount());
 Mentor.use('lv');
 updHud();
+mountErrors({ openMap });
+if (!DEMO) mountHistory({ current, openMap, $ });
 if (DEMO) import('./ui/cursor.js').then(m => m.runDemo(DEMO_MODE));

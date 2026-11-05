@@ -71,3 +71,9 @@ button,input,textarea{font-variant-ligatures:none;font-feature-settings:"liga" 0
 #caption span{font-family:var(--disp);font-weight:600;font-size:22px}
 body.demo .m-panel{margin-bottom:88px}body.demo .m-map{height:calc(100vh - 380px)}
 #endcard{position:fixed;inset:0;z-index:110;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#05070B}
+
+/* Keyboard focus: one visible ring for every control on the dark theme. */
+.btn:focus-visible,.opt:focus-visible,.iconbtn:focus-visible,.nbtn:focus-visible,.send:focus-visible,.lcard:focus-visible,.plan:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+/* App error banner (core/errors.js) */
+.app-error{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;flex-wrap:wrap;max-width:calc(100vw - 32px);padding:12px 16px;border-radius:14px;border:1px solid rgba(255,155,122,.55);background:#1A1216;color:var(--tx);box-shadow:0 20px 60px -20px rgba(0,0,0,.8)}
+.app-error b{font-family:var(--disp)}.app-error span{color:var(--mut);font-size:14px}.app-error .btn{min-height:40px;padding:0 16px;font-size:14px}

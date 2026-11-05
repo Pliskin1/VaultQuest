@@ -47,8 +47,8 @@ export function openBlueprint(i, attempt = null) {
   const first = !bp().chat.length && ids().every(id => !bp().sections[id].draft);
   const welcome = first ? `Before any code: your **Blueprint**. Five short sections, in your own words — start with **${cur().title}**. I'll read each one and ask about anything missing, but I won't write it for you.`
     : `Welcome back to your Blueprint. ${clearCount()} of 5 sections are clear — you're on **${cur().title}**, and everything you wrote is saved.`;
-  const a = BP.a;
-  go('s-blueprint').then(() => { if (live(a)) Mentor.say(welcome, { label: 'MENTOR' }); });
+  Mentor.say(welcome, { label: 'MENTOR' }); // queued first: replies to early clicks follow it
+  go('s-blueprint');
 }
 
 const clearCount = () => ids().filter(id => isDone(bp().sections[id])).length;

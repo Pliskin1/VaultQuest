@@ -24,7 +24,7 @@ import { openRecovery } from './recovery.js';
 import { openPro } from './pro.js';
 import { startProject } from './project.js';
 import { runJsChallenge, observeJs } from '../run/js-runner.js';
-import { runPython, preloadPython, observePython } from '../run/py-runner.js';
+import { runPython, preloadPython, observePython, pythonStatus } from '../run/py-runner.js';
 
 let A = null; // the current attempt (shared engine state: hearts, answers tried, recovery, saved view)
 export const G = { li: 0, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
@@ -56,7 +56,8 @@ export function startLevel(i, { afterRecovery = false } = {}) {
     : saved ? `Welcome back to **Vault 0${i + 1}: ${L.titles[i]}**. You're on Challenge ${G.ci + 1} of ${n} with ${hearts()} heart${hearts() === 1 ? '' : 's'} — everything you did is saved.`
     : L.levels[i].boss ? `Welcome to the **Mini Boss: ${L.titles[i].replace(/^Mini Boss: /, '')}**. Explain your plan first — I'll ask about anything that's missing. The code editor unlocks once your plan is complete.`
     : `Welcome to **Vault 0${i + 1}: ${L.titles[i]}**. Solve ${n} challenges to crack it. Stuck? Ask me anything — I'll guide you, but I won't just hand you the answer.`;
-  go('s-level').then(() => Mentor.say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : {}));
+  Mentor.say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : {}); // queued first: replies to early clicks follow it
+  go('s-level');
   renderCh(false, true);
 }
 
@@ -211,7 +212,8 @@ const failText = j => j.error || j.results.filter(r => !r.pass).map(r => `${plai
 // The runtime couldn't start (e.g. Python offline): nothing was judged, so nothing is recorded or charged.
 function unavailable(tok) {
   cancelSubmission(A, tok);
-  Mentor.say(A.lang === 'py' ? 'Python couldn\'t start — check your internet connection and try again. **No heart was used.**' : 'The code runner couldn\'t start — try again. **No heart was used.**', { kind: 'fix', label: 'MENTOR' });
+  Mentor.say(A.lang === 'py' && pythonStatus() === 'loading' ? 'Python is still downloading (only the first time) — press RUN again in a moment. **No heart was used.**'
+    : A.lang === 'py' ? 'Python couldn\'t start — check your internet connection and try again. **No heart was used.**' : 'The code runner couldn\'t start — try again. **No heart was used.**', { kind: 'fix', label: 'MENTOR' });
 }
 
 async function checkFill(inp, v, c, tok) {
@@ -237,7 +239,7 @@ async function runCode() {
   try { [obs] = await Promise.all([observe(code, c.observe), wait(600)]); } catch (e) { obs = null; }
   if (!isCurrent(A, tok)) return; // left the vault while it ran
   btn.disabled = false;
-  if (!obs) { cons.innerHTML = `${head}\n<span class="err">${A.lang === 'py' ? 'Python couldn\'t start (no connection?)' : 'The code runner couldn\'t start'} — no heart used.</span>`; return unavailable(tok); }
+  if (!obs) { cons.innerHTML = `${head}\n<span class="err">${A.lang === 'py' ? (pythonStatus() === 'loading' ? 'Python is still downloading (first time only)' : 'Python couldn\'t start (no connection?)') : 'The code runner couldn\'t start'} — no heart used.</span>`; return unavailable(tok); }
   const j = judge(c, obs, { code }), printed = [...(obs.logs ?? []), ...(obs.callLogs ?? [])];
   cons.innerHTML = `${head}\n${printed.length ? esc(printed.join('\n')) + '\n' : ''}${j.error ? `<span class="err">${esc(j.error)}</span>\n` : ''}` +
     j.results.map(r => r.pass ? `<span class="okl">✓ ${esc(plainName(r.name))}</span>` : `<span class="err">✗ ${esc(plainName(r.name))} — expected ${esc(r.expected)}, got ${esc(r.actual)}</span>`).join('\n');
@@ -261,9 +263,9 @@ async function runFix() {
   try { [res] = await Promise.all([S.lang === 'py' ? runPython(code) : runJsChallenge(code), wait(600)]); }
   catch (e) { res = null; }
   if (!isCurrent(A, tok)) return; // left or restarted the vault while the code ran
-  let out, err;
-  if (res) { out = res.stdout.trim(); err = res.stderr.trim(); }
-  else { const f = regexFail(c, code); out = f ? '' : c.ok; err = f ? f.out : ''; }
+  // The runtime couldn't start: nothing ran, so nothing is shown as output, judged or charged.
+  if (!res) { cons.innerHTML = `${head}\n<span class="err">${S.lang === 'py' ? (pythonStatus() === 'loading' ? 'Python is still downloading (first time only)' : 'Python couldn\'t start (no connection?)') : 'The code runner couldn\'t start'} — no heart used.</span>`; btn.disabled = false; return unavailable(tok); }
+  const out = res.stdout.trim(), err = res.stderr.trim();
   const f = regexFail(c, code);
   if (!err && outputOk(out, c.ok) && !f) {
     cons.innerHTML = `${head}\n${esc(out)}\n<span class="okl">✓ All checks passed</span>`;

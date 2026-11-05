@@ -25,6 +25,7 @@
 #m-avatar .gem{position:absolute;inset:0;transform:rotate(45deg);border-radius:6px;background:var(--cyan);box-shadow:0 0 24px 4px rgba(79,216,196,.6);border:2px solid #fff}
 @keyframes bob{0%,100%{margin-top:-70px}50%{margin-top:-80px}}
 .m-panel{max-width:1180px;width:calc(100% - 64px);margin:0 auto 24px;display:flex;align-items:center;gap:24px;padding:22px 26px;background:var(--s1);border:1px solid var(--ln);border-radius:18px}
+.m-panel > .mp-main{flex:1} /* in the stylesheet (not inline) so the phone layout can give it the full width */
 .m-panel h3{margin:4px 0 0;font-family:var(--disp);font-size:26px}
 .m-panel p{margin:6px 0 0;color:var(--mut);font-size:15px}
 /* Mini Boss: same node, coral accent */

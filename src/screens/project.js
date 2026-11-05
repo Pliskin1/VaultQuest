@@ -21,7 +21,7 @@ import { Mentor } from '../ui/mentor.js';
 import { LANGS } from '../content/languages.js';
 import { runJsProject, cancelChecks, guarded, syntaxError, envOf } from '../run/project-js.js';
 import { runPyProject } from '../run/project-py.js';
-import { preloadPython } from '../run/py-runner.js';
+import { preloadPython, pythonStatus } from '../run/py-runner.js';
 import { createPreview } from '../run/sandbox/preview.js';
 import { seedOf } from '../run/seed.js';
 import { playShipCinematic } from '../cine/ship.js';
@@ -222,7 +222,8 @@ export function startProject(i, { afterRecovery = false, shipped = false } = {})
     : !first && now === -1 ? `Welcome back. Every milestone is cleared — run the checks once more on your current code, then **SUBMIT**.`
     : !first ? `Welcome back to **${lv.title}**. You're on milestone ${now + 1}: **${lv.ms[now].n}**, with ${h} heart${h === 1 ? '' : 's'}. Your code${w.chat.length ? ' and our conversation are' : ' is'} saved.${plan}`
     : `Project time. You write ${file}: ${n} milestones on the left, ${lv.checks.length} automated checks. I review every run. A run that makes no progress costs a heart; running the same code again is free.${plan}`;
-  go('s-project').then(() => { if (a === PJ.a && !a.over) say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : { label: 'MENTOR' }, false); });
+  say(welcome, afterRecovery ? { kind: 'good', label: 'SYNTAX RECOVERY' } : { label: 'MENTOR' }, false); // queued first: replies to early clicks follow it
+  go('s-project');
 }
 
 // Leaving ends the attempt object: a run or reply still pending is ignored. The saved state stays.
@@ -245,7 +246,8 @@ async function run() {
   if (!tok) return;
   const b = $('#pj-run'), code = PJ.code;
   b.disabled = true;
-  $('#pj-cons').innerHTML = `<span class="dim">$ ${lv.cmd}</span>\n<span class="dim">running ${lv.checks.length} checks…</span>`;
+  const loading = a.lang === 'py' && pythonStatus() !== 'ready';
+  $('#pj-cons').innerHTML = `<span class="dim">$ ${lv.cmd}</span>\n<span class="dim">${loading ? 'loading Python — the first run downloads it and needs internet… then ' : ''}running ${lv.checks.length} checks…</span>`;
   anim($('.pv'), [{ boxShadow: '0 0 0 0 rgba(79,216,196,0)' }, { boxShadow: '0 0 0 3px rgba(79,216,196,.75), 0 0 40px rgba(79,216,196,.35)' }, { boxShadow: '0 0 0 0 rgba(79,216,196,0)' }], { duration: 900, fill: 'none' });
   const stale = () => !isCurrent(PJ.a, tok);
   const [res] = await Promise.all([RUNNERS[a.lang].run(code, lv, { seed: seedOf(code), isStale: stale }), wait(550)]);
@@ -253,6 +255,7 @@ async function run() {
   b.disabled = false;
   if (res.cancelled || res.unavailable || res.unsafe) {
     cancelSubmission(a, tok); renderConsole();
+    if (res.unavailable && pythonStatus() === 'loading') { term('<span class="dim">Python is still downloading (first time only)…</span>'); return say('Python is still downloading — only the first time. Nothing was run and **nothing was recorded**; press RUN & TEST again in a moment.', { label: 'MENTOR' }, false); }
     if (res.unavailable) { term('<span class="err">Python couldn\'t load — it needs an internet connection the first time.</span>'); return say('Python couldn\'t start, so nothing was run and **nothing was recorded**. Check your connection and press RUN & TEST again.', { label: 'MENTOR' }, false); }
     if (res.unsafe) return say('I couldn\'t prepare this code for a safe run, so nothing was run and **nothing was recorded**. Try simplifying the line you changed last.', { label: 'MENTOR' }, false);
     return;
@@ -335,7 +338,7 @@ async function submit() {
   const v = verifyForShip(lv, res);
   if (!v.ok) {
     done();
-    if (res.unavailable) return say('Python couldn\'t start, so nothing could be verified and **nothing was shipped**. Check your connection and press SUBMIT again.', { label: 'MENTOR' }, false);
+    if (res.unavailable) return say(pythonStatus() === 'loading' ? 'Python is still downloading, so nothing could be verified and **nothing was shipped** yet. Press SUBMIT again in a moment.' : 'Python couldn\'t start, so nothing could be verified and **nothing was shipped**. Check your connection and press SUBMIT again.', { label: 'MENTOR' }, false);
     renderConsole(res.checks ? res : null);
     a.workspace = { ...a.workspace, passKey: null }; persist(); updSubmit();
     return say(`**Not shipped.** On the final verification ${v.passed}/${v.total} checks pass${v.reason === 'timeout' ? ' — the code never finished' : v.reason === 'error' ? ' — the code stopped with an error' : ''}. Fix what the console shows, run the checks, then submit again.`, { kind: 'fix', label: 'FINAL REVIEW' });
