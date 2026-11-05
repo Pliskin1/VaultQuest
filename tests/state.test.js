@@ -244,3 +244,13 @@ test('Phase 7 saves (a project attempt without a Blueprint) load with an empty B
   assert.equal(a.blueprint.started, false); assert.equal(a.blueprint.waived, false);
   for (const lang of ['js', 'py']) { assert.equal(rk(6, 'bp', lang), `${lang}-1:5:bp`); assert.equal(reward(rk(6, 'bp', lang), 50), 50); assert.equal(reward(rk(6, 'bp', lang), 50), 0); }
 });
+
+test('portfolio records (Phase 9) and older entries load unchanged side by side — no migration', async () => {
+  const rec = { title: 'Guess the Number', lang: 'py', curriculum: 'py-2', shippedAt: 1700000000000, verified: true, checks: { passed: 14, total: 14 }, milestones: { cleared: 4, total: 4 }, hearts: 2, runs: 5, code: 'def check(g, s):\n    pass\n', fp: 'abc', output: 'Solved in 4 tries', blueprint: true };
+  const projects = ['To-Do App', { title: 'To-Do App', lang: 'js', score: 92 }, rec];
+  const st = memoryStorage(as({ ...V1.proPy, done: { py: 5, js: 5 }, stars: {}, v: 4, curriculum: { py: 'py-2', js: 'js-2' }, awarded: { 'py-1:5:ship': 300 }, legacy: {}, attempts: {}, projects, someNewField: [1, 2] }));
+  const { S, rk, reward } = await boot(st);
+  assert.deepEqual(S.projects, projects); assert.deepEqual(S.someNewField, [1, 2]);
+  assert.equal(reward(rk(6, 'ship', 'py'), 300), 0); // already shipped: re-shipping pays nothing
+  assert.equal([...st.m.keys()].some(k => k.includes('.backup')), false);
+});

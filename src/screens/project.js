@@ -12,9 +12,9 @@ import { esc, md } from '../core/md.js';
 import { hl } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, rk, reward } from '../core/state.js';
-import { projectCurriculum } from '../learn/progress.js';
+import { verifyForShip, shipRecord, upsertProject, finalText } from '../learn/ship.js';
 import { newAttempt, attemptKey, beginSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave } from '../learn/attempt.js';
-import { judgeRun, runTags, settleRun, canSubmit, nextHint, logChat, markShipped, reviewPayload, scriptedFeedback } from '../learn/workspace.js';
+import { judgeRun, runTags, settleRun, canSubmit, nextHint, logChat, markShipped, reviewPayload, scriptedFeedback, MAX_CODE } from '../learn/workspace.js';
 import { updHud } from '../ui/hud.js';
 import { award, floatText } from '../ui/toast.js';
 import { Mentor } from '../ui/mentor.js';
@@ -34,11 +34,10 @@ import { mayBuild, waive, linkPlan, planForReview } from '../learn/blueprint.js'
 
 // i: level index · a: the attempt (hearts, Recovery, workspace state) · code: app.js / game.py (the editor
 // can show the read-only tabs instead) · judged: the last run's verdict · gained: XP this session.
-export const PJ = { i: 0, lv: null, a: null, tab: 'code', code: '', judged: null, gained: 0, logs: [] };
+export const PJ = { i: 0, lv: null, a: null, tab: 'code', code: '', judged: null, gained: 0, logs: [], shipping: false, lastShip: null };
 const isPy = () => PJ.lv?.kind === 'py';
 const RUNNERS = { js: { run: runJsProject, cancel: cancelChecks }, py: { run: runPyProject, cancel: () => {} } };
 const HEART = '<path d="M13 22S2 15 2 8a5.5 5.5 0 0 1 11-1.5A5.5 5.5 0 0 1 24 8c0 7-11 14-11 14z"';
-const FALLBACK_FINAL = '**Final review: 90/100.** All milestones pass and the code is easy to follow. Next step: add one feature of your own.';
 let preview = null;
 
 const ws = () => PJ.a.workspace;
@@ -233,10 +232,14 @@ function leaveProject() { flushDraft(); stopRuns(); endAttempt(PJ.a); Mentor.can
 const SAME = 'Same code as your last try, so **no heart lost** — and the result won\'t change. What will you try differently?';
 const SAME_PASS = 'Same code as before — still passing every check. Try it in the preview, then **SUBMIT** when you\'re happy.';
 
+// Code over the workspace limit is never run, saved or shipped in part — the student is told instead.
+const TOO_LONG = () => `Your ${PJ.lv.file} is longer than ${MAX_CODE.toLocaleString('en')} characters, so I can't run or ship it. Shorten it a little and try again — nothing was recorded.`;
+
 async function run() {
   const a = PJ.a, lv = PJ.lv;
   if (!a || a.over || inRecovery(a)) return;
   if (PJ.tab !== 'code') setTab('code');
+  if (PJ.code.length > MAX_CODE) return say(TOO_LONG(), { kind: 'fix', label: 'MENTOR' }, false);
   flushDraft();
   const tok = beginSubmission(a); // null while a run is in progress: rapid clicks are one run
   if (!tok) return;
@@ -313,24 +316,45 @@ function enterRecovery() {
 }
 
 // ── SUBMIT ──
+// SUBMIT: a fresh verification run of the exact code being submitted — every check must pass again (a
+// stale or forged "passed" state can't ship anything). Only then the final review, the portfolio record,
+// XP and the achievement, all saved before the celebration plays (a refresh during it keeps the ship).
 async function submit() {
   const a = PJ.a, lv = PJ.lv, s = $('#pj-submit');
-  if (s.disabled || !a || a.over || !canSubmit(a, PJ.code)) return;
-  s.disabled = true;
-  const fb = lv.final || FALLBACK_FINAL, fbScore = +(fb.match(/(\d+)\/100/) || [0, 90])[1];
-  const r = Mentor.review({ ...reviewPayload({ lang: a.lang, lv, code: PJ.code, a, final: true }), plan: planForReview(a.blueprint, lv.blueprint) }, fb, fbScore);
+  if (s.disabled || PJ.shipping || !a || a.over || !canSubmit(a, PJ.code)) return;
+  if (PJ.code.length > MAX_CODE) return say(TOO_LONG(), { kind: 'fix', label: 'MENTOR' }, false);
+  const tok = beginSubmission(a); // also blocks RUN & TEST while verifying
+  if (!tok) return;
+  PJ.shipping = true; s.disabled = true; $('#pj-run').disabled = true;
+  const code = PJ.code, stale = () => a !== PJ.a || a.over;
+  $('#pj-cons').innerHTML = `<span class="dim">$ ${lv.cmd}</span>\n<span class="dim">final verification before shipping — running all ${lv.checks.length} checks again…</span>`;
+  const res = await RUNNERS[a.lang].run(code, lv, { seed: seedOf(code), isStale: stale });
+  cancelSubmission(a, tok); // verification is not an attempt: no hearts, nothing recorded
+  const done = () => { PJ.shipping = false; s.disabled = false; $('#pj-run').disabled = false; };
+  if (stale()) { PJ.shipping = false; return; }
+  const v = verifyForShip(lv, res);
+  if (!v.ok) {
+    done();
+    if (res.unavailable) return say('Python couldn\'t start, so nothing could be verified and **nothing was shipped**. Check your connection and press SUBMIT again.', { label: 'MENTOR' }, false);
+    renderConsole(res.checks ? res : null);
+    a.workspace = { ...a.workspace, passKey: null }; persist(); updSubmit();
+    return say(`**Not shipped.** On the final verification ${v.passed}/${v.total} checks pass${v.reason === 'timeout' ? ' — the code never finished' : v.reason === 'error' ? ' — the code stopped with an error' : ''}. Fix what the console shows, run the checks, then submit again.`, { kind: 'fix', label: 'FINAL REVIEW' });
+  }
+  const fb = finalText({ lv, verify: v, a });
+  const r = Mentor.review({ ...reviewPayload({ lang: a.lang, lv, code, a, final: true }), plan: planForReview(a.blueprint, lv.blueprint) }, fb, null);
   await say(labelled(r, 'FINAL REVIEW', 'good'), { kind: 'good', label: 'FINAL REVIEW' });
-  const score = (await r).score || fbScore;
-  await wait(1100);
-  if (a !== PJ.a || a.over) { s.disabled = false; return; } // left during the review
-  // Re-shipping replaces this curriculum's entry; projects from earlier curricula stay in the portfolio.
-  S.projects = (S.projects || []).filter(p => (p.title || p) !== lv.title || projectCurriculum(p) !== S.curriculum[S.lang]);
-  S.projects.push({ title: lv.title, lang: S.lang, score, curriculum: S.curriculum[S.lang] });
-  PJ.gained += reward(rk(PJ.i, 'ship'), 300);
+  const review = await r;
+  await wait(900);
+  if (stale()) { PJ.shipping = false; return; } // left during the review: not shipped
+  const rec = shipRecord({ lv, lang: a.lang, curriculum: a.curriculum, a, code, run: res, verify: v, review });
+  S.projects = upsertProject(S.projects, rec); // re-shipping replaces this project's record — never a duplicate
+  PJ.gained += reward(rk(PJ.i, 'ship'), 300); // once per project, ever
+  award('builder'); // once per profile
   S.stars[S.lang + PJ.i] = 3; markShipped(a); persist();
-  s.disabled = false;
+  PJ.lastShip = rec;
   endAttempt(a);
-  await playShipCinematic({ score, xp: PJ.gained, title: lv.title, lang: LANGS[S.lang].name }); // flies a copy of the live preview
+  await playShipCinematic({ xp: PJ.gained, title: lv.title, lang: LANGS[a.lang].name, milestones: rec.milestones, checks: rec.checks, review: rec.review?.score ?? null }); // flies a copy of the live preview
+  PJ.shipping = false; done();
   stopRuns(); $('#s-holder').innerHTML = ''; // no app frame keeps running behind the profile
   updHud(); Mentor.use('lv'); openProfile();
 }
@@ -375,6 +399,7 @@ export function mount() {
     error: (e, loop) => { if (!PJ.a || PJ.a.over) return; pvErr(loop ? 'Stopped: your code kept running without a break. The page is still usable — check your loops.' : `${errLine(e)}`); },
     log: line => { PJ.logs.push(line); if (PJ.logs.length > 60) PJ.logs.shift(); }
   });
+  ta.maxLength = MAX_CODE; // typing and pasting stop at the limit; RUN and SUBMIT refuse anything longer
   ta.oninput = () => { pjRefresh(); if (PJ.tab === 'code') { keepDraft(); updSubmit(); } };
   ta.onkeydown = e => {
     if (e.key !== 'Tab' || ta.readOnly) return;
@@ -393,6 +418,7 @@ export function mount() {
     const reply = Mentor.fetchReply('ask', { lang: a.lang, challenge: { type: 'project', q: `${lv.title} — milestone ${k + 1}: ${lv.ms[k].n}. ${lv.ms[k].d}`, code: PJ.code.slice(0, 4000) }, question: v, context: context() }, localAnswer(v));
     say(labelled(reply, 'MENTOR'), { label: 'MENTOR' });
   };
-  $('#s-share').onclick = () => { navigator.clipboard?.writeText(location.origin + '/#shipped').catch(() => {}); $('#s-share').textContent = 'LINK COPIED ✓'; };
+  // There is no hosted deployment, so the honest thing to share is the shipped code itself.
+  $('#s-share').onclick = () => { if (!PJ.lastShip) return; navigator.clipboard?.writeText(PJ.lastShip.code).catch(() => {}); $('#s-share').textContent = 'CODE COPIED ✓'; };
   addEventListener('pagehide', flushDraft); // keep half-typed code across a refresh
 }

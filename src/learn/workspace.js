@@ -14,7 +14,8 @@
 import { answerKey, settleSubmission, cancelSubmission } from './attempt.js';
 import { diagnose } from './diagnose.js';
 
-export const MAX_CHAT = 40, MAX_HINTS = 3;
+// MAX_CODE: the longest app.js / game.py the workspace runs, saves and ships (shown in the editor).
+export const MAX_CHAT = 40, MAX_HINTS = 3, MAX_CODE = 20000;
 
 // Which milestones this run passes, what it newly clears and where the feedback should focus.
 // run: { checks: [{ id, ms, pass }], error } · ws: the attempt's workspace.

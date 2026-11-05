@@ -243,5 +243,6 @@ export const TODO = {
   ],
   checks: CHECKS, html: HTML, css: CSS, files: FILES, prelude, helpers, errorAsk: ERROR_ASK,
   preview: { tasks: [{ title: 'Learn JavaScript', done: false }, { title: 'Crack a vault', done: false }] },
-  final: '**Final review: 92/100.** Every check passes: the list, Add, done marks and the count all follow your `tasks` data. Next step: save `tasks` with `localStorage` so they survive a refresh.'
+  // Scripted final review = facts from the verified run (learn/ship.js finalText) + this suggestion.
+  next: 'Next idea: save `tasks` with `localStorage` so they survive a refresh.'
 };

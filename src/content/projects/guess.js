@@ -90,5 +90,6 @@ export const GUESS = {
   ],
   checks: CHECKS, errorAsk: ERROR_ASK,
   demo: 'secret = 42\nfor g in [50, 25, 37, 42]:\n    print(f"> guess {g}   {check(g, secret)}")\nprint(f"Solved in {play(secret, [50, 25, 37, 42])} tries")',
-  final: '**Final review: 90/100.** Every check passes: `check` answers all three cases and `play` stops at the first correct guess. Next step: let the player type guesses with `input()` and pick the secret with `random.randint`.'
+  // Scripted final review = facts from the verified run (learn/ship.js finalText) + this suggestion.
+  next: 'Next idea: let the player type guesses with `input()` and pick the secret with `random.randint`.'
 };
