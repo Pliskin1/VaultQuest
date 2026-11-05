@@ -66,6 +66,7 @@
     <div class="sp"></div>
     <div class="combo" id="lv-combo"></div>
     <div class="hearts" id="lv-hearts"></div>
+    <button class="gopro hud-gopro lv-gopro" id="lv-pro" aria-label="Upgrade to PRO" title="Upgrade to PRO — your progress in this vault is saved">GO PRO</button>
     <div class="xpw"><span class="lvlb hud-lvl">LVL 1</span><div class="bar"><i class="hud-bar"></i></div></div>
   </header>
   <div class="l-body">
@@ -143,7 +144,7 @@
     <div class="pro-left">
       <div class="pro-badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 18l2-10 5 5 2-7 2 7 5-5 2 10z" stroke="#C9B8FF" stroke-width="2" stroke-linejoin="round"/></svg>VAULTQUEST PRO</div>
       <h2>From the basics to <span>building real apps.</span></h2>
-      <p>You've cracked the foundations. Pro unlocks advanced vaults and guided projects in every language, with an AI mentor reviewing your code at every step.</p>
+      <p id="pro-lead">You've cracked the foundations. Pro unlocks advanced vaults and guided projects in every language, with an AI mentor reviewing your code at every step.</p>
       <ul class="feats">
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="10" rx="2" stroke="#C9B8FF" stroke-width="2"/><path d="M8 10.5V8a4 4 0 017.5-2" stroke="#C9B8FF" stroke-width="2" stroke-linecap="round"/></svg></div><div><b>Advanced vaults</b><span>Loops, arrays, objects, async — in every language</span></div></li>
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#C9B8FF" stroke-width="2"/><path d="M3 9h18M8 14l-2 2 2 2M14 14l2 2-2 2" stroke="#C9B8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Guided mini projects</b><span>Build real apps step by step, with a live preview</span></div></li>
@@ -265,6 +266,7 @@
       <div class="c-stat"><b>MISTAKES</b><strong id="c-mis" style="color:var(--tx)">0</strong></div>
       <div class="c-stat" style="min-width:260px"><b id="c-lvl">LVL 1 → 2</b><div class="c-lvbar"><i id="c-lvbar"></i></div><div style="margin-top:8px;font-size:13px;color:var(--mut)"><span id="c-lvtxt">Keep going</span><span class="lvup" id="c-lvup">LEVEL UP</span></div></div>
     </div>
+    <p class="c-note" id="c-note" hidden></p>
     <div class="c-acts"><button class="btn" id="c-next" style="opacity:0">CONTINUE <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="btn ghost" id="c-alt" style="opacity:0;display:none"></button></div>
   </div>
 </div>

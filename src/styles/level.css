@@ -5,6 +5,7 @@
 .segs i{width:34px;height:6px;border-radius:4px;background:var(--ln)}
 .segs i.on{background:var(--gold)}.segs i.now{background:#8A6A2A}
 .lhud .sp{flex:1}
+.lhud .lv-gopro{flex:none}
 .hearts{display:flex;gap:6px}
 .heart{position:relative;width:26px;height:24px}
 .heart svg{position:absolute;inset:0}

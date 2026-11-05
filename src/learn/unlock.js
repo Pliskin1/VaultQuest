@@ -1,5 +1,6 @@
 // The order of World 1, one rule set for every language: FREE vaults → Mini Boss (World 1 cleared) → PRO
-// checkout → PRO Vault → Project → Final Boss. Pure functions over the saved profile — no extra save fields:
+// Vault → Project → Final Boss. PRO (`S.pro`, profile-wide) can be bought at any time, but it only opens the
+// PRO steps once World 1 is cleared: buying it never marks or skips a FREE vault or the Mini Boss. Pure functions over the saved profile — no extra save fields:
 // everything is derived from `done`, `stars`, `pro`, `projects` and `attempts`, so existing saves need no
 // migration. The map, the vault screen and the project screen all ask these functions, so a node can't be
 // entered by any route the map wouldn't allow.
@@ -69,6 +70,19 @@ export function lockReason(S, lang, L, i) {
   return null;
 }
 export const canEnter = (S, lang, L, i) => lockReason(S, lang, L, i) === null;
+
+// The World 1 CLEARED screen after the Mini Boss: a PRO student (PRO can be bought at any time, also before the
+// Mini Boss) continues straight to the PRO Vault and is never asked to buy again; a FREE student gets the offer.
+export function afterMiniBoss(S, L) {
+  return { kind: S.pro ? 'continue' : 'upgrade', to: roles(L).proVault };
+}
+
+// The map node to highlight after checkout: the next PRO step once World 1 is cleared, otherwise the FREE
+// vault the student is on — buying PRO early never skips a FREE vault or the Mini Boss.
+export function afterCheckout(S, lang, L) {
+  const done = S.done?.[lang] ?? 0;
+  return done < L.free ? done : nextStep(S, lang, L);
+}
 
 // The step to highlight after checkout or a completed PRO step: the first PRO level not done yet.
 export function nextStep(S, lang, L) {
