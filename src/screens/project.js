@@ -15,6 +15,7 @@ import { LANGS } from '../content/languages.js';
 import { execApp } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
 import { playShipCinematic } from '../cine/ship.js';
+import { maybeCertificate } from '../ui/certificate.js';
 import { openMap } from './map.js';
 import { openProfile } from './profile.js';
 import { fetchBoard } from '../ui/board.js';
@@ -143,7 +144,9 @@ async function submit() {
   S.stars[S.lang + PJ.i] = 3; save(); fetchBoard();
   s.disabled = false;
   await playShipCinematic({ score, xp: PJ.gained, title: lv.title, lang: LANGS[S.lang].name });
-  updHud(); Mentor.use('lv'); openProfile();
+  updHud(); Mentor.use('lv');
+  await maybeCertificate(S.lang); // the course's final challenge → full name prompt + certificate
+  openProfile();
 }
 
 function localAnswer(v) {

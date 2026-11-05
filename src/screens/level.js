@@ -16,6 +16,7 @@ import { openMap, renderMap, setSel, rewindForTravel, travel } from './map.js';
 import { runJsChallenge } from '../run/js-runner.js';
 import { runPython, preloadPython } from '../run/py-runner.js';
 import { fetchBoard } from '../ui/board.js';
+import { maybeCertificate } from '../ui/certificate.js';
 
 let xpAtStart = 0;
 export const G = { li: 0, ci: 0, hearts: 3, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
@@ -175,6 +176,7 @@ async function levelDone() {
   if (G.hints === 0) award('hintfree');
   if (S.done[S.lang] >= FREE) award('legend');
   save();
+  await maybeCertificate(S.lang); // Pro levels can be played in any order, so a vault can be the course's last
 }
 
 // Keyword fallback for free-text questions (prototype Mentor.answer).

@@ -1,0 +1,79 @@
+/* ---------- course certificate (markup: src/ui/certificate-view.js) ----------
+   White A4-landscape paper. It is a size container, so every text size is in cqw and the same markup works
+   full size, as a profile thumbnail and on a printed page. Serif type is the system serif (Georgia/Times),
+   which also prints and saves to PDF without loading a web font. Colours on the paper come from the course
+   theme (content/certificates.js); --c-ink is the readable coloured text. */
+.cert{position:relative;width:100%;aspect-ratio:1123/794;container-type:inline-size;overflow:hidden;background:#fff;color:#2B303B;font-family:Georgia,'Times New Roman',Times,serif;font-variant-ligatures:normal;font-feature-settings:normal;border-radius:6px;box-shadow:0 30px 80px -30px rgba(0,0,0,.9)}
+.cert-bg{position:absolute;inset:0;display:block;width:100%;height:100%}
+.cert p{margin:0}
+.cert>p,.ct-sign{position:absolute;left:50%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap}
+.ct-title{top:29.5%;font-size:3.05cqw;line-height:1.2}
+.ct-site{top:35.6%;font-size:1.2cqw;letter-spacing:.08em;text-transform:uppercase;color:var(--c-ink)}
+.ct-name{top:46.5%;max-width:86%;overflow:hidden;text-overflow:ellipsis;line-height:1.2;color:#22262E}
+.ct-name.ph{color:#B9BEC8}
+.cert>.ct-for{top:55.8%;width:54%;transform:translateX(-50%);white-space:normal;text-wrap:balance;font-size:1.42cqw;line-height:1.5;color:#3B4250}
+.ct-date{top:73.8%;font-size:1.42cqw}
+.ct-sign{top:83.5%;display:flex;flex-direction:column;align-items:center}
+.ct-sign b{font-weight:400;font-size:1.55cqw;letter-spacing:.04em}
+.ct-sign span{margin-top:.3cqw;font-size:1.2cqw;color:#4A5160}
+.ct-sig{display:block;width:9cqw;height:3cqw;margin-top:.4cqw}
+.ct-sign i{display:block;width:9cqw;height:0;border-top:1px solid #5A6070}
+
+/* ---------- overlay ---------- */
+#cert{position:fixed;inset:0;z-index:58;display:none;padding:16px;overflow-y:auto;background:rgba(3,4,8,.8);backdrop-filter:blur(4px)}
+#cert.on{display:flex}
+.ce{width:min(1000px,100%);margin:auto;padding:22px 24px 18px;border-radius:20px;background:var(--s1);border:1px solid #4A3A1C;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 100px -30px #000,0 0 80px -40px rgba(242,181,68,.45)}
+.ce-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.ce-head h3{margin:6px 0 0;font-family:var(--disp);font-size:26px}
+/* as wide as the box allows, but short enough that the form below stays on screen at 1280×720 */
+.ce-paper{align-self:center;width:min(100%,calc((100vh - 290px) * 1.4144));min-width:min(100%,360px)}
+.ce-form{display:flex;flex-direction:column;gap:8px}
+.ce-form[hidden],.ce-acts[hidden]{display:none}
+.ce-lbl{font-size:14px;color:var(--tx2)}
+.ce-row{display:flex;gap:10px}
+#ce-in{flex:1;min-width:0;min-height:50px;padding:0 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--ln2);color:var(--tx);font-family:var(--body);font-size:17px;transition:border-color .2s,box-shadow .2s}
+#ce-in::placeholder{color:var(--mut2)}
+#ce-in:focus{outline:0;border-color:var(--gold);box-shadow:0 0 0 3px rgba(242,181,68,.15)}
+.ce-meta{display:flex;align-items:center;gap:12px;min-height:44px;font-size:13px}
+#ce-err{color:var(--coral)}
+.ce-later{margin-left:auto;min-height:44px;padding:0 6px;border:0;background:none;color:var(--mut);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.ce-later:hover{color:var(--tx)}
+.ce-acts{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+
+/* ---------- profile: certificate thumbnails ---------- */
+.p-certp{grid-column:1/-1}
+.p-certs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:14px}
+/* card = thumbnail (hidden from screen readers) + one text button stretched over the whole card */
+.p-cert{position:relative;display:flex;flex-direction:column;gap:10px;padding:10px 10px 14px;border-radius:14px;background:var(--s2);border:1px solid var(--ln2);transition:border-color .2s,transform .2s,box-shadow .2s}
+/* keyboard focus only (:focus-visible), so the card doesn't stay lit after a mouse click returns focus to it */
+.p-cert:hover,.p-cert:has(.p-cert-t:focus-visible){border-color:var(--gold);transform:translateY(-3px);box-shadow:0 20px 40px -24px rgba(242,181,68,.5)}
+.p-cert:has(.p-cert-t:focus-visible){box-shadow:0 0 0 2px rgba(242,181,68,.4),0 20px 40px -24px rgba(242,181,68,.5)}
+.p-cert .cert{box-shadow:none}
+.p-cert-t{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:0 4px;border:0;background:none;text-align:left}
+.p-cert-t::after{content:"";position:absolute;inset:0;border-radius:14px}
+.p-cert-t:focus-visible{outline:none}
+.p-cert-t b{font-family:var(--disp);font-weight:700;font-size:18px}
+.p-cert-t small{font-family:var(--mono);font-size:12px;color:var(--mut2)}
+.p-cert-t small.claim{color:var(--gold)}
+@media (prefers-reduced-motion:reduce){.p-cert{transition:none}.p-cert:hover,.p-cert:has(.p-cert-t:focus-visible){transform:none}}
+
+@media (max-width:900px){
+  .ce{padding:16px;gap:12px}
+  .ce-head h3{font-size:22px}
+  .ce-paper{width:100%;min-width:0}
+  .ce-row,.ce-acts{flex-direction:column;align-items:stretch}
+  .ce-row .btn,.ce-acts .btn{justify-content:center}
+}
+
+/* ---------- print / save as PDF: only the paper, one A4 landscape page ---------- */
+@media print{
+  @page{size:A4 landscape;margin:0}
+  html,body{height:auto;overflow:visible;background:#fff}
+  body.cert-print>:not(#cert){display:none!important}
+  body.cert-print #cert{position:static;display:block;padding:0;overflow:visible;background:none;backdrop-filter:none}
+  body.cert-print .ce{display:block;width:auto;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+  body.cert-print .ce-head,body.cert-print .ce-form,body.cert-print .ce-acts{display:none}
+  body.cert-print .ce-paper{width:297mm;min-width:0}
+  /* 1mm short of the page so rounding can't push a blank second page */
+  body.cert-print .cert{width:297mm;height:209mm;aspect-ratio:auto;border-radius:0;box-shadow:none;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
