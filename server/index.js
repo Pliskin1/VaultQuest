@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { mentor, review, hasKey } from './ai.js';
 import { mentorFallback, reviewFallback } from './fallback.js';
-import { submit, board } from './board.js';
+import { clean, save, board, flush } from './board.js';
 
 const app = express();
 const PORT = process.env.PORT || 8787;
@@ -48,14 +48,26 @@ route('/api/mentor', async b => ({ text: await mentor(b) }), mentorFallback);
 route('/api/review', review, reviewFallback);
 app.get('/api/health', (_, res) => res.json({ ok: true, ai: hasKey() }));
 
-// Saves the caller's score (if a handle is sent) and returns the rankings: { total, all, week }.
+// Saves the caller's score (valid handle + numeric xp) and returns the rankings: { total, all, week }.
+// Over the write limit the score isn't stored, but the caller is still ranked with it.
 app.post('/api/leaderboard', (req, res) => {
-  const b = req.body && typeof req.body === 'object' ? req.body : {};
-  if (b.name && boardAllowed(req.ip)) submit(b);
-  res.json(board(typeof b.name === 'string' ? b.name : null));
+  const b = req.body && typeof req.body === 'object' && !Array.isArray(req.body) ? req.body : {};
+  const e = clean(b), stored = !!e && boardAllowed(req.ip);
+  if (stored) save(e);
+  res.json(board(typeof b.name === 'string' ? b.name : null, e && !stored ? b : null));
 });
 
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 if (existsSync(dist)) { app.use(express.static(dist)); app.get(/^\/(?!api\/).*/, (_, res) => res.sendFile(join(dist, 'index.html'))); }
+
+// Malformed or oversized JSON → short JSON error (Express's default page shows a stack trace in dev).
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({ error: status < 500 ? 'bad request' : 'server error' });
+});
+
+// Write pending leaderboard changes before exiting.
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { flush(); process.exit(0); });
 
 app.listen(PORT, () => console.log(`VaultQuest API on :${PORT} · AI ${hasKey() ? 'on' : 'off (fallback mode)'}`));

@@ -91,7 +91,7 @@
       <div>
         <button class="b-back" id="b-back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to profile</button>
         <div class="kicker" style="color:var(--gold)">LEADERBOARD</div>
-        <h2>Top vault crackers</h2>
+        <h2 id="b-title" tabindex="-1">Top vault crackers</h2>
         <p class="b-sub" id="b-sub"></p>
       </div>
       <div class="b-tabs" id="b-tabs" role="group" aria-label="Ranking period"><button data-scope="all" class="on" aria-pressed="true">ALL TIME</button><button data-scope="week" aria-pressed="false">THIS WEEK</button></div>
@@ -99,7 +99,7 @@
     <div class="b-grid">
       <div class="b-main">
         <div class="panel"><div class="kicker">TOP 3</div><div class="podium" id="b-podium"></div></div>
-        <div class="panel">
+        <div class="panel b-rank">
           <div class="b-lh"><div class="kicker">RANKINGS</div><span class="b-count" id="b-count"></span></div>
           <div class="b-scroll scroll"><div class="b-tbl">
             <div class="b-row b-cols" aria-hidden="true"><span>RANK</span><span>PLAYER</span><span>LEVEL</span><span>VAULTS</span><span>STREAK</span><span id="b-xph" style="text-align:right">TOTAL XP</span></div>

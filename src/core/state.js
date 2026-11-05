@@ -25,15 +25,21 @@ function load(name) {
   if (S.lastDay !== today) { S.streak = S.lastDay === yest ? S.streak + 1 : 1; S.lastDay = today; }
   rollWeek();
 }
-// Weekly XP = XP gained since this week's Monday (UTC). The baseline is taken at the week's first session.
-function rollWeek() { const k = weekKey(); if (!S.wk || S.wk.start !== k) S.wk = { start: k, base: S.xp }; }
+// Weekly XP = XP gained since this week's Monday (UTC). `wk.last` is the XP at the last save (every XP
+// change is followed by a save), so when the week rolls over mid-session the new week's baseline is the
+// XP before the rollover, and XP earned after it still counts.
+function rollWeek() {
+  const k = weekKey();
+  if (!S.wk || S.wk.start !== k) S.wk = { start: k, base: S.wk && S.wk.last != null ? Math.min(S.wk.last, S.xp) : S.xp, last: S.xp };
+}
 export const weekXp = () => { rollWeek(); return Math.max(0, S.xp - S.wk.base); };
 if (user && !DEMO) load(user);
-if (DEMO) S.name = 'DEMO';
+if (DEMO) { S.name = 'DEMO'; rollWeek(); }
 
-export const save = () => { if (!DEMO && user) write(keyOf(user), S); };
+export const save = () => { rollWeek(); S.wk.last = S.xp; if (!DEMO && user) write(keyOf(user), S); };
 export const currentUser = () => user;
-export const profiles = () => read(USERS, []).map(n => ({ name: n, ...read(keyOf(n), {}) }));
+// Saved profiles on this device; damaged entries in the list are skipped.
+export const profiles = () => { const l = read(USERS, []); return (Array.isArray(l) ? l : []).filter(n => typeof n === 'string').map(n => ({ name: n, ...read(keyOf(n), {}) })); };
 export const validHandle = n => /^[A-Za-z0-9_\-]{2,16}$/.test(n);
 
 export function login(name) {

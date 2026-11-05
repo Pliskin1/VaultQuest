@@ -12,7 +12,8 @@ Ported from the prototype into a modular Vite app with real AI (`/api/*`) and re
 
 ## Commands
 - `npm run dev` (Vite + API) · `npm run build` · `npm run server` · `npm start` (build + serve dist + API on one port)
-- Verify with `npm run build 2>&1 | tail -20`. Don't start dev servers/browsers unless asked.
+- Verify with `npm run build 2>&1 | tail -20` and `npm test` (node:test, `tests/`; leaderboard ranking, weekly XP, server store + API, client fallback). Don't start dev servers/browsers unless asked.
+- Tests never touch `server/data/`: the server reads `LEADERBOARD_FILE` for a throwaway scores file.
 
 ## Docs
 - `docs/TASKS.md` phases (all ticked) · `docs/SPEC.md` · `docs/DESIGN.md` · `docs/AI.md` · `docs/PROGRESS.md`

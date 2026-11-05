@@ -21,6 +21,7 @@ Otvori adresu koju Vite ispiše u terminalu (obično `http://localhost:5173`). A
 | `npm run dev` | Frontend + API, za rad |
 | `npm run build` | Pravi produkcijski build u `dist/` |
 | `npm start` | Build, pa frontend i API na jednom portu (za deploy) |
+| `npm test` | Automatski testovi za leaderboard (rangiranje, sedmični XP, server, offline rezim) |
 
 **Demo snimci za pitch:** dodaj `?demo=1` na adresu za besplatni dio, odnosno `?demo=pro` za Pro dio. Pušta se sam, sa kursorom i natpisima, oko 1,5 minut. Demo ne dira sačuvani napredak.
 

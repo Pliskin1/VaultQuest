@@ -8,9 +8,11 @@ const TIMEOUT = 6000;
 const vaultsOf = p => ((p.done && p.done.py) || 0) + ((p.done && p.done.js) || 0);
 const mine = () => ({ name: S.name, xp: S.xp, wk: weekXp(), week: weekKey(), pro: !!S.pro, vaults: vaultsOf(S), streak: S.streak });
 
+const isBoard = b => !!b && typeof b.total === 'number' && [b.all, b.week].every(x => x && Array.isArray(x.top));
+
 function localBoard() {
   const wk = weekKey(), myKey = (S.name || '').toLowerCase();
-  const others = DEMO ? [] : profiles().filter(p => p.name.toLowerCase() !== myKey).map(p => ({
+  const others = DEMO ? [] : profiles().filter(p => typeof p.name === 'string' && p.name.toLowerCase() !== myKey).map(p => ({
     name: p.name, xp: p.xp || 0, wk: p.wk && p.wk.start === wk ? Math.max(0, (p.xp || 0) - p.wk.base) : 0, week: wk,
     pro: !!p.pro, vaults: vaultsOf(p), streak: p.streak || 1
   }));
@@ -23,8 +25,9 @@ export async function fetchBoard() {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), TIMEOUT);
     try {
       const r = await fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(mine()), signal: ctl.signal });
-      if (r.ok) { const b = await r.json(); if (b && b.all && b.week) return { ...b, live: true }; }
+      if (r.ok) { const b = await r.json(); if (isBoard(b)) return { ...b, live: true }; }
     } catch (e) { /* offline → local board */ } finally { clearTimeout(to); }
   }
-  return { ...localBoard(), live: false };
+  try { return { ...localBoard(), live: false }; }
+  catch (e) { return { ...buildBoard(S.name ? [mine()] : [], S.name), live: false }; } // damaged local saves: you + rivals
 }

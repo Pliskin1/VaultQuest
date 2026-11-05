@@ -1,11 +1,13 @@
 /* ---------- leaderboard ---------- */
 /* full-width scroller (scrollbar at the window edge, below the HUD) around a centred 1180px column */
-#s-board .b-body{flex:1;min-height:0;overflow:auto}
+/* position:relative keeps absolutely positioned .sr labels inside the scroller (else the screen itself scrolls) */
+#s-board .b-body{position:relative;flex:1;min-height:0;overflow:auto}
 .b-wrap{max-width:1180px;margin:0 auto;padding:26px 32px 40px;display:flex;flex-direction:column;gap:22px}
 .b-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px}
 .b-head h2{margin:6px 0 4px;font-family:var(--disp);font-weight:700;font-size:36px;line-height:1.1}
-.b-sub{margin:0;font-size:14px;color:var(--mut)}
-.b-back{display:inline-flex;align-items:center;gap:6px;min-height:36px;margin-bottom:6px;padding:0;border:0;background:none;font-size:14px;color:var(--mut);transition:color .2s}
+.b-head h2:focus{outline:none}
+.b-sub{margin:0;font-size:14px;line-height:1.45;color:var(--mut)}
+.b-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-bottom:6px;padding:0;border:0;background:none;font-size:14px;color:var(--mut);transition:color .2s}
 .b-back:hover{color:var(--gold)}
 .b-tabs{display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--s1);border:1px solid var(--ln)}
 .b-tabs button{min-height:44px;padding:0 18px;border:0;border-radius:9px;background:transparent;color:var(--mut);font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:.06em;transition:background .2s,color .2s}
@@ -13,6 +15,8 @@
 .b-tabs button.on{background:var(--gold);color:#07090F}
 .b-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:22px;align-items:start}
 .b-main,.b-side{display:flex;flex-direction:column;gap:22px;min-width:0}
+/* ≤1100px: one column (the 340px side column would squeeze the table); only "your position" moves up */
+@media (max-width:1100px){.b-grid{grid-template-columns:minmax(0,1fr)}.b-side{display:contents}#b-me{order:-1}.b-climb{order:1}}
 
 /* podium: pedestals sit on the panel's bottom edge */
 .podium{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:end;margin:18px 0 -24px}
@@ -22,7 +26,8 @@
 .pd-av{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:var(--s3);border:3px solid var(--m);font-family:var(--disp);font-weight:700;font-size:22px;color:var(--m)}
 .pd1 .pd-av{width:76px;height:76px;font-size:26px;box-shadow:0 0 30px -6px rgba(242,181,68,.5)}
 .pd.me .pd-av{box-shadow:0 0 0 4px rgba(242,181,68,.25),0 0 30px -6px rgba(242,181,68,.6)}
-.pd-nm{display:flex;align-items:center;gap:6px;max-width:100%}
+.pd-nm{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 6px;max-width:100%}
+.pd-nm span{min-width:0;max-width:100%}
 .pd-nm span{font-family:var(--disp);font-weight:600;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pd-xp{font-family:var(--mono);font-size:13px;color:var(--mut)}
 .pd-ped{width:100%;height:64px;margin-top:6px;display:grid;place-items:center;border-radius:12px 12px 0 0;background:var(--s2);border:1px solid var(--ln);border-bottom:0;border-top:3px solid var(--m);font-family:var(--disp);font-weight:700;font-size:40px;color:var(--m);transform-origin:50% 100%}
@@ -33,7 +38,8 @@
 .b-count{font-family:var(--mono);font-size:12px;color:var(--mut2)}
 .b-scroll{overflow-x:auto;margin-top:14px}
 .b-tbl{min-width:560px}
-.b-row{display:grid;grid-template-columns:76px minmax(150px,1fr) 64px 64px 72px 110px;gap:8px;align-items:center;min-height:56px;padding:0 16px;border-radius:12px;border:1px solid transparent}
+/* tracks + gaps + padding = 544px, so rows fit inside the 560px minimum table width */
+.b-row{display:grid;grid-template-columns:64px minmax(140px,1fr) 56px 56px 64px 92px;gap:8px;align-items:center;min-height:56px;padding:0 16px;border-radius:12px;border:1px solid transparent}
 .b-cols{min-height:0;padding-bottom:10px;border-radius:0;border-bottom-color:#1E2433;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--mut2)}
 .b-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
 .b-row.me{background:rgba(242,181,68,.08);border-color:rgba(242,181,68,.45)}
@@ -46,7 +52,7 @@
 .b-av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--s3);border:2px solid var(--ln2);font-family:var(--disp);font-weight:700;font-size:12px;color:var(--tx2)}
 .b-av.pro{border-color:var(--violet);color:var(--violet)}
 .b-row.me .b-av{border-color:var(--gold);color:var(--gold)}
-.b-nm{font-family:var(--disp);font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.b-nm{min-width:4.5ch;font-family:var(--disp);font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .b-tag{flex:none;padding:1px 6px;border-radius:5px;font-family:var(--disp);font-weight:700;font-size:10px;font-style:normal;letter-spacing:.04em}
 .b-tag.pro{border:1px solid var(--violet);color:var(--violet)}
 .b-tag.you{background:var(--gold);color:#07090F}
@@ -56,6 +62,21 @@
 .b-gap{text-align:center;color:var(--mut2);letter-spacing:.3em;line-height:1}
 .b-empty{padding:18px 16px;color:var(--mut)}
 .b-off{margin:14px 0 0;font-family:var(--mono);font-size:12px;color:var(--mut2)}
+/* phones: rank · name · XP only (level/vaults/streak, initials circle and PRO tag hidden) so names
+   get the room; no sideways scroll */
+@media (max-width:640px){
+  .b-tbl{min-width:0}
+  .b-row{grid-template-columns:44px minmax(0,1fr) 64px;padding:0 12px}
+  .b-row>:nth-child(3),.b-row>:nth-child(4),.b-row>:nth-child(5),.b-row .b-tag.pro,.b-av{display:none}
+  .b-pl{gap:8px;overflow:hidden}
+  .b-xp{font-size:16px}
+}
+@media (max-width:420px){.b-rank{padding:20px 14px}}
+@media (max-width:360px){
+  .b-row{grid-template-columns:34px minmax(0,1fr) 60px;gap:6px;padding:0 8px}
+  .b-row .b-tag.you,.b-mv{display:none}
+}
+@media (max-width:520px){.b-sub{min-height:2.9em}}
 
 /* your position + how to climb */
 .b-me{border-color:rgba(242,181,68,.45)}

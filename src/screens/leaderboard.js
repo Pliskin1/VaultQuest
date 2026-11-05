@@ -49,13 +49,18 @@ function mePanel(b, week) {
   return `${head}<div class="b-big"><strong>#${m.rank}</strong><span>of ${num(B.total)} players</span></div><div class="b-sc"><b>${num(m.score)} ${week ? 'XP this week' : 'XP total'}</b><span class="${cls}">${trend}</span></div><hr>${next}<button class="btn b-play" id="b-play">PLAY NEXT VAULT</button>`;
 }
 
+function setTabs() {
+  const week = scope === 'week';
+  $('#b-sub').textContent = week ? 'XP earned since Monday. The weekly board resets every Monday.' : 'Every player, ranked by total XP.';
+  $('#b-xph').textContent = week ? 'THIS WEEK' : 'TOTAL XP';
+  $$('#b-tabs button').forEach(t => { const on = t.dataset.scope === scope; t.classList.toggle('on', on); t.setAttribute('aria-pressed', String(on)); });
+}
+
 function render(intro) {
   const week = scope === 'week', b = B[week ? 'week' : 'all'];
-  $('#b-sub').textContent = week ? 'XP earned since Monday. The weekly board resets every Monday.' : 'Every player, ranked by total XP.';
-  $$('#b-tabs button').forEach(t => { const on = t.dataset.scope === scope; t.classList.toggle('on', on); t.setAttribute('aria-pressed', String(on)); });
+  setTabs();
   $('#b-podium').innerHTML = podium(b.top);
   $('#b-count').textContent = `Top ${b.top.length} of ${num(B.total)} players`;
-  $('#b-xph').textContent = week ? 'THIS WEEK' : 'TOTAL XP';
   $('#b-list').innerHTML = rankings(b);
   $('#b-me').innerHTML = mePanel(b, week);
   $('#b-off').hidden = B.live;
@@ -64,7 +69,9 @@ function render(intro) {
 }
 
 // intro: pedestals rise and your spot gets a ring. Tab switches only re-run the light part.
+// Nothing moves when the player asked for reduced motion.
 function animate(intro) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   $$('#b-podium .pd').forEach((p, k) => {
     const d = intro ? [150, 0, 300][k] : 0;
     if (intro) anim(p.querySelector('.pd-ped'), [{ transform: 'scaleY(0)' }, { transform: 'none' }], { duration: 600, delay: d, easing: EASE.out, fill: 'backwards' });
@@ -85,13 +92,15 @@ function loading() {
 }
 
 export async function openLeaderboard() {
-  scope = 'all'; updHud(); loading(); $('#s-board .b-body').scrollTop = 0;
+  B = null; scope = 'all'; setTabs(); updHud(); loading(); $('#s-board .b-body').scrollTop = 0;
   const [board] = await Promise.all([fetchBoard(), go('s-board')]);
   if (current() !== 's-board') return;
+  $('#b-title').focus({ preventScroll: true }); // keyboard/screen-reader users land on the new screen
   B = board; render(true);
 }
 
 export function mount() {
-  $('#b-back').onclick = () => openProfile();
-  $$('#b-tabs button').forEach(t => t.onclick = () => { if (!B || scope === t.dataset.scope) return; scope = t.dataset.scope; render(false); });
+  $('#b-back').onclick = () => openProfile().then(() => { const b = $('#p-lb'); if (b) b.focus({ preventScroll: true }); });
+  // While loading, a tab click only switches the tab; the board renders in that scope when it arrives.
+  $$('#b-tabs button').forEach(t => t.onclick = () => { if (scope === t.dataset.scope) return; scope = t.dataset.scope; if (B) render(false); else setTabs(); });
 }

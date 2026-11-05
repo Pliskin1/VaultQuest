@@ -31,7 +31,7 @@ function portfolio() {
 export function openProfile() {
   updHud();
   const tot = S.done.py + S.done.js, L = lvlOf(S.xp);
-  $('#p-body').innerHTML = `<div class="panel p-top"><div class="p-av" style="${S.pro ? 'border-color:var(--violet);color:var(--violet)' : ''}">${initials()}<span style="${S.pro ? 'background:var(--violet)' : ''}">${S.pro ? 'PRO · ' : ''}LVL ${L}</span></div><div><div class="kicker" style="color:var(--gold)">${L > 1 ? 'VAULT CRACKER' : 'ROOKIE'}</div><div style="font-family:var(--disp);font-weight:700;font-size:34px">${esc(S.name || 'Your')}${S.name ? '’s' : ''} progress</div><div style="color:var(--mut);font-size:14px">${S.xp} XP total</div><button class="btn outline p-lb" id="p-lb">${TROPHY}LEADERBOARD<span class="p-rank" id="p-rank" hidden></span></button></div>
+  $('#p-body').innerHTML = `<div class="panel p-top"><div class="p-av" style="${S.pro ? 'border-color:var(--violet);color:var(--violet)' : ''}">${initials()}<span style="${S.pro ? 'background:var(--violet)' : ''}">${S.pro ? 'PRO · ' : ''}LVL ${L}</span></div><div class="p-id"><div class="kicker" style="color:var(--gold)">${L > 1 ? 'VAULT CRACKER' : 'ROOKIE'}</div><div class="p-name">${esc(S.name || 'Your')}${S.name ? '’s' : ''} progress</div><div style="color:var(--mut);font-size:14px">${S.xp} XP total</div><button class="btn outline p-lb" id="p-lb">${TROPHY}LEADERBOARD<span class="p-rank" id="p-rank" hidden></span></button></div>
     <div class="p-stats"><div class="p-stat"><strong style="color:var(--gold)">${tot}</strong><span>vaults cracked</span></div><div class="p-stat"><strong style="color:var(--coral)">${S.streak}</strong><span>day streak</span></div><div class="p-stat"><strong style="color:var(--cyan)">${S.ach.length}</strong><span>achievements</span></div><div class="p-stat"><strong style="color:var(--violet)">${S.questions}</strong><span>questions asked</span></div></div></div>${portfolio()}
    <div class="panel"><div class="kicker">PATHS</div>${pbar('Python', S.done.py, 8, '#F2B544')}${pbar('JavaScript', S.done.js, 8, '#4FD8C4')}<div class="kicker" style="margin-top:26px">ACTIVITY · LAST 12 WEEKS</div><div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:12px;max-width:300px" aria-hidden="true">${weeks()}</div><div class="p-acts"><button class="reset" id="p-reset">Reset progress</button><button class="reset" id="p-logout">Log out</button></div></div>
    <div class="panel"><div style="display:flex;justify-content:space-between"><div class="kicker">ACHIEVEMENTS</div><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">${S.ach.length} / ${Object.keys(ACH).length}</span></div>
@@ -43,7 +43,7 @@ export function openProfile() {
   fetchBoard().then(b => { const r = $('#p-rank'); if (r && b.all.me) { r.textContent = '#' + b.all.me.rank; r.hidden = false; } });
   $('#p-logout').onclick = () => { logout(); location.reload(); };
   $('#p-reset').onclick = () => { if (confirm('Reset all progress? This cannot be undone.')) { resetState(); location.reload(); } };
-  go('s-profile').then(() => {
+  return go('s-profile').then(() => {
     $$('.badge').forEach((b, k) => anim(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: b.classList.contains('off') ? .45 : 1, transform: 'none' }], { duration: 500, delay: k * 60, easing: EASE.back, fill: 'none' }));
     $$('.badge.new').forEach((b, k) => wait(700 + k * 200).then(() => { const p = ctr(b); FX.spark(p.x, p.y, 24, null, .6); FX.ring(p.x, p.y, 90, '#F2B544', 3); }));
     S.fresh = []; save();
