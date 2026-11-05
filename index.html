@@ -44,8 +44,8 @@
 <section id="s-lang" class="screen">
   <div class="l-head"><div class="kicker">Select your path</div><h2>Which language will you master?</h2></div>
   <div class="l-cards">
-    <button class="lcard" data-lang="py"><div class="gl" style="color:var(--gold)">py</div><h3>Python</h3><p>Clean syntax, perfect first language. Data, scripts, AI.</p><div class="meta">4 vaults ready · Beginner</div></button>
-    <button class="lcard" data-lang="js"><div class="gl" style="color:var(--cyan)">js</div><h3>JavaScript</h3><p>The language of the web. Build things you can click.</p><div class="meta">4 vaults ready · Beginner</div></button>
+    <button class="lcard" data-lang="py"><div class="gl" style="color:var(--gold)">py</div><h3>Python</h3><p>Clean syntax, perfect first language. Data, scripts, AI.</p><div class="meta">4 vaults + Mini Boss · Beginner</div></button>
+    <button class="lcard" data-lang="js"><div class="gl" style="color:var(--cyan)">js</div><h3>JavaScript</h3><p>The language of the web. Build things you can click.</p><div class="meta">4 vaults + Mini Boss · Beginner</div></button>
     <div class="lcard locked"><div class="gl" style="color:var(--violet)">jv</div><h3>Java</h3><p>Strong types and real OOP.</p><div class="meta">Coming soon</div></div>
     <div class="lcard locked"><div class="gl" style="color:var(--coral)">c++</div><h3>C++</h3><p>Close to the metal. Hard mode.</p><div class="meta">Coming soon</div></div>
   </div>
@@ -76,6 +76,20 @@
       <div class="m-tools"><button class="tool h" id="btn-hint">Hint · free</button><button class="tool" id="btn-explain">Explain concept</button></div>
       <form class="m-form" id="m-form"><label for="m-in" class="sr">Ask the mentor</label><input id="m-in" autocomplete="off" placeholder="Ask anything about this task…"><button class="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
     </aside>
+  </div>
+</section>
+
+<section id="s-recovery" class="screen">
+  <header class="lhud">
+    <button class="iconbtn" id="rc-back" aria-label="Back to map"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 9H4M8 5L4 9l4 4" stroke="#A3ABBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="ltitle"><b id="rc-kick" style="color:var(--cyan)">SYNTAX RECOVERY</b><span id="rc-name">Vault 01</span></div>
+    <div class="segs rc-segs" id="rc-segs"></div>
+    <div class="sp"></div>
+    <div class="hearts" id="rc-hearts"></div>
+  </header>
+  <div class="rc-body">
+    <aside class="rc-why" id="rc-why"></aside>
+    <div class="l-main"><div class="card rc-card" id="rc-card"></div></div>
   </div>
 </section>
 
@@ -134,7 +148,6 @@
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="10.5" width="14" height="10" rx="2" stroke="#C9B8FF" stroke-width="2"/><path d="M8 10.5V8a4 4 0 017.5-2" stroke="#C9B8FF" stroke-width="2" stroke-linecap="round"/></svg></div><div><b>Advanced vaults</b><span>Loops, arrays, objects, async — in every language</span></div></li>
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="#C9B8FF" stroke-width="2"/><path d="M3 9h18M8 14l-2 2 2 2M14 14l2 2-2 2" stroke="#C9B8FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><b>Guided mini projects</b><span>Build real apps step by step, with a live preview</span></div></li>
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="7" width="16" height="12" rx="3" stroke="#C9B8FF" stroke-width="2"/><path d="M12 7V4M9 13h.01M15 13h.01" stroke="#C9B8FF" stroke-width="2.2" stroke-linecap="round"/></svg></div><div><b>AI code review</b><span>Feedback on every run, like a senior dev beside you</span></div></li>
-        <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0012 3z" stroke="#C9B8FF" stroke-width="2" stroke-linejoin="round"/></svg></div><div><b>Unlimited hints</b><span>Never stuck, never charged XP</span></div></li>
         <li><div class="fi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="13" rx="2" stroke="#C9B8FF" stroke-width="2"/><path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2" stroke="#C9B8FF" stroke-width="2"/></svg></div><div><b>Portfolio &amp; certificates</b><span>Every shipped project, ready to show employers</span></div></li>
       </ul>
     </div>
@@ -148,11 +161,51 @@
         <span>Advanced vaults</span><span class="c">—</span><span class="y">✓</span>
         <span>Guided projects</span><span class="c">—</span><span class="y">✓</span>
         <span>AI code review</span><span class="c">—</span><span class="y">✓</span>
-        <span>Hints</span><span class="c">3 / vault</span><span class="y">∞</span></div>
+        <span>Free hints</span><span class="c">✓</span><span class="y">✓</span></div>
       <button class="later" id="pro-later">Maybe later</button>
     </div>
   </div>
   <section class="tst" id="pro-tst" aria-label="Player reviews" hidden></section>
+</section>
+
+<section id="s-blueprint" class="screen">
+  <header class="lhud">
+    <button class="iconbtn" id="bp-back" aria-label="Back to map"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M14 9H4M8 5L4 9l4 4" stroke="#A3ABBE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="ltitle"><b style="color:var(--violet)" id="bp-kick">PRO PROJECT · JAVASCRIPT</b><span id="bp-name">To-Do App · Blueprint</span></div>
+    <div class="segs" id="bp-segs" aria-hidden="true"></div>
+    <span class="bp-stage" id="bp-stage">STEP 1 OF 2 · BLUEPRINT</span>
+    <div class="sp"></div>
+    <span class="chip" style="color:var(--violet);border-color:#2E2650">PRO</span>
+    <div class="xpw"><span class="lvlb hud-lvl">LVL 1</span><div class="bar"><i class="hud-bar"></i></div></div>
+  </header>
+  <div class="bp-body">
+    <aside class="bp-left">
+      <div class="kicker">The brief</div><p id="bp-brief"></p>
+      <div class="kicker" style="margin-top:4px">Your plan</div>
+      <ol id="bp-list"></ol>
+      <div class="bp-clear" id="bp-clear">0 / 5 clear</div>
+      <button class="btn pro" id="bp-start" disabled>START BUILDING</button>
+      <span class="bp-gate" id="bp-gate">Every section needs to be clear first.</span>
+    </aside>
+    <main class="bp-main"><div class="card bp-card" id="bp-card">
+      <div class="kicker" id="bp-sk">SECTION 1 OF 5</div>
+      <h3 id="bp-title">Features</h3>
+      <p class="bp-purpose" id="bp-purpose"></p>
+      <div class="bp-q" id="bp-q"></div>
+      <label class="sr" for="bp-ed">Your answer</label>
+      <textarea id="bp-ed" class="bp-ed" spellcheck="true" maxlength="1500" placeholder="Write it your way — there's no single right design."></textarea>
+      <div class="bp-meta"><span id="bp-status" class="bp-st"></span><span id="bp-chars">0 / 1500</span></div>
+      <div class="bp-open" id="bp-open" aria-live="polite"></div>
+      <div class="bp-acts"><button class="btn" id="bp-ask" disabled>ASK MENTOR ABOUT THIS</button><button class="btn ghost" id="bp-keep" style="display:none">KEEP MY ANSWER</button><span class="sp"></span><button class="btn ghost bp-nav" id="bp-prev" aria-label="Previous section">←</button><button class="btn ghost bp-nav" id="bp-next" aria-label="Next section">→</button></div>
+    </div></main>
+    <aside class="bp-right">
+      <div class="pj-mentor" id="bp-mentor">
+        <div class="m-head"><div class="orb"></div><div><div class="m-name">VAULT AI · BLUEPRINT</div><div class="m-stat" id="bp-stat">Your mentor · online</div></div></div>
+        <div class="msgs" id="bp-msgs" aria-live="polite"></div>
+        <form class="m-form" id="bp-form"><label for="bp-in" class="sr">Answer the mentor</label><input id="bp-in" autocomplete="off" placeholder="Answer the mentor's question…"><button class="send" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></button></form>
+      </div>
+    </aside>
+  </div>
 </section>
 
 <section id="s-project" class="screen">
@@ -161,19 +214,20 @@
     <div class="ltitle"><b style="color:var(--violet)" id="pj-kick">PRO PROJECT · JAVASCRIPT</b><span id="pj-name">To-Do App</span></div>
     <div class="segs" id="pj-segs"></div>
     <div class="sp"></div>
+    <div class="hearts" id="pj-hearts" role="img" aria-label="3 hearts left"></div>
     <span class="chip" style="color:var(--violet);border-color:#2E2650">PRO</span>
     <div class="xpw"><span class="lvlb hud-lvl">LVL 1</span><div class="bar"><i class="hud-bar"></i></div></div>
   </header>
   <div class="pj-body">
     <aside class="pj-left"><div class="kicker">The brief</div><p id="pj-brief"></p><div class="kicker" style="margin-top:4px">Milestones</div><ol id="pj-ms"></ol></aside>
     <div class="pj-mid">
-      <div class="pj-tabs"><span class="on" id="pj-file">app.js</span><span class="pj-xtab">index.html</span><span class="pj-xtab">style.css</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
-      <div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
-      <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><span style="margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--mut2)">4 automated checks</span></div>
+      <div class="pj-tabs" role="tablist" aria-label="Project files"><button class="on" id="pj-file" role="tab" aria-selected="true" data-tab="code">app.js</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="index.html">index.html</button><button class="pj-xtab" role="tab" aria-selected="false" data-tab="style.css">style.css</button><button class="pj-bptab" role="tab" aria-selected="false" data-tab="blueprint" id="pj-bptab">MY BLUEPRINT</button><span class="pj-ro" id="pj-ro">READ-ONLY</span><span class="tl" id="pj-tl">TIME-LAPSE ×8</span></div>
+      <div class="pj-bpv" id="pj-bpv" style="display:none" role="tabpanel" aria-label="My Blueprint"></div><div class="pj-plan" id="pj-plan" style="display:none"><div class="kicker" style="color:var(--coral)">FINAL BOSS · PLAN FIRST</div><p class="pj-plan-q" id="pj-plan-q"></p><label class="sr" for="pj-ap">Your plan</label><textarea id="pj-ap" class="bp-ed" maxlength="800" placeholder="Explain it in your own words — the editor unlocks when your plan is complete."></textarea><div class="pj-plan-acts"><button class="btn" id="pj-explain">EXPLAIN MY PLAN</button><button class="btn pro" id="pj-code" disabled>START CODING</button><span class="pj-plan-st" id="pj-plan-st">Explaining is free — no hearts</span></div></div><div class="pj-ed" id="pj-edw"><div class="pj-in"><div class="gut" id="pj-gut"></div><pre id="pj-hl"></pre><textarea id="pj-ta" spellcheck="false" aria-label="Code editor"></textarea></div></div>
+      <div class="pj-bar"><button class="btn" id="pj-run"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN &amp; TEST</button><button class="btn pro" id="pj-submit" style="display:none">SUBMIT PROJECT</button><button class="btn ghost pj-hint" id="pj-hint">Hint · free</button><span class="pj-count" id="pj-count">automated checks</span></div>
       <div class="console pj-cons" id="pj-cons"></div>
     </div>
     <aside class="pj-right">
-      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url" id="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div></div>
+      <div class="pv"><div class="pv-bar"><i></i><i></i><i></i><span class="pv-url" id="pv-url">localhost:3000 — my-todo-app</span><span class="live">LIVE</span></div><div class="pv-app" id="pv-app"></div><div class="pv-err" id="pv-err" role="status" aria-live="polite"></div></div>
       <div class="pj-mentor" id="pj-mentor">
         <div class="m-head"><div class="orb"></div><div><div class="m-name">VAULT AI · CODE REVIEW</div><div class="m-stat" id="pj-stat">Your mentor · online</div></div></div>
         <div class="msgs" id="pj-msgs" aria-live="polite"></div>
@@ -211,7 +265,7 @@
       <div class="c-stat"><b>MISTAKES</b><strong id="c-mis" style="color:var(--tx)">0</strong></div>
       <div class="c-stat" style="min-width:260px"><b id="c-lvl">LVL 1 → 2</b><div class="c-lvbar"><i id="c-lvbar"></i></div><div style="margin-top:8px;font-size:13px;color:var(--mut)"><span id="c-lvtxt">Keep going</span><span class="lvup" id="c-lvup">LEVEL UP</span></div></div>
     </div>
-    <button class="btn" id="c-next" style="margin-top:14px;opacity:0">CONTINUE <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="c-acts"><button class="btn" id="c-next" style="opacity:0">CONTINUE <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="btn ghost" id="c-alt" style="opacity:0;display:none"></button></div>
   </div>
 </div>
 
@@ -254,7 +308,7 @@
       <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#C9B8FF"/><path d="M7 12.5l3 3 7-7" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Advanced vaults in every language</div>
       <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#C9B8FF"/><path d="M7 12.5l3 3 7-7" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Guided mini projects</div>
       <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#C9B8FF"/><path d="M7 12.5l3 3 7-7" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>AI code review on every run</div>
-      <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#C9B8FF"/><path d="M7 12.5l3 3 7-7" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Unlimited hints + portfolio</div>
+      <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#C9B8FF"/><path d="M7 12.5l3 3 7-7" stroke="#07090F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Portfolio of shipped projects</div>
     </div>
     <button class="btn pro" id="p-next" style="margin-top:16px;opacity:0">ENTER THE PRO VAULTS <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
@@ -268,13 +322,12 @@
   <div class="srow" style="top:34px"><div class="kicker" id="s-kick" style="color:var(--gold);font-size:14px;opacity:0">PROJECT COMPLETE · TO-DO APP · JAVASCRIPT</div></div>
   <div class="srow" style="top:58px"><div class="c-title" id="sh-title" style="font-size:80px"></div></div>
   <div class="srow" id="s-stats" style="top:532px">
-    <div class="c-stat" style="opacity:0"><b>XP EARNED</b><strong id="s-xp">+0</strong></div>
-    <div class="c-stat" style="opacity:0"><b>MILESTONES</b><strong style="color:var(--cyan)">4 / 4</strong></div>
-    <div class="c-stat" style="opacity:0"><b>AI CODE REVIEW</b><strong id="s-score" style="color:var(--violet)">92 / 100</strong></div>
+    <div class="c-stat" style="opacity:0"><b>XP EARNED THIS VISIT</b><strong id="s-xp">+0</strong></div>
+    <div class="c-stat" style="opacity:0"><b>MILESTONES</b><strong id="s-ms" style="color:var(--cyan)">4 / 4</strong></div>
+    <div class="c-stat" style="opacity:0"><b id="s-score-l">CHECKS PASSED</b><strong id="s-score" style="color:var(--violet)">0 / 0</strong></div>
   </div>
-  <div class="srow" style="top:628px"><button class="btn ghost" id="s-share" style="opacity:0">SHARE LIVE LINK</button><button class="btn" id="s-next" style="opacity:0">ADD TO PORTFOLIO <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+  <div class="srow" style="top:628px"><button class="btn ghost" id="s-share" style="opacity:0">COPY MY CODE</button><button class="btn" id="s-next" style="opacity:0">ADD TO PORTFOLIO <svg width="16" height="16" viewBox="0 0 18 18" fill="none"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
 </div>
-<div id="pj-sandbox" aria-hidden="true" style="position:fixed;left:-9999px;top:0;width:340px"></div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <canvas id="fx"></canvas>

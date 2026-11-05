@@ -7,7 +7,7 @@ import { FX } from '../core/fx.js';
 import { setScreen } from '../core/router.js';
 import { S } from '../core/state.js';
 import { renderMap, setSel } from '../screens/map.js';
-import { pjRefresh } from '../screens/project.js';
+import { pjRefresh, previewAct } from '../screens/project.js';
 import { preloadPython } from '../run/py-runner.js';
 
 const cur = $('#cursor');
@@ -57,20 +57,22 @@ async function freeDemo() {
   await click($('#m-play'), 800); await wait(2600);
   cap('CHALLENGES', 'Handcrafted tasks: quizzes, fill-ins, fix-the-bug'); await wait(1600);
   await click($$('.opt')[0], 900); await wait(2600);
-  await move($('#blank'), 800); await type($('#blank'), '==', 180); await wait(400); await click($('#b-check'), 500);
+  await move($('#blank'), 800); await type($('#blank'), '"False"', 150); await wait(400); await click($('#b-check'), 500);
   cap('AI MENTOR', 'Make a mistake? It explains exactly why'); await wait(4200);
-  await click($('#m-in'), 900); await type($('#m-in'), "what's the difference between = and ==?", 45); await wait(300);
+  await click($('#m-in'), 900); await type($('#m-in'), 'what\'s the difference between False and "False"?', 45); await wait(300);
   cap('AI MENTOR', 'Ask it anything about the task'); $('#m-form').requestSubmit(); await wait(6200);
-  await click($('#blank'), 900); await type($('#blank'), '=', 150); await wait(300); await click($('#b-check'), 500); await wait(2800);
+  await click($('#blank'), 900); await type($('#blank'), 'False', 150); await wait(300); await click($('#b-check'), 500);
+  await waitFor(() => $('#ed')); await wait(1200); // the filled-in code runs for real before the next card
   cap('FIX THE BUG', 'Real code runs — real errors, explained in plain words'); await wait(1000);
   await click($('#b-run'), 900); await waitFor(() => !$('#b-run').disabled); await wait(4000);
   await click($('#btn-hint'), 900); await wait(3600);
-  const ta = $('#ed'), idx = ta.value.indexOf('Name'), pre = $('#ed-hl').getBoundingClientRect();
+  const ta = $('#ed'), idx = ta.value.indexOf('Read a book'), pre = $('#ed-hl').getBoundingClientRect();
   const cw = (() => { const c = document.createElement('canvas').getContext('2d'); c.font = '17px JetBrains Mono'; return c.measureText('M').width; })();
   await move({ x: pre.left + 56 + (idx - ta.value.lastIndexOf('\n', idx) - 1) * cw + cw * .5, y: pre.top + 18 + 28.9 * 1.5 }, 900); await wait(300);
-  ta.focus(); ta.selectionStart = ta.selectionEnd = idx + 1; await wait(300);
-  ta.value = ta.value.slice(0, idx) + ta.value.slice(idx + 1); ta.selectionStart = ta.selectionEnd = idx; ta.oninput(); await wait(260);
-  ta.value = ta.value.slice(0, idx) + 'n' + ta.value.slice(idx); ta.selectionStart = ta.selectionEnd = idx + 1; ta.oninput(); await wait(700);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = idx; await wait(300);
+  ta.value = ta.value.slice(0, idx) + '"' + ta.value.slice(idx); ta.selectionStart = ta.selectionEnd = idx + 1; ta.oninput(); await wait(260); // quote the title
+  const end = idx + 1 + 'Read a book'.length;
+  ta.value = ta.value.slice(0, end) + '"' + ta.value.slice(end); ta.selectionStart = ta.selectionEnd = end + 1; ta.oninput(); await wait(700);
   cap(''); await click($('#b-run'), 800);
   await waitFor(() => $('#cine').classList.contains('on')); await wait(8000);
   cap('LEVEL COMPLETE', 'Stars, XP, level-ups and achievements'); await waitFor(() => visible($('#c-next'))); await wait(1500);
@@ -82,9 +84,18 @@ async function freeDemo() {
   await wait(3800); window.__DONE = true;
 }
 
-const M1 = 'function render() {\n  list.innerHTML = "";\n  tasks.forEach(t => {\n    const li = document.createElement("li");\n    li.textContent = t;\n    list.appendChild(li);\n  });\n}\nrender();\n';
+const M1 = 'function render() {\n  list.innerHTML = "";\n  tasks.forEach(task => {\n    const li = document.createElement("li");\n    li.textContent = task.title;\n    list.appendChild(li);\n  });\n}\nrender();\n';
 const BUG = '\n$("#add").onclick = () => {\n  list.innerHTML = "<li>" + $("#task").value + "</li>";\n};\n';
-const FINAL = '// The HTML is ready: #task, #add, #list, #count\nconst tasks = ["Learn JavaScript", "Crack a vault"];\nconst list = $("#list");\n\nfunction render() {\n  list.innerHTML = "";\n  tasks.forEach(t => {\n    const li = document.createElement("li");\n    li.textContent = t;\n    li.onclick = () => { li.classList.toggle("done"); count(); };\n    list.appendChild(li);\n  });\n  count();\n}\n\nfunction count() {\n  const left = tasks.length - list.querySelectorAll(".done").length;\n  $("#count").textContent = left + " left";\n}\n\n$("#add").onclick = () => {\n  tasks.push($("#task").value);\n  $("#task").value = "";\n  render();\n};\n\nrender();\n';
+const FINAL = '// The HTML is ready: #task, #add, #list, #count\n// loadTasks() gives you the saved tasks: [{ title: "…", done: false }, …]\nconst tasks = loadTasks();\nconst list = $("#list");\n\nfunction render() {\n  list.innerHTML = "";\n  tasks.forEach(task => {\n    const li = document.createElement("li");\n    li.textContent = task.title;\n    if (task.done) li.classList.add("done");\n    li.onclick = () => { task.done = !task.done; render(); };\n    list.appendChild(li);\n  });\n  const left = tasks.filter(t => !t.done).length;\n  $("#count").textContent = left + " left";\n}\n\n$("#add").onclick = () => {\n  tasks.push({ title: $("#task").value, done: false });\n  $("#task").value = "";\n  render();\n};\n\nrender();\n';
+
+// The plan typed in the ?demo=pro recording (Features is deliberately incomplete: it counts done tasks).
+const PLAN = {
+  features: 'People add a task by typing it and pressing Add, tick tasks off when they are done, and see a counter of how many tasks are done.',
+  data: 'I keep an array of task objects. Each task has a title with its text and a done value that is true or false.',
+  logic: 'When Add is pressed I read the text from the input, push a new task onto the end of the array and clear the box. Clicking a task flips its done value. To count I filter the tasks that are not done; with no tasks that is 0.',
+  uiData: 'After every change I call render, which redraws the whole list from the array and updates the counter, so the page always matches the data.',
+  steps: 'First I show the tasks, then I make Add work, then marking as done, and finally the counter. After each step I run the checks and try it in the preview.'
+};
 
 async function proDemo() {
   cx = innerWidth * .6; cy = innerHeight * .7;
@@ -95,7 +106,7 @@ async function proDemo() {
     while (ta.value.length > p) { ta.value = ta.value.slice(0, Math.max(p, ta.value.length - cpf * 2)); pjRefresh(); edw.scrollTop = edw.scrollHeight; await nextFrame(); }
     for (let i = p; i < fin.length; i += cpf) { ta.value = fin.slice(0, i + cpf); pjRefresh(); edw.scrollTop = edw.scrollHeight; await nextFrame(); }
   };
-  Object.assign(S, { lang: 'js', xp: 1240, done: { py: 4, js: 4 }, stars: { js0: 3, js1: 3, js2: 2, js3: 3, py0: 3, py1: 3, py2: 3, py3: 2 }, ach: ['first', 'curious', 'bounce', 'clean', 'debug', 'combo'], fresh: [], streak: 6, questions: 9, pro: false, projects: [] });
+  Object.assign(S, { lang: 'js', xp: 1240, done: { py: 5, js: 5 }, stars: { js0: 3, js1: 3, js2: 2, js3: 3, js4: 3, py0: 3, py1: 3, py2: 3, py3: 2, py4: 3 }, ach: ['first', 'curious', 'bounce', 'clean', 'debug', 'combo'], fresh: [], streak: 6, questions: 9, pro: false, projects: [] });
   await document.fonts.ready;
   const card = (sub, k) => `<div class="emblem" style="width:150px;height:150px">${emblem()}</div><div style="display:flex;align-items:center;gap:18px"><div class="logo" style="font-size:78px">VAULT<span>QUEST</span></div><span style="padding:6px 14px;border-radius:10px;background:var(--violet);color:#07090F;font-family:var(--disp);font-weight:700;font-size:34px;letter-spacing:.12em">PRO</span></div><div style="font-size:22px;color:var(--mut)">${sub}</div><div class="kicker" style="margin-top:16px;color:var(--violet)">${k}</div>`;
   const e = $('#endcard');
@@ -106,7 +117,7 @@ async function proDemo() {
   FX.bgOn = false; setSel(3); renderMap(); setScreen('s-map');
   await anim(e, [{ opacity: 1 }, { opacity: 0 }], { duration: 700 }); e.style.display = 'none'; e.getAnimations().forEach(a => a.cancel());
   cap('FREE PLAN', 'Every language starts with free basic vaults'); await wait(2600);
-  await click($('#m-nodes .node[data-i="5"] .nbtn'), 1100); await wait(500);
+  await click($('#m-nodes .node[data-i="6"] .nbtn'), 1100); await wait(500);
   cap('GO FURTHER', 'Advanced vaults and real projects live in Pro'); await wait(2400);
   await click($('#m-pro'), 900); await wait(1300);
   cap('VAULTQUEST PRO', 'Advanced levels, guided projects, AI code review'); await wait(3400);
@@ -114,13 +125,35 @@ async function proDemo() {
   await click($('#pro-cta'), 800); await wait(1300);
   cap(''); await click($('#co-pay'), 900);
   await waitFor(() => visible($('#p-next')));
-  cap('PRO UNLOCKED', 'Every advanced vault opens instantly'); await wait(1800);
+  cap('PRO UNLOCKED', 'The PRO path opens — one step at a time'); await wait(1800);
   cap(''); await click($('#p-next'), 900);
   await waitFor(() => $('#m-count').textContent.startsWith('Pro unlocked')); await wait(1600);
+  // The PRO path starts with PRO Vault 06; the recording shows it as the next step, then marks it cracked
+  // in a labelled time-lapse (DEMO state only — nothing is saved) so the project can open.
+  cap('PRO VAULT 06', 'The PRO path starts here — Arrays & Loops'); await move($('#m-nodes .node[data-i="5"] .nbtn'), 900); await wait(1400);
+  cap('TIME-LAPSE', 'Vault 06 cracked — the project unlocks'); S.stars.js5 = 3; renderMap(); await wait(1600);
   cap('PRO PATH', 'New vaults + projects in every language'); await wait(1600);
-  await click($('#m-nodes .node[data-i="5"] .nbtn'), 900); await wait(800);
+  await click($('#m-nodes .node[data-i="6"] .nbtn'), 900); await wait(800);
   cap('GUIDED PROJECTS', 'Build real mini apps, milestone by milestone'); await wait(1200);
-  await click($('#m-play'), 800); await wait(2800);
+  await click($('#m-play'), 800);
+  // Blueprint first: one section with a real follow-up question, the rest time-lapsed.
+  await waitFor(() => $('#s-blueprint').classList.contains('on')); await wait(1800);
+  cap('PLAN FIRST', 'Explain the plan in your own words — the mentor asks, it never designs it'); await wait(1200);
+  const done = id => () => /Clear/.test($('#bp-status').textContent) && $('#bp-ed').value === PLAN[id];
+  await move($('#bp-ed'), 800); await type($('#bp-ed'), PLAN.features, 14); await wait(300);
+  await click($('#bp-ask'), 700); await waitFor(() => $('#bp-open').textContent.length > 0 && !$('#bp-mentor').classList.contains('thinking')); await wait(2400);
+  await click($('#bp-in'), 700); await type($('#bp-in'), 'Only the unfinished ones — the tasks still left to do.', 40); await wait(200);
+  $('#bp-form').requestSubmit(); await waitFor(done('features')); await wait(2200);
+  cap('');
+  for (const id of ['data', 'logic', 'uiData', 'steps']) {
+    await waitFor(() => !$('#bp-mentor').classList.contains('thinking'));
+    $$('#bp-list button')[['features', 'data', 'logic', 'uiData', 'steps'].indexOf(id)].click(); await wait(500);
+    const ed = $('#bp-ed'); ed.value = PLAN[id]; ed.dispatchEvent(new Event('input')); await wait(400);
+    $('#bp-ask').click(); await waitFor(done(id)); await wait(700);
+  }
+  await waitFor(() => !$('#bp-start').disabled && !$('#bp-mentor').classList.contains('thinking')); await wait(900);
+  cap('READY TO BUILD', 'A complete plan unlocks the workspace — and stays with you there'); await wait(1400);
+  await click($('#bp-start'), 800); await waitFor(() => $('#s-project').classList.contains('on')); await wait(2400);
   await move(ta, 800, -60, 40); await wait(200); ta.focus(); await typeCode(M1, 2); await wait(300);
   await click($('#pj-run'), 700);
   cap('LIVE PREVIEW', 'Your code runs instantly, tests check each milestone'); await wait(4400);
@@ -129,8 +162,12 @@ async function proDemo() {
   cap(''); const tl = $('#pj-tl'); anim(tl, [{ opacity: 0 }, { opacity: 1 }], { duration: 200 }); await morph(FINAL, 10); await wait(200); anim(tl, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
   await click($('#pj-run'), 700); await wait(3600);
   cap('IT REALLY WORKS', 'A real app — built by you');
-  const pin = $('#pv-app #task'); await click(pin, 800); for (const ch of 'Ship VaultQuest') { pin.value += ch; await wait(55); } await wait(200);
-  await click($('#pv-app #add'), 600); await wait(700); await click($$('#pv-app li')[0], 700); await wait(1100);
+  // The app runs in a sandboxed frame: the cursor moves to where the frame reports its elements, and the
+  // frame itself performs the typing and clicks (run/sandbox/preview.js).
+  const inPreview = async (op, sel, extra = {}, dur = 700) => { const r = await previewAct({ op: 'rect', sel, ...extra }); if (r?.rect) await move({ x: r.rect.x + r.rect.w / 2, y: r.rect.y + r.rect.h / 2 }, dur); await wait(140); return previewAct({ op, sel, ...extra }); };
+  await inPreview('rect', '#task', {}, 800); let typed = '';
+  for (const ch of 'Ship VaultQuest') { typed += ch; await previewAct({ op: 'type', sel: '#task', text: typed }); await wait(55); } await wait(200);
+  await inPreview('click', '#add', {}, 600); await wait(700); await inPreview('click', '#list li', { i: 0 }, 700); await wait(1100);
   cap(''); await click($('#pj-submit'), 900);
   await waitFor(() => visible($('#s-next')));
   cap('SHIPPED', 'Every project lands in your portfolio'); await wait(2200); cap('');

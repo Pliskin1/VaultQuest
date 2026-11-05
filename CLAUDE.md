@@ -8,7 +8,7 @@ Ported from the prototype into a modular Vite app with real AI (`/api/*`) and re
 - Fonts via `@fontsource` (Chakra Petch, Inter, JetBrains Mono).
 - Server: Node + Express in `server/` (port 8787), Vite proxies `/api`. AI = `@anthropic-ai/sdk`, model `claude-haiku-5-5`.
 - Code execution: JS in a throwaway Worker (`run/js-runner.js`), Python via Pyodide in a Worker (`run/py-*.js`).
-- Persistence: localStorage key `vaultquest`. Payments: mock checkout ("Demo checkout").
+- Persistence: localStorage, one versioned save per local profile `vaultquest:<handle>` (+ `vaultquest:users`, `vaultquest:user`; `.backup.*` / `.corrupt` copies). Migrations in `src/learn/progress.js`. Payments: mock checkout ("Demo checkout").
 
 ## Commands
 - `npm run dev` (Vite + API) · `npm run build` · `npm run server` · `npm start` (build + serve dist + API on one port)

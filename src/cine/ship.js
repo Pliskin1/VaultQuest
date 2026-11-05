@@ -3,15 +3,18 @@ import { $, $$ } from '../core/dom.js';
 import { anim, EASE, cancelAnims } from '../core/anim.js';
 import { Clock, wait, nextFrame } from '../core/clock.js';
 import { FX } from '../core/fx.js';
-import { award } from '../ui/toast.js';
 
-export async function playShipCinematic({ score = 92, xp = 500, title = 'To-Do App', lang = 'JavaScript' } = {}) {
+// Every number shown is real: XP paid now, milestones cleared and checks passed on the verified run, and an
+// AI review score only if the AI reviewer gave one.
+export async function playShipCinematic({ xp = 0, title = 'To-Do App', lang = 'JavaScript', milestones, checks, review = null } = {}) {
   const sc = $('#shipcine'), src = $('.pv'), r = src.getBoundingClientRect(), h = $('#s-holder');
   cancelAnims(sc, h, $('#s-bg'), $('#s-rays'), $('#s-glow'), $('#s-kick'), $('#s-next'), $('#s-share'), ...$$('#s-stats .c-stat'));
   h.innerHTML = '';
   const cl = src.cloneNode(true); cl.style.margin = '0'; cl.style.width = r.width + 'px'; cl.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); h.appendChild(cl);
   h.style.cssText = `position:absolute;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:2`;
-  $('#sh-title').innerHTML = ''; $('#s-kick').textContent = `PROJECT COMPLETE · ${title} · ${lang}`.toUpperCase(); $('#s-share').textContent = 'SHARE LIVE LINK'; $('#s-score').textContent = `${score} / 100`; $('#s-xp').textContent = '+0';
+  $('#sh-title').innerHTML = ''; $('#s-kick').textContent = `PROJECT COMPLETE · ${title} · ${lang}`.toUpperCase(); $('#s-share').textContent = 'COPY MY CODE'; $('#s-xp').textContent = '+0';
+  $('#s-ms').textContent = `${milestones.cleared} / ${milestones.total}`;
+  $('#s-score-l').textContent = review === null ? 'CHECKS PASSED' : 'AI CODE REVIEW'; $('#s-score').textContent = review === null ? `${checks.passed} / ${checks.total}` : `${review} / 100`;
   sc.classList.add('on'); anim($('#s-bg'), [{ opacity: 0 }, { opacity: 1 }], { duration: 600 });
   const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * .47 - (r.top + r.height / 2);
   await anim(h, [{ transform: 'translate(0,0) scale(1) rotateY(0)' }, { transform: `translate(${dx * .6}px,${dy * .6 - 40}px) scale(1.06) perspective(800px) rotateY(-12deg)`, offset: .55 }, { transform: `translate(${dx}px,${dy}px) scale(1.12) perspective(800px) rotateY(0)` }], { duration: 1200, easing: 'cubic-bezier(.16,1,.3,1)' });
@@ -30,7 +33,7 @@ export async function playShipCinematic({ score = 92, xp = 500, title = 'To-Do A
   const t0 = Clock.t;
   while (Clock.t - t0 < 1000) { const k = Math.min(1, (Clock.t - t0) / 1000); $('#s-xp').textContent = '+' + Math.round(xp * (1 - Math.pow(1 - k, 3))); await nextFrame(); }
   $('#s-xp').textContent = '+' + xp;
-  award('builder'); await wait(500);
+  await wait(500);
   [$('#s-share'), $('#s-next')].forEach((b, k) => anim(b, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: k * 120, easing: EASE.out }));
   await wait(600); $('#s-next').focus();
   await new Promise(r => $('#s-next').onclick = r);
