@@ -25,3 +25,10 @@
 .pf{grid-column:1/-1;display:flex;align-items:center;gap:26px}
 .pf-shot{width:240px;flex:none;border-radius:12px;overflow:hidden;border:1px solid var(--ln2);background:#F4F1EA}
 .pf-shot .pv-app{height:auto;padding:12px;transform-origin:0 0}
+.pf-shot.pf-shot-live{height:250px}.pf-shot .pv-app.frame{height:100%;padding:0}
+.pf-shot .pv-app.term{max-height:220px}
+.pf-none{padding:24px 16px;color:#6B6658;font-size:13px;text-align:center}
+.pf-pills{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.pf-acts{display:flex;flex-direction:column;gap:10px}
+.pf-code{margin-top:12px;max-height:320px;overflow:auto;font-size:13px}
+@media (max-width:900px){.pf-shot{width:100%}.pf-acts{flex-direction:row;flex-wrap:wrap}}
