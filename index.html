@@ -289,6 +289,21 @@
   <div class="test">SHOWN TO OTHER PLAYERS ON THE PRO PAGE</div>
 </div></div>
 
+<div id="cert" role="dialog" aria-modal="true" aria-labelledby="ce-h"><div class="ce">
+  <div class="ce-head"><div><div class="kicker" id="ce-kick" style="color:var(--gold)">Course complete</div><h3 id="ce-h">Claim your certificate</h3></div><button class="iconbtn" id="ce-x" aria-label="Close" style="width:36px;height:36px">✕</button></div>
+  <div class="ce-paper" id="ce-paper"></div>
+  <form class="ce-form" id="ce-form" novalidate>
+    <label for="ce-in" class="ce-lbl">Your full name, as it should appear on the certificate</label>
+    <div class="ce-row"><input id="ce-in" maxlength="40" autocomplete="name" spellcheck="false" placeholder="First and last name" aria-describedby="ce-err"><button class="btn" id="ce-go">ISSUE CERTIFICATE</button></div>
+    <div class="ce-meta"><span id="ce-err" role="alert"></span><button type="button" class="ce-later" id="ce-later">Later</button></div>
+  </form>
+  <div class="ce-acts" id="ce-acts" hidden>
+    <button class="btn ghost" id="ce-edit">CHANGE NAME</button>
+    <button class="btn ghost" id="ce-print">PRINT / SAVE PDF</button>
+    <button class="btn" id="ce-done">CONTINUE <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" stroke="#07090F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+</div></div>
+
 <div id="procine">
   <div class="c-bg"></div>
   <div class="c-rays p-rays" id="p-rays"></div>

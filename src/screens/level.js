@@ -27,6 +27,7 @@ import { startProject } from './project.js';
 import { runJsChallenge, observeJs } from '../run/js-runner.js';
 import { runPython, preloadPython, observePython, pythonStatus } from '../run/py-runner.js';
 import { fetchBoard } from '../ui/board.js';
+import { maybeCertificate } from '../ui/certificate.js';
 
 let A = null; // the current attempt (shared engine state: hearts, answers tried, recovery, saved view)
 export const G = { li: 0, ci: 0, combo: 0, mistakes: 0, hints: 0, chMistake: false, hintIdx: 0, lock: false };
@@ -382,6 +383,7 @@ async function levelDone() {
   if (G.hints === 0) award('hintfree');
   if (S.done[S.lang] >= free) award('legend');
   save();
+  await maybeCertificate(S.lang); // offered once, by whichever finish completes the course (normally the Final Boss: project.js winBoss)
   // After World 1: the next step is the PRO Vault — on the map for PRO students, the checkout for FREE ones.
   if (boss && choice === 'next') { if (!S.pro) return openPro(); setSel(proVault); renderMap(); await go('s-map'); return; } // rendered first: no stale map during the fade
   // A PRO step done: the map highlights the next one (PRO Vault → Project → Final Boss).

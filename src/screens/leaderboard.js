@@ -9,6 +9,7 @@ import { go, current } from '../core/router.js';
 import { lvlOf } from '../core/state.js';
 import { updHud } from '../ui/hud.js';
 import { fetchBoard } from '../ui/board.js';
+import { podiumSkeleton, rowsSkeleton, meSkeleton } from '../ui/board-skeleton.js';
 import { openProfile } from './profile.js';
 import { openMap } from './map.js';
 
@@ -56,9 +57,12 @@ function setTabs() {
   $$('#b-tabs button').forEach(t => { const on = t.dataset.scope === scope; t.classList.toggle('on', on); t.setAttribute('aria-pressed', String(on)); });
 }
 
+// aria-busy on the board grid while the skeleton shows, so screen readers don't announce placeholders.
+const busy = on => $('#s-board .b-grid').setAttribute('aria-busy', String(on));
+
 function render(intro) {
   const week = scope === 'week', b = B[week ? 'week' : 'all'];
-  setTabs();
+  setTabs(); busy(false);
   $('#b-podium').innerHTML = podium(b.top);
   $('#b-count').textContent = `Top ${b.top.length} of ${num(B.total)} players`;
   $('#b-list').innerHTML = rankings(b);
@@ -86,9 +90,10 @@ function animate(intro) {
   });
 }
 
+// Skeleton while the board loads (shown during the screen fade-in, replaced by render()).
 function loading() {
-  $('#b-podium').innerHTML = ''; $('#b-me').innerHTML = '<div class="kicker" style="color:var(--gold)">YOUR POSITION</div>';
-  $('#b-list').innerHTML = '<li class="b-empty">Loading rankings…</li>'; $('#b-count').textContent = ''; $('#b-off').hidden = true;
+  $('#b-podium').innerHTML = podiumSkeleton(); $('#b-list').innerHTML = rowsSkeleton(); $('#b-me').innerHTML = meSkeleton();
+  $('#b-count').textContent = ''; $('#b-off').hidden = true; busy(true);
 }
 
 export async function openLeaderboard() {

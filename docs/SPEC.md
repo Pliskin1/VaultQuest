@@ -35,5 +35,8 @@ Local profiles instead of accounts: title → VAULT ACCESS screen (handle 2–16
 Profile → `LEADERBOARD #rank` button (outline) → leaderboard screen: podium (top 3), rankings 4–10 (rank + ▲/▼ since last week, level, vaults, streak, XP; your row highlighted, pinned under `···` if outside the top 10), YOUR POSITION (rank, XP, XP to overtake the player above, PLAY NEXT VAULT), HOW TO CLIMB. Tabs ALL TIME / THIS WEEK (XP since Monday UTC, `S.wk` baseline).
 Scores are self-reported to `POST /api/leaderboard` (no accounts) on profile open, leaderboard open, vault cracked, project shipped. Made-up rivals (`content/leaderboard.js`) fill the board; offline/demo → local profiles + rivals.
 
+## Certificates (added)
+When a course is complete (every level of that language: the FREE nodes and the PRO levels, which unlock in order, so beating the Final Boss is what completes it), an overlay asks for the player's full name (any alphabet, 2–40 chars; the paper updates live; "Later" skips) → ISSUE CERTIFICATE. The certificate is white A4-landscape paper in the course colours (`content/certificates.js`): badge, "Certificate of Completion", VAULTQUEST · course, full name, "for completing the full … course, covering <levels>, as well as the project … and the boss challenges …" (Mini Boss + Final Boss), issue date, signed VAULT AI · Course Mentor. Stored in `S.certs[lang] = { name, at, topics }` (name changeable later, date + topics fixed); the full name never leaves the device. Profile → CERTIFICATES thumbnails (view, or claim if skipped). PRINT / SAVE PDF prints just the paper.
+
 ## Out of scope
 Server accounts/passwords, real payments, multiplayer, admin, i18n.

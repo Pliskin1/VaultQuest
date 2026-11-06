@@ -16,6 +16,8 @@ import { startProject } from './project.js';
 import { openReview, starRow } from '../ui/review.js';
 import { openLeaderboard } from './leaderboard.js';
 import { fetchBoard } from '../ui/board.js';
+import { openCertificate } from '../ui/certificate.js';
+import { certificateHTML, courseComplete, courseTopics, formatDate, localDay } from '../ui/certificate-view.js';
 
 const TROPHY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5.5A2.5 2.5 0 008 9.5M16 6h2.5A2.5 2.5 0 0116 9.5M12 13v4M10 17h4M8.5 20h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -63,13 +65,30 @@ function startShots() {
 }
 const summary = e => `${e.title} — a ${LANGS[e.lang].name} project I built on VaultQuest.${e.verified ? ` ${e.checks.passed}/${e.checks.total} automated checks pass, ${e.milestones.cleared}/${e.milestones.total} milestones.` : ''}`;
 
+// Certificates: issued ones open full size; a finished course that wasn't claimed yet opens the name form.
+function certPanel() {
+  const cards = Object.keys(LANGS).map(l => {
+    const c = (S.certs || {})[l];
+    if (!c && !courseComplete(S, l)) return '';
+    const paper = certificateHTML(c ? { name: c.name, lang: l, date: c.at, topics: c.topics } : { lang: l, date: localDay(), topics: courseTopics(l) });
+    return `<div class="p-cert"><div aria-hidden="true">${paper}</div><button class="p-cert-t" data-lang="${l}"><b>${LANGS[l].name} certificate</b>${c ? `<small>Issued ${formatDate(c.at)}</small>` : '<small class="claim">Course complete · claim it now</small>'}</button></div>`;
+  }).join('');
+  return cards ? `<div class="panel p-certp" id="p-certs"><div class="kicker">CERTIFICATES</div><div class="p-certs">${cards}</div></div>` : '';
+}
+function bindCerts() {
+  $$('#p-certs .p-cert-t').forEach(b => b.onclick = () => openCertificate(b.dataset.lang).then(() => {
+    const p = $('#p-certs'); if (!p) return;
+    p.outerHTML = certPanel(); bindCerts(); $(`#p-certs .p-cert-t[data-lang="${b.dataset.lang}"]`)?.focus();
+  }));
+}
+
 const rateBtn = () => `<span class="stars sm" aria-hidden="true">${starRow(S.review?.stars || 0)}</span>${S.review ? 'Your review · Edit' : 'Rate VaultQuest'}`;
 
 export function openProfile() {
   updHud();
   const tot = S.done.py + S.done.js, L = lvlOf(S.xp);
   $('#p-body').innerHTML = `<div class="panel p-top"><div class="p-av" style="${S.pro ? 'border-color:var(--violet);color:var(--violet)' : ''}">${initials()}<span style="${S.pro ? 'background:var(--violet)' : ''}">${S.pro ? 'PRO · ' : ''}LVL ${L}</span></div><div class="p-id"><div class="kicker" style="color:var(--gold)">${L > 1 ? 'VAULT CRACKER' : 'ROOKIE'}</div><div class="p-name">${esc(S.name || 'Your')}${S.name ? '’s' : ''} progress</div><div style="color:var(--mut);font-size:14px">${S.xp} XP total</div><div class="p-btns"><button class="btn outline p-lb" id="p-lb">${TROPHY}LEADERBOARD<span class="p-rank" id="p-rank" hidden></span></button><button class="rate-btn" id="p-rate">${rateBtn()}</button></div></div>
-    <div class="p-stats"><div class="p-stat"><strong style="color:var(--gold)">${tot}</strong><span>vaults cracked</span></div><div class="p-stat"><strong style="color:var(--coral)">${S.streak}</strong><span>day streak</span></div><div class="p-stat"><strong style="color:var(--cyan)">${S.ach.length}</strong><span>achievements</span></div><div class="p-stat"><strong style="color:var(--violet)">${S.questions}</strong><span>questions asked</span></div></div></div>${portfolio()}
+    <div class="p-stats"><div class="p-stat"><strong style="color:var(--gold)">${tot}</strong><span>vaults cracked</span></div><div class="p-stat"><strong style="color:var(--coral)">${S.streak}</strong><span>day streak</span></div><div class="p-stat"><strong style="color:var(--cyan)">${S.ach.length}</strong><span>achievements</span></div><div class="p-stat"><strong style="color:var(--violet)">${S.questions}</strong><span>questions asked</span></div></div></div>${portfolio()}${certPanel()}
    <div class="panel"><div class="kicker">PATHS</div>${pbar('py', '#F2B544')}${pbar('js', '#4FD8C4')}<div class="kicker" style="margin-top:26px">ACTIVITY · LAST 12 WEEKS</div><div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin-top:12px;max-width:300px" aria-hidden="true">${weeks()}</div><div class="p-acts"><button class="reset" id="p-reset">Reset progress</button><button class="reset" id="p-logout">Log out</button></div></div>
    <div class="panel"><div style="display:flex;justify-content:space-between"><div class="kicker">ACHIEVEMENTS</div><span style="font-family:var(--mono);font-size:13px;color:var(--mut)">${S.ach.length} / ${Object.keys(ACH).length}</span></div>
     <div class="ach">${Object.entries(ACH).map(([id, a]) => { const got = S.ach.includes(id), nw = S.fresh.includes(id); return `<div class="badge ${got ? '' : 'off'} ${nw ? 'new' : ''}" title="${a.d}">${nw ? '<span class="nw">NEW</span>' : ''}<svg width="54" height="54" viewBox="0 0 56 56" fill="none" aria-hidden="true"><path d="M28 3l21.7 12.5v25L28 53 6.3 40.5v-25z" fill="${got ? '#151A26' : '#0E121B'}" stroke="${got ? a.col : '#3A4256'}" stroke-width="2"/><path d="${a.ic}" stroke="${got ? a.col : '#3A4256'}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${a.n}${got ? '' : ' <span class="sr">(locked)</span>'}</span></div>`; }).join('')}</div></div>`;
@@ -80,6 +99,7 @@ export function openProfile() {
   $$('.pf-share').forEach(b => b.onclick = () => { navigator.clipboard?.writeText(summary(portfolioEntry(S.projects[+b.dataset.k], LIVE, levels))).catch(() => {}); b.textContent = 'COPIED ✓'; });
   $('#p-rate').onclick = () => openReview(() => { const b = $('#p-rate'); b.innerHTML = rateBtn(); anim(b, [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }, { transform: 'scale(1)' }], { duration: 400, easing: EASE.back, fill: 'none' }); });
   $('#p-lb').onclick = () => openLeaderboard();
+  bindCerts();
   // Also saves this player's score to the shared board; the rank chip appears once it answers.
   fetchBoard().then(b => { const r = $('#p-rank'); if (r && b.all.me) { r.textContent = '#' + b.all.me.rank; r.hidden = false; } });
   $('#p-logout').onclick = () => { logout(); location.reload(); };

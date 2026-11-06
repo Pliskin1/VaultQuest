@@ -23,6 +23,8 @@ test('Back never interrupts a celebration or a payment in progress; it closes th
   for (const o of [{ cine: true }, { ship: true }, { pro: true }, { checkout: true, paying: true }]) assert.deepEqual(backAction('s-level', o), { type: 'stay' }, JSON.stringify(o));
   assert.deepEqual(backAction('s-pro', { checkout: true }), { type: 'click', sel: '#co-x' });
   assert.deepEqual(backAction('s-profile', { review: true }), { type: 'click', sel: '#rv-x' }); // the review dialog closes first
+  // the certificate dialog too, wherever it opened: after a vault, a ship or the Final Boss, or on the profile
+  for (const s of ['s-level', 's-project', 's-profile']) assert.deepEqual(backAction(s, { cert: true }), { type: 'click', sel: '#ce-x' }, s);
 });
 
 test('the error banner reacts only to VaultQuest\'s own errors', () => {

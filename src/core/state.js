@@ -16,7 +16,8 @@ export const LIVE = Object.fromEntries(Object.entries(LANGS).map(([l, L]) => [l,
 
 const USERS = 'vaultquest:users', CUR = 'vaultquest:user', RESERVED = ['user', 'users'];
 const keyOf = name => 'vaultquest:' + name.toLowerCase();
-const fresh = () => ({ name: '', lang: 'py', xp: 0, done: { py: 0, js: 0 }, stars: {}, ach: [], fresh: [], streak: 1, lastDay: '', questions: 0, pro: false, projects: [], wk: null, v: SAVE_VERSION, curriculum: { ...LIVE }, awarded: {}, legacy: {}, attempts: {} });
+// fullName: the real name for certificates (stays on this device); certs: { [lang]: { name, at: 'YYYY-MM-DD', topics: [level titles] } }
+const fresh = () => ({ name: '', lang: 'py', xp: 0, done: { py: 0, js: 0 }, stars: {}, ach: [], fresh: [], streak: 1, lastDay: '', questions: 0, pro: false, projects: [], wk: null, v: SAVE_VERSION, curriculum: { ...LIVE }, awarded: {}, legacy: {}, attempts: {}, fullName: '', certs: {} });
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full/blocked */ } };
 const text = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };

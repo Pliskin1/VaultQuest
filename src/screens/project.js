@@ -28,6 +28,7 @@ import { preloadPython, pythonStatus } from '../run/py-runner.js';
 import { createPreview } from '../run/sandbox/preview.js';
 import { seedOf } from '../run/seed.js';
 import { playShipCinematic } from '../cine/ship.js';
+import { maybeCertificate } from '../ui/certificate.js';
 import { openMap, openMapAt } from './map.js';
 import { openProfile } from './profile.js';
 import { openRecovery } from './recovery.js';
@@ -403,7 +404,9 @@ async function submit() {
   await playShipCinematic({ xp: PJ.gained, title: lv.title, lang: LANGS[a.lang].name, milestones: rec.milestones, checks: rec.checks, review: rec.review?.score ?? null }); // flies a copy of the live preview
   PJ.shipping = false; done();
   stopRuns(); $('#s-holder').innerHTML = ''; // no app frame keeps running behind the profile
-  updHud(); Mentor.use('lv'); openProfile();
+  updHud(); Mentor.use('lv');
+  await maybeCertificate(S.lang); // offered once, by whichever finish completes the course (normally the Final Boss: winBoss)
+  openProfile();
 }
 
 // The Final Boss beaten (after the same fresh verification run as shipping). Completion, XP and the
@@ -418,7 +421,9 @@ async function winBoss(a, done) {
   endAttempt(a);
   await playVaultCinematic({ kick: 'FINAL BOSS DEFEATED · WORLD 1', title: 'WORLD 1 MASTERED', stars, bonus: PJ.gained, prevXp, lvBefore: lvlOf(prevXp), mistakes: 3 - h, first: false, actions: { next: 'BACK TO THE MAP', pro: true } });
   PJ.shipping = false; done();
-  stopRuns(); updHud(); Mentor.use('lv'); openMapAt(i);
+  stopRuns(); updHud(); Mentor.use('lv');
+  await maybeCertificate(S.lang); // the Final Boss completes the course → full name prompt + certificate
+  openMapAt(i);
 }
 
 // ── hints and questions (free) ──
