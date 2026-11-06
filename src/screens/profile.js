@@ -17,6 +17,8 @@ import { openReview, starRow } from '../ui/review.js';
 import { openLeaderboard } from './leaderboard.js';
 import { fetchBoard } from '../ui/board.js';
 import { openCertificate } from '../ui/certificate.js';
+import { openConfirm } from '../ui/confirm.js';
+import { resetBody } from '../ui/reset-view.js';
 import { certificateHTML, courseComplete, courseTopics, formatDate, localDay } from '../ui/certificate-view.js';
 
 const TROPHY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5.5A2.5 2.5 0 008 9.5M16 6h2.5A2.5 2.5 0 0116 9.5M12 13v4M10 17h4M8.5 20h7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -103,9 +105,13 @@ export function openProfile() {
   // Also saves this player's score to the shared board; the rank chip appears once it answers.
   fetchBoard().then(b => { const r = $('#p-rank'); if (r && b.all.me) { r.textContent = '#' + b.all.me.rank; r.hidden = false; } });
   $('#p-logout').onclick = () => { logout(); location.reload(); };
-  $('#p-reset').onclick = () => { if (confirm('Reset all progress? This cannot be undone.')) { resetState(); location.reload(); } };
-  return go('s-profile').then(() => {
-    $$('.badge').forEach((b, k) => anim(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: b.classList.contains('off') ? .45 : 1, transform: 'none' }], { duration: 500, delay: k * 60, easing: EASE.back, fill: 'none' }));
+  $('#p-reset').onclick = async () => {
+    const yes = await openConfirm({ kicker: 'Danger zone', title: 'Reset all progress?', body: resetBody(S, lvlOf(S.xp)), ok: 'RESET PROGRESS', cancel: 'KEEP MY PROGRESS', danger: true });
+    if (yes) { resetState(); location.reload(); }
+  };
+  // Badges pop in with the screen's fade-in; fill 'backwards' keeps each one hidden until its turn.
+  const enter = () => $$('.badge').forEach((b, k) => anim(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: b.classList.contains('off') ? .45 : 1, transform: 'none' }], { duration: 500, delay: k * 60, easing: EASE.back, fill: 'backwards' }));
+  return go('s-profile', enter).then(() => {
     $$('.badge.new').forEach((b, k) => wait(700 + k * 200).then(() => { const p = ctr(b); FX.spark(p.x, p.y, 24, null, .6); FX.ring(p.x, p.y, 90, '#F2B544', 3); }));
     S.fresh = []; save();
   });

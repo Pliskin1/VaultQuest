@@ -30,9 +30,14 @@
 .row{display:flex;gap:12px;align-items:center}
 .ed{position:relative;border-radius:14px;background:#07090F;border:1px solid #1E2433;overflow:hidden}
 .ed pre,.ed textarea{font-variant-ligatures:none;font-feature-settings:"liga" 0,"calt" 0;margin:0;padding:18px 20px 18px 56px;font-family:var(--mono);font-size:17px;line-height:1.7;white-space:pre;tab-size:4;border:0;letter-spacing:0}
-.ed pre{pointer-events:none;color:#D5D9E3;position:relative}
+.ed pre{pointer-events:none;color:#D5D9E3;position:relative;counter-reset:ln}
 .ed textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;background:transparent;color:transparent;caret-color:var(--gold);outline:none;overflow:hidden}
-.ed .gut{position:absolute;left:0;top:0;bottom:0;width:42px;padding-top:18px;text-align:right;font-family:var(--mono);font-size:17px;line-height:1.7;color:#3E465A;border-right:1px solid #161B27;padding-right:8px}
+/* One block per code line (core/highlight.js codeLines), each numbering itself in the gutter: a line that wraps
+   on a narrow screen keeps its number on its first row, and the next number starts below all of its rows.
+   min-height: an empty line is one line tall, like in the textarea. The gutter column is just its border. */
+.ed .ln{display:block;position:relative;min-height:1.7em}
+.ed .ln::before{counter-increment:ln;content:counter(ln);position:absolute;top:0;right:100%;margin-right:23px;color:#3E465A}
+.ed .gut{position:absolute;left:0;top:0;bottom:0;width:42px;border-right:1px solid #161B27}
 .console{border-radius:14px;background:#05070B;border:1px solid #161B27;padding:14px 18px;font-family:var(--mono);font-size:14px;line-height:1.6;min-height:84px;white-space:pre-wrap}
 .console .err{color:var(--coral)}.console .okl{color:var(--cyan)}.console .dim{color:var(--mut2)}
 

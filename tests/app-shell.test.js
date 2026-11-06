@@ -25,6 +25,9 @@ test('Back never interrupts a celebration or a payment in progress; it closes th
   assert.deepEqual(backAction('s-profile', { review: true }), { type: 'click', sel: '#rv-x' }); // the review dialog closes first
   // the certificate dialog too, wherever it opened: after a vault, a ship or the Final Boss, or on the profile
   for (const s of ['s-level', 's-project', 's-profile']) assert.deepEqual(backAction(s, { cert: true }), { type: 'click', sel: '#ce-x' }, s);
+  // a confirmation dialog is cancelled (it is always on top), never confirmed by Back
+  assert.deepEqual(backAction('s-profile', { confirm: true }), { type: 'click', sel: '#cf-x' });
+  assert.deepEqual(backAction('s-profile', { confirm: true, review: true }), { type: 'click', sel: '#cf-x' });
 });
 
 test('the error banner reacts only to VaultQuest\'s own errors', () => {

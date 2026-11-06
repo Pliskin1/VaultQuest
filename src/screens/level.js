@@ -7,7 +7,7 @@ import { anim, EASE, shake } from '../core/anim.js';
 import { wait } from '../core/clock.js';
 import { FX } from '../core/fx.js';
 import { esc, md } from '../core/md.js';
-import { hl } from '../core/highlight.js';
+import { hl, codeLines } from '../core/highlight.js';
 import { go } from '../core/router.js';
 import { S, save, lvlOf, rk, reward } from '../core/state.js';
 import { newAttempt, attemptKey, answerKey, beginSubmission, settleSubmission, cancelSubmission, endAttempt, isCurrent, whenExhausted, inRecovery, startRecovery, fromSave, toSave, explainApproach, answerApproach, startCoding, inPlanning } from '../learn/attempt.js';
@@ -117,8 +117,8 @@ async function renderCh(animate = true, resume = false) {
   if (c.t === 'blank' || c.t === 'fill') { const [a, b] = c.code.split('___'); h += `<pre class="codeblk">${hl(a, S.lang)}<input class="blank" id="blank" aria-label="Your answer" autocomplete="off" spellcheck="false" value="${esc(draft ?? '').replace(/"/g, '&quot;')}">${hl(b, S.lang)}</pre><div class="row"><button class="btn" id="b-check">CHECK</button>${RESET_BTN}<span style="color:var(--mut2);font-size:14px">or press Enter</span></div>`; }
   if (c.approach) h += `<details class="ap-plan"><summary>YOUR PLAN · accepted</summary><p>${esc(A.approach.text)}</p>${A.approach.answers.map(x => `<p class="ap-ans">${esc(x)}</p>`).join('')}</details>`;
   if (c.t === 'fix' || c.t === 'code') {
-    const code = draft ?? c.code, n = Math.max(code.split('\n').length, c.code.split('\n').length);
-    h += `<div class="ed"><div class="gut" aria-hidden="true">${Array.from({ length: n }, (_, k) => k + 1).join('<br>')}</div><pre id="ed-hl" aria-hidden="true">${hl(code, S.lang)}\n</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(code)}</textarea></div>
+    const code = draft ?? c.code;
+    h += `<div class="ed"><div class="gut" aria-hidden="true"></div><pre id="ed-hl" aria-hidden="true">${codeLines(code, S.lang)}</pre><textarea id="ed" spellcheck="false" aria-label="Code editor">${esc(code)}</textarea></div>
     <div class="row"><button class="btn" id="b-run"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2l9 5-9 5z" fill="#07090F"/></svg>RUN</button>${RESET_BTN}<span style="color:var(--mut2);font-size:14px">Runs your code for real</span></div>
     <div class="console" id="cons" aria-live="polite">${consHead()}</div>`;
     if (S.lang === 'py') preloadPython();
@@ -129,7 +129,7 @@ async function renderCh(animate = true, resume = false) {
   if (c.t === 'blank' || c.t === 'fill') { $('#b-check').onclick = checkBlank; $('#blank').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); checkBlank(); } }; $('#blank').oninput = keepDraft; }
   if (c.t === 'fix' || c.t === 'code') {
     const ta = $('#ed');
-    ta.oninput = () => { $('#ed-hl').innerHTML = hl(ta.value, S.lang) + '\n'; keepDraft(); };
+    ta.oninput = () => { $('#ed-hl').innerHTML = codeLines(ta.value, S.lang); keepDraft(); }; // numbers come with the lines
     ta.onkeydown = e => { if (e.key === 'Tab') { e.preventDefault(); const s = ta.selectionStart; ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(ta.selectionEnd); ta.selectionStart = ta.selectionEnd = s + 4; ta.oninput(); } };
     $('#b-run').onclick = c.t === 'code' ? runCode : runFix;
   }

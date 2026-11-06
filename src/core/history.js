@@ -3,11 +3,13 @@
 // app keeps one history entry of its own so the next Back is caught too. On the title, login, language and
 // map screens Back leaves the app as usual. During celebrations Back does nothing; in the checkout it closes
 // the dialog (unless the mock payment is already processing); with the review or certificate dialog open it
-// closes that dialog (closing the certificate's name form is the same as "Later").
+// closes that dialog (closing the certificate's name form is the same as "Later"); an open confirmation
+// dialog (ui/confirm.js, always on top) is cancelled.
 
-// screen: the current screen id · overlays: { cine, ship, pro, checkout, paying, review, cert } → what Back should do.
+// screen: the current screen id · overlays: { cine, ship, pro, checkout, paying, review, cert, confirm } → what Back should do.
 export function backAction(screen, o = {}) {
   if (o.cine || o.ship || o.pro || (o.checkout && o.paying)) return { type: 'stay' };
+  if (o.confirm) return { type: 'click', sel: '#cf-x' };
   if (o.checkout) return { type: 'click', sel: '#co-x' };
   if (o.review) return { type: 'click', sel: '#rv-x' };
   if (o.cert) return { type: 'click', sel: '#ce-x' };
@@ -23,7 +25,7 @@ export function mountHistory({ current, openMap, $ }) {
   mark();
   addEventListener('popstate', () => {
     const on = id => $(id)?.classList.contains('on');
-    const a = backAction(current(), { cine: on('#cine'), ship: on('#shipcine'), pro: on('#procine'), checkout: on('#checkout'), review: on('#review'), cert: on('#cert'), paying: !!$('#co-pay')?.disabled });
+    const a = backAction(current(), { cine: on('#cine'), ship: on('#shipcine'), pro: on('#procine'), checkout: on('#checkout'), review: on('#review'), cert: on('#cert'), confirm: on('#confirm'), paying: !!$('#co-pay')?.disabled });
     if (a.type === 'leave') { history.back(); return; }
     mark();
     if (a.type === 'click') $(a.sel)?.click();
