@@ -11,8 +11,8 @@ export const NAME_MIN = 2, NAME_MAX = 40;
 export const NAME_PLACEHOLDER = 'Your Name';
 export const themeOf = lang => CERT_THEMES[lang] || CERT_DEFAULT;
 
-// Complete = every playable level of the course is done (free vaults count via `done`, Pro levels via stars).
-// The last of them is the "final challenge"; when the Boss level ships it is required automatically.
+// Complete = every level of the course is done (FREE nodes count via `done`, PRO levels via stars). Levels
+// unlock in order (learn/unlock.js), so the last one, the Final Boss, is what completes a course.
 export function courseComplete(st, lang) {
   const L = LANGS[lang];
   if (!L || !st || !L.levels.length) return false;
@@ -46,11 +46,12 @@ export function formatDate(iso) {
 }
 
 const join = a => a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`;
-// "for completing the full Python course “The Foundations”, covering Variables, …, as well as the project Guess the Number."
+// "for completing the full Python course “The Foundations”, covering …, as well as the project Guess the Number
+// and the boss challenges Count Completed Tasks and Weather CLI." ("Mini Boss:" and "Boss:" are both boss challenges.)
 export function courseLine(lang, topics = []) {
   const L = LANGS[lang] || { name: lang, world: '' };
   const strip = re => topics.filter(t => re.test(t)).map(t => t.replace(re, ''));
-  const projects = strip(/^Project:\s*/), bosses = strip(/^Boss:\s*/), concepts = topics.filter(t => !/^(Project|Boss):/.test(t));
+  const projects = strip(/^Project:\s*/), bosses = strip(/^(?:Mini )?Boss:\s*/), concepts = topics.filter(t => !/^(?:Project|(?:Mini )?Boss):/.test(t));
   let s = `for completing the full ${L.name} course${L.world ? ` “${L.world}”` : ''}`;
   if (concepts.length) s += `, covering ${join(concepts)}`;
   if (projects.length) s += `${concepts.length ? ', as well as' : ', including'} the project${projects.length > 1 ? 's' : ''} ${join(projects)}`;

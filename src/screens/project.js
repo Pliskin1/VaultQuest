@@ -421,7 +421,9 @@ async function winBoss(a, done) {
   endAttempt(a);
   await playVaultCinematic({ kick: 'FINAL BOSS DEFEATED · WORLD 1', title: 'WORLD 1 MASTERED', stars, bonus: PJ.gained, prevXp, lvBefore: lvlOf(prevXp), mistakes: 3 - h, first: false, actions: { next: 'BACK TO THE MAP', pro: true } });
   PJ.shipping = false; done();
-  stopRuns(); updHud(); Mentor.use('lv'); openMapAt(i);
+  stopRuns(); updHud(); Mentor.use('lv');
+  await maybeCertificate(S.lang); // the Final Boss completes the course → full name prompt + certificate
+  openMapAt(i);
 }
 
 // ── hints and questions (free) ──

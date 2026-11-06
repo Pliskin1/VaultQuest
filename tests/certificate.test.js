@@ -62,7 +62,7 @@ test('complete: only when every playable level is done, the last one (the final 
   }
 });
 
-test('complete: Pro levels can be finished in any order; progress in the other course does not count', () => {
+test('complete: progress in the other course does not count; FREE nodes count only via `done`', () => {
   const st = progress('js', LANGS.js.levels.length);
   assert.equal(courseComplete(st, 'js'), true);
   assert.equal(courseComplete(st, 'py'), false);
@@ -79,21 +79,21 @@ test('complete: damaged or missing data is "not complete", never a crash', () =>
 });
 
 test('topics: the names of the course levels, in map order', () => {
-  assert.deepEqual(courseTopics('py'), ['Variables', 'Data types', 'Conditions', 'Functions', 'Loops & Lists', 'Project: Guess the Number']);
+  assert.deepEqual(courseTopics('py'), ['Create Your First Task', 'Organize Your Tasks', 'Make Things Work', 'Check Task Status', 'Mini Boss: Count Completed Tasks', 'Loops & Lists', 'Project: Guess the Number', 'Boss: Weather CLI']);
   assert.equal(courseTopics('js').length, LANGS.js.levels.length);
   assert.deepEqual(courseTopics('nope'), []);
 });
 
 // --- wording --------------------------------------------------------------------------------------------
 
-test('wording: course, topics and project in one sentence, like the reference certificate', () => {
+test('wording: course, topics, project and boss challenges (Mini Boss included) in one sentence, like the reference certificate', () => {
   assert.equal(courseLine('py', courseTopics('py')),
-    'for completing the full Python course “The Foundations”, covering Variables, Data types, Conditions, Functions and Loops & Lists, as well as the project Guess the Number.');
+    'for completing the full Python course “The Foundations”, covering Create Your First Task, Organize Your Tasks, Make Things Work, Check Task Status and Loops & Lists, as well as the project Guess the Number and the boss challenges Count Completed Tasks and Weather CLI.');
   assert.equal(courseLine('js', courseTopics('js')),
-    'for completing the full JavaScript course “Web Basics”, covering Variables, Types, Conditions, Functions and Arrays & Loops, as well as the project To-Do App.');
+    'for completing the full JavaScript course “Web Basics”, covering Create Your First Task, Organize Your Tasks, Make Things Work, Check Task Status and Arrays & Loops, as well as the project To-Do App and the boss challenges Count Completed Tasks and Weather App.');
 });
 
-test('wording: more projects and a boss level read naturally (ready for levels 7 and 8)', () => {
+test('wording: several projects and a single boss challenge read naturally', () => {
   const t = ['Variables', 'Loops', 'Project: To-Do App', 'Project: Pomodoro Timer', 'Boss: Weather App'];
   assert.equal(courseLine('js', t), 'for completing the full JavaScript course “Web Basics”, covering Variables and Loops, as well as the projects To-Do App and Pomodoro Timer and the boss challenge Weather App.');
   assert.equal(courseLine('py', ['Variables']), 'for completing the full Python course “The Foundations”, covering Variables.');
@@ -152,7 +152,7 @@ test('certificate: title, course, full name, wording with every topic, date and 
   assert.equal(t('ct-name'), 'Ana-Marija Petrović');
   assert.equal(t('ct-date'), 'November 5, 2026');
   const line = t('ct-for');
-  for (const topic of SAMPLE.topics) assert.ok(line.includes(topic.replace(/^Project: /, '')), topic);
+  for (const topic of SAMPLE.topics) assert.ok(line.includes(topic.replace(/^(?:Project|(?:Mini )?Boss):\s*/, '')), topic);
   assert.match(t('ct-sign'), /VAULT AI/);
   assert.equal(byClass(root, 'ct-name').attrs.style, 'font-size:7.6cqw');
 });
@@ -227,6 +227,15 @@ test('CSS: every class the certificate uses is styled, the stylesheet is loaded,
   assert.match(cc, /@page\{size:A4 landscape;margin:0\}/);
   assert.match(cc, /body\.cert-print>:not\(#cert\)\{display:none!important\}/);
   assert.match(cc, /\.cert\{[^}]*container-type:inline-size/);
+});
+
+test('flow: every finish that can complete a course offers the certificate before leaving the screen, the Final Boss included', () => {
+  const body = (file, fn) => { const m = read(file).match(new RegExp(`async function ${fn}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`)); assert.ok(m, `${fn}() in ${file}`); return m[0]; };
+  for (const [file, fn, leave] of [['src/screens/level.js', 'levelDone', "go('s-map')"], ['src/screens/project.js', 'submit', 'openProfile()'], ['src/screens/project.js', 'winBoss', 'openMapAt(i)']]) {
+    const b = body(file, fn), at = b.indexOf('await maybeCertificate(S.lang)');
+    assert.ok(at > 0, `${fn}() offers the certificate`);
+    assert.ok(at < b.lastIndexOf(leave), `${fn}() offers it before ${leave}`);
+  }
 });
 
 test('privacy: the full name stays on this device (no module that talks to the server reads it)', () => {
