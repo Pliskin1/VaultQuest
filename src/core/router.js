@@ -1,13 +1,15 @@
-// Screen switching with the prototype's fade/scale transition.
+// Screen switching with the prototype's fade/scale transition. Transitions run one after another: a second
+// go() while one is still fading (a quick click on Back, a reply finishing) waits for it, so two screens can
+// never end up shown at once.
 import { $ } from './dom.js';
 import { anim, EASE } from './anim.js';
 import { FX } from './fx.js';
 
-let cur = 's-title';
+let cur = 's-title', chain = Promise.resolve();
 export const current = () => cur;
 export const setScreen = id => { cur = id; };
 
-export async function go(id) {
+async function swap(id) {
   const a = $('#' + cur), b = $('#' + id);
   if (a === b) return;
   await anim(a, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(1.03)' }], { duration: 320, easing: EASE.in });
@@ -16,4 +18,8 @@ export async function go(id) {
   FX.bgOn = id === 's-title' || id === 's-lang' || id === 's-login';
   await anim(b, [{ opacity: 0, transform: 'scale(.97)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: EASE.out });
   b.getAnimations().forEach(x => x.cancel());
+}
+export function go(id) {
+  chain = chain.catch(() => {}).then(() => swap(id));
+  return chain;
 }

@@ -9,7 +9,7 @@ import {
   courseComplete, courseTopics, courseLine, cleanName, nameSize, formatDate, localDay, certificateHTML, themeOf,
   NAME_MAX, NAME_PLACEHOLDER
 } from '../src/ui/certificate-view.js';
-import { LANGS, FREE } from '../src/content/languages.js';
+import { LANGS } from '../src/content/languages.js';
 import { CERT_THEMES, CERT_DEFAULT } from '../src/content/certificates.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -20,7 +20,7 @@ function progress(lang, upTo, skip = []) {
   const st = { done: { py: 0, js: 0 }, stars: {} };
   for (let i = 0; i < upTo; i++) {
     if (skip.includes(i)) continue;
-    if (i < FREE) st.done[lang] = i + 1;
+    if (i < LANGS[lang].free) st.done[lang] = i + 1;
     st.stars[lang + i] = 2;
   }
   return st;
@@ -52,13 +52,13 @@ const SAMPLE = { name: 'Ana-Marija Petrović', lang: 'py', date: '2026-11-05', t
 
 test('complete: only when every playable level is done, the last one (the final challenge) included', () => {
   for (const lang of Object.keys(LANGS)) {
-    const n = LANGS[lang].levels.length;
-    assert.ok(n > FREE, `${lang} has Pro levels`);
+    const n = LANGS[lang].levels.length, free = LANGS[lang].free;
+    assert.ok(n > free, `${lang} has Pro levels`);
     assert.equal(courseComplete(progress(lang, 0), lang), false, 'nothing done');
-    assert.equal(courseComplete(progress(lang, FREE), lang), false, 'free vaults only');
+    assert.equal(courseComplete(progress(lang, free), lang), false, 'free vaults only');
     assert.equal(courseComplete(progress(lang, n - 1), lang), false, 'all but the final challenge');
     assert.equal(courseComplete(progress(lang, n), lang), true, 'everything done');
-    assert.equal(courseComplete(progress(lang, n, [FREE]), lang), false, 'a Pro level skipped');
+    assert.equal(courseComplete(progress(lang, n, [free]), lang), false, 'a Pro level skipped');
   }
 });
 

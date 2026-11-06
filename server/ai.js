@@ -29,15 +29,19 @@ export function mentor(b) {
     c.type && `challenge type: ${s(c.type, 10)}`, c.q && `task: ${s(c.q, 500)}`, c.code && `code:\n${s(c.code)}`,
     b.answer && `learner's answer/code:\n${s(b.answer)}`, b.error && `error output:\n${s(b.error, 1000)}`,
     b.hintLevel && `hintLevel=${Number(b.hintLevel) || 1}`, b.concept && `concept: ${s(b.concept, 800)}`,
-    b.question && `learner asks: ${s(b.question, 500)}`
+    b.question && `learner asks: ${s(b.question, 500)}`, b.context && `project context:\n${s(b.context, 800)}`
   ].filter(Boolean);
   return complete(MENTOR, lines.join('\n'), 220);
 }
 
 export async function review(b) {
-  const failing = Array.isArray(b.failing) ? b.failing.slice(0, 4).map(f => `milestone ${f.milestone}: ${s(f.message, 200)}`).join('\n') : '';
-  const user = [`project: ${s(b.project, 80)} (${s(b.lang, 4)})`, `milestones: ${(b.milestones || []).map(m => s(m, 80)).join(' | ')}`, `final=${!!b.final}`, failing ? `failing tests:\n${failing}` : 'all tests pass', `code:\n${s(b.code)}`].join('\n');
+  const failing = Array.isArray(b.failing) ? b.failing.slice(0, 6).map(f => `milestone ${Number(f?.milestone) || '?'}: ${s(f?.message, 200)}${f?.expected ? ` — expected ${s(f.expected, 120)}, got ${s(f.actual, 120) || 'nothing'}` : ''}`).join('\n') : '';
+  const m = b.milestone && typeof b.milestone === 'object' ? `milestone in focus: ${Number(b.milestone.n) || '?'} "${s(b.milestone.name, 60)}" — ${s(b.milestone.goal, 160)}` : null;
+  const user = [`project: ${s(b.project, 80)} (${s(b.lang, 4)})`, `milestones: ${(Array.isArray(b.milestones) ? b.milestones : []).slice(0, 8).map(x => s(x, 80)).join(' | ')}`, m, `final=${!!b.final}`, `runs so far: ${Number(b.runs) || 0}`,
+    b.error && `error: ${s(b.error, 300)}`, failing ? `failing checks:\n${failing}` : 'all checks pass',
+    b.plan && typeof b.plan === 'object' ? `learner's Blueprint:\n${Object.entries(b.plan).slice(0, 5).map(([k, v]) => `${s(k, 20)}: ${s(v, 300)}`).join('\n')}` : null,
+    b.planHint && `planHint: ${s(b.planHint, 300)}`, `code:\n${s(b.code)}`].filter(Boolean).join('\n');
   const text = await complete(REVIEWER, user, 350);
-  const m = text.match(/Final review:\s*(\d{1,3})\s*\/\s*100/i);
-  return { text, score: m ? Math.min(100, +m[1]) : null };
+  const sc = text.match(/Final review:\s*(\d{1,3})\s*\/\s*100/i);
+  return { text, score: sc ? Math.min(100, +sc[1]) : null };
 }

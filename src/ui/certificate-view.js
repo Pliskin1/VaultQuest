@@ -4,7 +4,7 @@
 // system; text sizes are in cqw (the paper is a size container), so the same markup works as a full-size
 // certificate, a profile thumbnail and a printed A4 page.
 import { esc } from '../core/md.js';
-import { LANGS, FREE } from '../content/languages.js';
+import { LANGS } from '../content/languages.js';
 import { CERT_THEMES, CERT_DEFAULT, CERT_SIGNER } from '../content/certificates.js';
 
 export const NAME_MIN = 2, NAME_MAX = 40;
@@ -17,7 +17,7 @@ export function courseComplete(st, lang) {
   const L = LANGS[lang];
   if (!L || !st || !L.levels.length) return false;
   const done = (st.done && st.done[lang]) || 0, stars = st.stars || {};
-  return L.levels.every((_, i) => i < FREE ? i < done : !!stars[lang + i]);
+  return L.levels.every((_, i) => i < L.free ? i < done : !!stars[lang + i]);
 }
 
 // Names of the levels the certificate lists (all playable levels of the course, in map order).

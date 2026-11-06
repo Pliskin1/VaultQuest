@@ -1,0 +1,31 @@
+/* Syntax Recovery — teal = recovery/mentor, coral = hearts. Reuses .lhud, .card, .opt, .codeblk from level.css. */
+.rc-segs i.on{background:var(--cyan)}.rc-segs i.now{background:#2A7F74}
+.rc-body{flex:1;display:flex;min-height:0}
+.rc-why{width:340px;flex:none;display:flex;flex-direction:column;gap:12px;padding:28px 24px;background:var(--bg2);border-right:1px solid #161B27;overflow-y:auto}
+.rc-why h3{margin:0;font-family:var(--disp);font-weight:600;font-size:24px}
+.rc-why p{margin:0;color:var(--tx2);font-size:15px;line-height:1.55}
+.rc-why ul{margin:0;padding-left:18px;color:var(--tx);font-size:15px;line-height:1.7}
+.rc-why .kicker{margin-top:6px}
+.rc-rule{margin-top:auto;padding:14px 16px;border-radius:12px;border:1px solid rgba(79,216,196,.35);background:rgba(79,216,196,.07);color:var(--tx2);font-size:14px;line-height:1.5}
+.rc-rule b{color:var(--cyan)}
+.rc-card .kicker{color:var(--cyan)}
+.rc-card .opt:disabled{cursor:default;transform:none}
+.rc-card .opt.bad:disabled{opacity:.7}
+.rc-fill{width:9ch}
+.rc-fb:empty{display:none}
+.rc-fb{display:flex;flex-direction:column;gap:12px;padding:14px 16px;border-radius:14px;font-size:15px;line-height:1.55;color:var(--tx2)}
+.rc-fb p{margin:0}
+.rc-fb b{color:var(--tx)}
+#s-recovery .l-main{overflow-y:auto;align-items:safe center} /* a long explanation scrolls instead of clipping the card */
+.rc-fb.bad{border:1px solid rgba(255,155,122,.45);background:rgba(255,155,122,.07)}
+.rc-fb.bad b{color:var(--coral)}
+.rc-fb.ok{border:1px solid rgba(79,216,196,.45);background:rgba(79,216,196,.07)}
+.rc-fb.ok b{color:var(--cyan)}
+.rc-big{display:flex;gap:14px}
+.rc-big .heart{width:44px;height:40px}
+.rc-sub{margin:0;color:var(--tx2);font-size:15px}
+@media (max-width:900px){
+  .rc-body{flex-direction:column;flex:none}
+  .rc-why{width:100%;border-right:0;border-bottom:1px solid #161B27;padding:18px 16px}
+  .rc-rule{margin-top:6px}
+}

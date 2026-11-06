@@ -54,3 +54,7 @@
   .l-cards{grid-template-columns:1fr}
   .logo{font-size:40px}
 }
+/* Phones: long code lines wrap (the highlight layer and the textarea wrap identically, so they stay aligned). */
+@media (max-width:900px){
+  .ed pre,.ed textarea{white-space:pre-wrap;overflow-wrap:anywhere}
+}
