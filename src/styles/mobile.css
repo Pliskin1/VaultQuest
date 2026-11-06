@@ -21,6 +21,8 @@
   .m-panel > div:first-child{flex-basis:100%}
   .lhud{flex-wrap:wrap;gap:10px;padding:10px 12px}
   .lhud .xpw{display:none}.segs{margin-left:0}
+  #s-level .lhud > *{order:2}#s-level .lhud > #lv-back,#s-level .lhud > .ltitle{order:0}
+  #s-level .lhud .lv-gopro{order:1;margin-left:auto} /* GO PRO on the title row, not a row of its own */
   .l-body{flex-direction:column;flex:none}
   .l-main{padding:14px;overflow:visible}
   .card{padding:18px;gap:14px}.card h3{font-size:21px}.card .row{flex-wrap:wrap}

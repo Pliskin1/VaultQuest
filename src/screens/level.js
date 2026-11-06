@@ -20,7 +20,7 @@ import { Mentor } from '../ui/mentor.js';
 import { LANGS, freeOf } from '../content/languages.js';
 import { playVaultCinematic } from '../cine/vault.js';
 import { openMap, openMapAt, renderMap, setSel, rewindForTravel, travel } from './map.js';
-import { canEnter, nextStep, roles } from '../learn/unlock.js';
+import { canEnter, nextStep, roles, afterMiniBoss } from '../learn/unlock.js';
 import { openRecovery } from './recovery.js';
 import { openPro } from './pro.js';
 import { startProject } from './project.js';
@@ -374,10 +374,13 @@ async function levelDone() {
   if (!wasDone && i < free) S.done[S.lang] = i + 1;
   save(); fetchBoard();
   // WORLD 1 CLEARED (the Mini Boss is the last FREE node): the next step is PRO — the upgrade for FREE
-  // students, the project for PRO students — or back to the map.
-  const proVault = roles(LANGS[S.lang]).proVault;
+  // students, the PRO Vault for PRO students (also those who bought PRO before the Mini Boss: no second offer) —
+  // or back to the map.
+  const offer = afterMiniBoss(S, LANGS[S.lang]), proVault = offer.to, v = `PRO Vault 0${proVault + 1}`;
   const choice = await playVaultCinematic({ kick: boss ? 'MINI BOSS DEFEATED · WORLD 1' : `VAULT 0${i + 1} CRACKED`, title: boss ? 'WORLD 1 CLEARED' : 'UNLOCKED', stars, bonus, prevXp, lvBefore: lvlOf(prevXp), mistakes: G.mistakes, first: i === 0,
-    actions: boss ? { next: S.pro ? `NEXT: PRO VAULT 0${proVault + 1}` : 'UNLOCK PRO', pro: true, alt: 'BACK TO THE MAP' } : null });
+    actions: boss ? offer.kind === 'continue'
+      ? { next: `NEXT: ${v.toUpperCase()}`, pro: true, alt: 'BACK TO THE MAP', note: `You're PRO — ${v} is open. Your Mini Boss win and XP are saved.` }
+      : { next: 'UNLOCK PRO', pro: true, alt: 'BACK TO THE MAP', note: `PRO unlocks the next part of World 1, starting with ${v}. Your Mini Boss win and XP are saved either way.` } : null });
   if (boss) award('boss');
   if (G.mistakes === 0) award('clean');
   if (G.hints === 0) award('hintfree');
@@ -385,7 +388,7 @@ async function levelDone() {
   save();
   await maybeCertificate(S.lang); // offered once, by whichever finish completes the course (normally the Final Boss: project.js winBoss)
   // After World 1: the next step is the PRO Vault — on the map for PRO students, the checkout for FREE ones.
-  if (boss && choice === 'next') { if (!S.pro) return openPro(); setSel(proVault); renderMap(); await go('s-map'); return; } // rendered first: no stale map during the fade
+  if (boss && choice === 'next') { if (offer.kind === 'upgrade' && !S.pro) return openPro(); setSel(proVault); renderMap(); await go('s-map'); return; } // rendered first: no stale map during the fade
   // A PRO step done: the map highlights the next one (PRO Vault → Project → Final Boss).
   setSel(i >= free ? nextStep(S, S.lang, LANGS[S.lang]) : i); await go('s-map'); renderMap();
   if (!wasDone && i + 1 < free && rewindForTravel(i)) { await wait(500); await travel(i); }
@@ -418,5 +421,12 @@ export function mount() {
   };
   $('#btn-explain').onclick = () => Mentor.ask('explain', { lang: S.lang, concept: lvl().concept, challenge: aiChal(chal()) }, lvl().concept, { label: 'CONCEPT' });
   $('#lv-back').onclick = leaveLevel;
+  // GO PRO (FREE students, any vault): leaves the vault the way Back does (saved), and comes back to it after the
+  // checkout — bought or not. Buying never changes the vault's progress.
+  $('#lv-pro').onclick = () => {
+    if (S.pro) return;
+    const i = G.li, resume = () => startLevel(i);
+    flushDraft(); endAttempt(A); Mentor.cancel(); openPro({ next: resume, back: resume });
+  };
   addEventListener('pagehide', flushDraft); // keep half-typed code across a refresh
 }

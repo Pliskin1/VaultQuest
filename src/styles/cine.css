@@ -26,6 +26,7 @@
 .c-title{font-family:var(--disp);font-weight:700;font-size:92px;line-height:1;letter-spacing:.04em;text-shadow:0 0 50px rgba(242,181,68,.35)}
 .c-title span{display:inline-block}
 .c-title .cw{white-space:nowrap}
+.c-note{max-width:520px;margin:12px auto 0;color:var(--mut);font-size:15px;line-height:1.5;text-align:center}
 .c-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px}
 .c-stars{display:flex;gap:22px;margin:8px 0}
 .c-stars svg{width:84px;height:84px}

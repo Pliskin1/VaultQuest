@@ -25,7 +25,7 @@ function buildVault() {
   $('#v-bolts').innerHTML = b; built = true;
 }
 
-// o: { kick, title, stars, bonus, prevXp, lvBefore, mistakes, first, actions?: { next, alt, pro } }
+// o: { kick, title, stars, bonus, prevXp, lvBefore, mistakes, first, actions?: { next, alt, pro, note } }
 export async function playVaultCinematic(o) {
   if (!built) buildVault();
   const cine = $('#cine'), stage = $('#c-stage'), wheel = $('#v-wheel'), res = $('#c-res');
@@ -34,6 +34,7 @@ export async function playVaultCinematic(o) {
   const nb = $('#c-next'), alt = $('#c-alt'), arrow = nb.querySelector('svg').outerHTML;
   nb.innerHTML = `${o.actions?.next ?? 'CONTINUE'} ${arrow}`; nb.classList.toggle('pro', !!o.actions?.pro);
   alt.textContent = o.actions?.alt ?? ''; alt.style.display = o.actions?.alt ? '' : 'none'; alt.style.opacity = 0;
+  const note = $('#c-note'); note.textContent = o.actions?.note ?? ''; note.hidden = !o.actions?.note; note.style.opacity = 0;
   cine.classList.add('on');
   await anim(cine, [{ opacity: 0 }, { opacity: 1 }], { duration: 500, fill: 'none' });
   // 1. vault flies in
@@ -103,7 +104,7 @@ export async function playVaultCinematic(o) {
   if (L1 > L0) { const u = $('#c-lvup'); anim(u, [{ opacity: 0, transform: 'scale(2.4)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 450, easing: EASE.back }); const p = ctr(u); FX.spark(p.x, p.y, 40, '#4FD8C4', .7); FX.ring(p.x, p.y, 140, '#4FD8C4', 3); }
   updHud(); if (o.first) award('first');
   await wait(600);
-  [nb, alt].forEach((b, k) => anim(b, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: k * 120, easing: EASE.out }));
+  [note, nb, alt].forEach((b, k) => anim(b, [{ opacity: 0, transform: 'translateY(14px)' }, { opacity: 1, transform: 'none' }], { duration: 500, delay: k * 120, easing: EASE.out }));
   FX.ember(innerWidth / 2, innerHeight * .75, 40); nb.focus();
   const choice = await new Promise(r => { nb.onclick = () => r('next'); alt.onclick = () => r('alt'); });
   await anim(cine, [{ opacity: 1 }, { opacity: 0 }], { duration: 450 });
