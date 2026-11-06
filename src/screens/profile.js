@@ -109,8 +109,9 @@ export function openProfile() {
     const yes = await openConfirm({ kicker: 'Danger zone', title: 'Reset all progress?', body: resetBody(S, lvlOf(S.xp)), ok: 'RESET PROGRESS', cancel: 'KEEP MY PROGRESS', danger: true });
     if (yes) { resetState(); location.reload(); }
   };
-  return go('s-profile').then(() => {
-    $$('.badge').forEach((b, k) => anim(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: b.classList.contains('off') ? .45 : 1, transform: 'none' }], { duration: 500, delay: k * 60, easing: EASE.back, fill: 'none' }));
+  // Badges pop in with the screen's fade-in; fill 'backwards' keeps each one hidden until its turn.
+  const enter = () => $$('.badge').forEach((b, k) => anim(b, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: b.classList.contains('off') ? .45 : 1, transform: 'none' }], { duration: 500, delay: k * 60, easing: EASE.back, fill: 'backwards' }));
+  return go('s-profile', enter).then(() => {
     $$('.badge.new').forEach((b, k) => wait(700 + k * 200).then(() => { const p = ctr(b); FX.spark(p.x, p.y, 24, null, .6); FX.ring(p.x, p.y, 90, '#F2B544', 3); }));
     S.fresh = []; save();
   });

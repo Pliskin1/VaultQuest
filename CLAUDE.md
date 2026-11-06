@@ -32,7 +32,7 @@ server/    index ai prompts fallback board(scores → server/data/leaderboard.js
 ```
 
 ## Conventions
-- Screens export `mount()` (bind handlers) and `openX()/startX()`; router `go(id)` fades like the prototype.
+- Screens export `mount()` (bind handlers) and `openX()/startX()`; router `go(id)` fades like the prototype. A screen's entrance animations go in `go(id, enter)` (they start with the fade-in), never in `go(id).then(...)`, which replays content the fade already showed.
 - Animation timing via `core/clock.js` `wait(ms)` (frame-driven). Network timeouts use real `setTimeout`.
 - Colors from CSS variables in `tokens.css`.
 - Scrollable areas get class `scroll` (themed scrollbar, `base.css`); page scrollers are full-width with a centred inner column so the bar sits at the window edge.

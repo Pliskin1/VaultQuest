@@ -16,17 +16,16 @@ export function openLogin() {
   $('#lg-prof').innerHTML = list.length ? list.map(p => `<button class="lg-chip ${p.pro ? 'pro' : ''}" data-name="${esc(p.name)}" aria-label="Continue as ${esc(p.name)}"><i>${esc(p.name.slice(0, 2).toUpperCase())}</i><b>${esc(p.name)}</b><span>LVL ${lvlOf(p.xp || 0)} · ${p.xp || 0} XP</span></button>`).join('') : '';
   $$('.lg-chip').forEach(b => b.onclick = () => unlock(b.dataset.name));
   $('#lg-err').textContent = ''; $('#lg-in').value = '';
-  return go('s-login').then(() => {
-    $('#lg-in').focus();
-    $$('#s-login .lg-wrap > *').forEach((el, k) => anim(el, [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: k * 80, easing: EASE.out, fill: 'backwards' }));
-  });
+  const enter = () => $$('#s-login .lg-wrap > *').forEach((el, k) => anim(el, [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: k * 80, easing: EASE.out, fill: 'backwards' }));
+  return go('s-login', enter).then(() => $('#lg-in').focus());
 }
 
 // After login: returning players (XP, cracked vaults or an unfinished vault) go straight to their map,
 // new players pick a language.
-export const enterGame = () => S.xp > 0 || S.done.py || S.done.js || Object.keys(S.attempts ?? {}).length ? openMap() : go('s-lang').then(flipCards);
+export const enterGame = () => S.xp > 0 || S.done.py || S.done.js || Object.keys(S.attempts ?? {}).length ? openMap() : go('s-lang', flipCards);
+// fill 'backwards': each card stays hidden until its turn instead of showing, then blinking out to animate in.
 export function flipCards() {
-  $$('.lcard').forEach((c, i) => anim(c, [{ opacity: 0, transform: 'translateY(40px) rotateX(-20deg)' }, { opacity: c.classList.contains('locked') ? .55 : 1, transform: 'none' }], { duration: 700, delay: i * 90, easing: EASE.out, fill: 'none' }));
+  $$('.lcard').forEach((c, i) => anim(c, [{ opacity: 0, transform: 'translateY(40px) rotateX(-20deg)' }, { opacity: c.classList.contains('locked') ? .55 : 1, transform: 'none' }], { duration: 700, delay: i * 90, easing: EASE.out, fill: 'backwards' }));
 }
 
 function reject(msg) {

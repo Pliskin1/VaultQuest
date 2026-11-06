@@ -25,7 +25,7 @@ export function openPro({ next: then = null } = {}) {
   cta.textContent = ok ? cta.dataset.label : 'BEAT THE MINI BOSS TO UNLOCK PRO';
   updHud();
   renderTestimonials();
-  go('s-pro').then(() => {
+  go('s-pro', () => {
     $$('.feats li').forEach((li, k) => anim(li, [{ opacity: 0, transform: 'translateX(-24px)' }, { opacity: 1, transform: 'none' }], { duration: 550, delay: k * 100, easing: EASE.out, fill: 'backwards' }));
     anim($('.pro-right'), [{ opacity: 0, transform: 'translateY(24px)' }, { opacity: 1, transform: 'none' }], { duration: 650, delay: 250, easing: EASE.out, fill: 'backwards' });
   });
