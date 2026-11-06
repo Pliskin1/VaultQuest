@@ -1,0 +1,41 @@
+/* Confirmation dialog (ui/confirm.js), the app's replacement for window.confirm(). Same frame as the review
+   dialog; .danger tints it coral, and hovering or focusing the danger button strikes out what would be lost. */
+#confirm{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(3,4,8,.75);backdrop-filter:blur(4px)}
+#confirm.on{display:flex}
+.cf{width:480px;max-height:calc(100vh - 32px);overflow-y:auto;box-sizing:border-box;padding:26px;border-radius:20px;background:var(--s1);border:1px solid var(--ln2);display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 100px -30px #000}
+.cf.danger{border-color:rgba(255,155,122,.35);box-shadow:0 40px 100px -30px #000,0 0 80px -40px rgba(255,155,122,.5)}
+.cf-head{display:flex;align-items:flex-start;gap:14px}
+.cf-head>div{flex:1;min-width:0}
+.cf-head h3{margin:6px 0 0;font-family:var(--disp);font-size:26px;line-height:1.15}
+.cf-ic{display:none;flex:none;width:52px;height:52px}
+.cf.danger .cf-ic{display:block}
+.cf-ic svg{display:block;width:100%;height:100%;overflow:visible}
+.cf-ic .hex{fill:var(--s3);stroke:var(--coral)}
+.cf-ic .mark{stroke:var(--coral)}
+.cf.danger #cf-kick{color:var(--coral)}
+
+.cf-body{display:flex;flex-direction:column;gap:14px}
+.cf-p{margin:0;font-size:15px;line-height:1.55;color:var(--tx2)}
+.cf-p b{color:var(--tx)}
+.cf-none{padding:14px;border-radius:12px;background:var(--s2);border:1px dashed var(--ln2);color:var(--mut)}
+.cf-loss{display:grid;grid-template-columns:repeat(auto-fill,minmax(122px,1fr));gap:10px}
+.cf-l{padding:12px 14px;border-radius:12px;background:var(--s2);border:1px solid #1E2433;transition:border-color .2s,background .2s}
+.cf-l strong{display:block;font-family:var(--disp);font-size:24px;line-height:1.2;transition:color .2s}
+.cf-l span{font-size:12px;color:var(--mut)}
+.cf-keep{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut2)}
+
+.cf-acts{display:flex;gap:10px;margin-top:4px}
+.cf-acts .btn{flex:1;justify-content:center;min-height:48px;padding:0 16px;font-size:15px}
+.cf.danger #cf-ok{background:rgba(255,155,122,.08);border:1px solid rgba(255,155,122,.6);color:var(--coral);transition:background .2s,color .2s,box-shadow .2s}
+.cf.danger #cf-ok:hover,.cf.danger #cf-ok:focus-visible{background:var(--coral);color:#07090F;filter:none;box-shadow:0 0 24px -6px rgba(255,155,122,.7)}
+.cf.danger #cf-ok:focus-visible{outline-color:var(--coral)}
+/* about to press RESET: what would be lost is struck out */
+.cf.danger:has(#cf-ok:hover,#cf-ok:focus-visible) .cf-l{border-color:rgba(255,155,122,.3);background:rgba(255,155,122,.05)}
+.cf.danger:has(#cf-ok:hover,#cf-ok:focus-visible) .cf-l strong{color:var(--mut2)!important;text-decoration:line-through 2px var(--coral)}
+
+@media (max-width:900px){
+  .cf{width:calc(100vw - 32px);padding:20px}
+  .cf-head h3{font-size:22px}
+  .cf-acts{flex-direction:column}
+}
+@media (prefers-reduced-motion:reduce){.cf-l,.cf-l strong,.cf.danger #cf-ok{transition:none}}
